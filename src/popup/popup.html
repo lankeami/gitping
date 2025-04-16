@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitPing</title>
+    <style>
+        .hidden {
+            display: none !important;
+        }
+        #login-button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            display: inline-block;
+            vertical-align: middle;
+        }
+        #reset-button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: red;
+            display: inline-block;
+            vertical-align: middle;
+        }
+        #app-icon {
+            display: inline-block;
+            vertical-align: middle;
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            position: relative;
+        }
+        .badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background-color: red;
+            color: white;
+            font-size: 10px;
+            font-weight: bold;
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .pr-card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 10px;
+            margin: 10px 0;
+            background-color: #f9f9f9;
+            cursor: pointer;
+            transition: box-shadow 0.2s ease;
+            width: 100%; /* Make the card span the full width */
+            box-sizing: border-box; /* Include padding and border in width */
+        }
+        .pr-card:hover {
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .pr-highbrow {
+            font-size: 14px;
+            font-weight: bold;
+            color: #555;
+            margin-bottom: 5px;
+        }
+        .pr-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        .pr-subtitle {
+            font-size: 14px;
+            color: #777;
+            margin-bottom: 5px;
+        }
+        .pr-footnote {
+            font-size: 12px;
+            color: #999;
+        }
+        #pull-requests-list {
+            padding: 0;
+            margin: 0;
+            list-style: none; /* Remove default list styling */
+        }
+        body {
+            position: relative;
+            width: 200px; /* Set the desired width of the popup */
+            margin: 0; /* Remove default margin */
+            padding: 10px; /* Optional padding */
+            box-sizing: border-box; /* Include padding and border in the width */
+        }
+        .icon-container {
+            display: flex;
+            justify-content: space-between; /* Space between left and right sections */
+            align-items: center;
+            width: 100%; /* Ensure it spans the full width of the popup */
+            margin-bottom: 10px;
+        }
+        .left-icons {
+            display: flex;
+            gap: 10px; /* Add spacing between the refresh and trashcan icons */
+        }
+        .footnote {
+            font-size: 12px;
+            color: #888;
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        #credentials {
+            display: flex;
+            flex-direction: column;
+            gap: 10px; /* Add spacing between inputs and the button */
+            margin-top: 20px; /* Add some spacing from the top */
+        }
+
+        #credentials input {
+            padding: 8px;
+            font-size: 14px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        #login-button {
+            padding: 10px;
+            font-size: 14px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        #login-button:hover {
+            background-color: #0056b3;
+        }
+
+        #header-section {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        #header-section h1 {
+            font-size: 20px;
+            margin: 0;
+            color: #333;
+        }
+
+        #header-section p {
+            font-size: 14px;
+            margin: 5px 0 0;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div id="header-section">
+        <h1>GitPing</h1>
+        <p>Get pinged for pull requests that need your review</p>
+    </div>
+    <div id="icon-container" class="icon-container hidden">
+        <div class="left-icons">
+            <button id="refresh-button">
+                <img src="./images/refresh-icon.png" alt="Refresh" width="20" height="20">
+            </button>
+            <button id="reset-button">
+                <img src="./images/trashcan-icon.png" alt="Reset" width="20" height="20">
+            </button>
+        </div>
+        <div id="app-icon-container">
+            <img id="app-icon" src="./images/app-icon.png" alt="App Icon">
+        </div>
+    </div>
+    <div id="credentials">
+        <input type="text" id="username" placeholder="GitHub Username">
+        <input type="password" id="token" placeholder="GitHub Token">
+        <button id="login-button">
+            Login
+        </button>
+    </div>
+    <ul id="pull-requests-list"></ul>
+    <div id="last-update-time" class="footnote"></div>
+    <script src="popup.js"></script>
+</body>
+</html>
