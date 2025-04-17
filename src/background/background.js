@@ -106,6 +106,8 @@ async function checkForUpdates() {
 
                 // Store the current timestamp as the last update time
                 chrome.storage.local.set({ lastUpdateTime: new Date().toISOString() });
+                // Clear the Last Error
+                chrome.storage.local.set({ lastError: "" });
             });
         }
     } catch (error) {
