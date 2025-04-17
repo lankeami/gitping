@@ -85,6 +85,29 @@ async function fetchAndFilterPullRequests(username, token) {
     }
 }
 
+// Function to trigger a push notification using chrome.notifications API
+function triggerPushNotification(newPRCount) {
+    const notificationOptions = {
+        type: 'basic',
+        iconUrl: '/icons/icon48.png', // Replace with the path to your extension's icon
+        title: 'New Pull Requests',
+        message: `You have ${newPRCount} new pull requests to review.`,
+        priority: 2
+    };
+
+    chrome.notifications.create('newPullRequests', notificationOptions, (notificationId) => {
+        console.log('Notification shown with ID:', notificationId);
+    });
+
+    // Optional: Add a click event listener for the notification
+    chrome.notifications.onClicked.addListener((notificationId) => {
+        if (notificationId === 'newPullRequests') {
+            chrome.notifications.clear(notificationId); // Clear the notification
+            window.open('https://github.com/pulls/review-requested', '_blank'); // Open the GitHub page
+        }
+    });
+}
+
 async function checkForUpdates() {
     try {
         const token = await getAuthToken();
@@ -107,6 +130,9 @@ async function checkForUpdates() {
                     console.log('Pull requests have changed. Updating storage...');
                     chrome.storage.local.set({ pullRequests: pullRequests });
                     updateExtensionBadge(pullRequests.length);
+
+                    // Trigger a push notification for new pull requests
+                    triggerPushNotification(pullRequests.length);
                 }
 
                 // Store the current timestamp as the last update time
