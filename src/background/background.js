@@ -18,68 +18,99 @@ async function getUsername() {
 }
 
 async function fetchAndFilterPullRequests(username, token) {
-    const orgsURL = `${GITHUB_API_URL}/user/orgs`;
-    const orgsResponse = await fetch(orgsURL, {
-        headers: {
-            'Authorization': `token ${token}`
-        }
-    });
-    const orgs = await orgsResponse.json();
-
-    const allPullRequests = [];
-
-    for (const org of orgs) {
-        const reposURL = `${GITHUB_API_URL}/orgs/${org.login}/repos?type=all&per_page=100`;
-        const reposResponse = await fetch(reposURL, {
+    // TODO - pageinate all Github requests
+    try {
+        const orgsURL = `${GITHUB_API_URL}/user/orgs?per_page=100&page=1`;
+        const orgsResponse = await fetch(orgsURL, {
             headers: {
-                'Authorization': `token ${token}`
-            }
+                Authorization: `token ${token}`,
+            },
         });
-        const repos = await reposResponse.json();
 
-        for (const repo of repos) {
-            const prsURL = `${GITHUB_API_URL}/repos/${org.login}/${repo.name}/pulls?state=open`;
-            const prsResponse = await fetch(prsURL, {
-                headers: {
-                    'Authorization': `token ${token}`
-                }
-            });
-            const pullRequests = await prsResponse.json();
-
-            // Filter pull requests where the user is in the requested_reviewers list
-            const userRequestedPRs = pullRequests.filter(pr =>
-                pr.requested_reviewers.some(reviewer => reviewer.login === username)
-            );
-
-            allPullRequests.push(...userRequestedPRs);
+        // Check if the username and token were valid
+        if (orgsResponse.status === 401) {
+            throw new Error('Unauthorized: Invalid GitHub token');
         }
-    }
 
-    console.log('Open Pull Requests:', allPullRequests.length);
-    return allPullRequests;
+        if (!orgsResponse.ok) {
+            throw new Error(`Failed to fetch organizations: ${orgsResponse.statusText}`);
+        }
+
+        const orgs = await orgsResponse.json();
+        const allPullRequests = [];
+
+        for (const org of orgs) {
+            const reposURL = `${GITHUB_API_URL}/orgs/${org.login}/repos?type=all&per_page=100&page=1`;
+            const reposResponse = await fetch(reposURL, {
+                headers: {
+                    Authorization: `token ${token}`,
+                },
+            });
+
+            if (!reposResponse.ok) {
+                throw new Error(`Failed to fetch repositories for ${org.login}: ${reposResponse.statusText}`);
+            }
+
+            const repos = await reposResponse.json();
+
+            for (const repo of repos) {
+                const prsURL = `${GITHUB_API_URL}/repos/${org.login}/${repo.name}/pulls?state=open&per_page=100&page=1`;
+                const prsResponse = await fetch(prsURL, {
+                    headers: {
+                        Authorization: `token ${token}`,
+                    },
+                });
+
+                if (!prsResponse.ok) {
+                    throw new Error(`Failed to fetch pull requests for ${repo.name}: ${prsResponse.statusText}`);
+                }
+
+                const pullRequests = await prsResponse.json();
+
+                // Filter pull requests where the user is in the requested_reviewers list
+                const userRequestedPRs = pullRequests.filter((pr) =>
+                    pr.requested_reviewers.some((reviewer) => reviewer.login === username)
+                );
+
+                allPullRequests.push(...userRequestedPRs);
+            }
+        }
+
+        console.log('Open Pull Requests:', allPullRequests.length);
+        return allPullRequests;
+    } catch (error) {
+        console.error('Error fetching pull requests:', error.message);
+        chrome.storage.local.set({ lastError: error.message }); // Store the error message
+        return []; // Return an empty array to avoid breaking the flow
+    }
 }
 
 async function checkForUpdates() {
-    const token = await getAuthToken();
-    const username = await getUsername();
+    try {
+        const token = await getAuthToken();
+        const username = await getUsername();
 
-    if (token && username) {
-        // Fetch the latest pull requests
-        const pullRequests = await fetchAndFilterPullRequests(username, token);
+        if (token && username) {
+            // Fetch the latest pull requests
+            const pullRequests = await fetchAndFilterPullRequests(username, token);
 
-        // Get the stored pull requests
-        chrome.storage.local.get(['pullRequests'], function(result) {
-            const storedPullRequests = result.pullRequests || [];
+            // Get the stored pull requests
+            chrome.storage.local.get(['pullRequests'], function (result) {
+                const storedPullRequests = result.pullRequests || [];
 
-            if (JSON.stringify(pullRequests) !== JSON.stringify(storedPullRequests)) {
-                console.log('Pull requests have changed. Updating storage...');
-                chrome.storage.local.set({ pullRequests: pullRequests });
-                updateExtensionBadge(pullRequests.length);
-            }
+                if (JSON.stringify(pullRequests) !== JSON.stringify(storedPullRequests)) {
+                    console.log('Pull requests have changed. Updating storage...');
+                    chrome.storage.local.set({ pullRequests: pullRequests });
+                    updateExtensionBadge(pullRequests.length);
+                }
 
-            // Store the current timestamp as the last update time
-            chrome.storage.local.set({ lastUpdateTime: new Date().toISOString() });
-        });
+                // Store the current timestamp as the last update time
+                chrome.storage.local.set({ lastUpdateTime: new Date().toISOString() });
+            });
+        }
+    } catch (error) {
+        chrome.storage.local.set({ lastError: error.message }); // Store the error message
+        updateExtensionBadge(0); // Clear the badge if an error occurs
     }
 }
 
@@ -92,8 +123,6 @@ function updateExtensionBadge(count) {
     }
 }
 
-// // Periodically check for updates every minute
-// setInterval(checkForUpdates, POLLING_INTERVAL);
 // Create an alarm to trigger periodic updates
 chrome.alarms.create('checkForUpdates', { periodInMinutes: 1 });
 
