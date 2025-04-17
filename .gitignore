@@ -1,0 +1,50 @@
+# Node.js dependencies
+node_modules/
+package-lock.json
+yarn.lock
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# IDE-specific files
+.vscode/
+.idea/
+*.iml
+
+# Chrome Extension build artifacts
+dist/
+build/
+*.zip
+
+# Sensitive files
+.env
+.env.local
+.env.*.local
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+
+# Coverage reports
+coverage/
+
+# Ignore compiled JavaScript files if using TypeScript
+*.js.map
+*.d.ts
+
+# Ignore test-related files
+test-results/
+*.test.js
+*.spec.js
+*.test.ts
+*.spec.ts
+
+# Ignore any custom files or directories
+custom-folder/
