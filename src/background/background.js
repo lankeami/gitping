@@ -94,11 +94,16 @@ async function checkForUpdates() {
             // Fetch the latest pull requests
             const pullRequests = await fetchAndFilterPullRequests(username, token);
 
+            // Extract and sort the SHA values from the fetched pull requests
+            const fetchedShas = pullRequests.map(pr => pr.head.sha).sort();
+
             // Get the stored pull requests
             chrome.storage.local.get(['pullRequests'], function (result) {
                 const storedPullRequests = result.pullRequests || [];
+                const storedShas = storedPullRequests.map(pr => pr.head.sha).sort();
 
-                if (JSON.stringify(pullRequests) !== JSON.stringify(storedPullRequests)) {
+                // Compare the sorted SHA arrays
+                if (JSON.stringify(fetchedShas) !== JSON.stringify(storedShas)) {
                     console.log('Pull requests have changed. Updating storage...');
                     chrome.storage.local.set({ pullRequests: pullRequests });
                     updateExtensionBadge(pullRequests.length);
