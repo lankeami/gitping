@@ -19,84 +19,82 @@ async function getUsername() {
 
 async function fetchAndFilterPullRequests(username, token) {
     // TODO - pageinate all Github requests
-    try {
-        const orgsURL = `${GITHUB_API_URL}/user/orgs?per_page=100&page=1`;
-        const orgsResponse = await fetch(orgsURL, {
+    const orgsURL = `${GITHUB_API_URL}/user/orgs?per_page=100&page=1`;
+    const orgsResponse = await fetch(orgsURL, {
+        headers: {
+            Authorization: `token ${token}`,
+        },
+    });
+
+    // Check if the username and token were valid
+    if (orgsResponse.status === 401) {
+        throw new Error('Unauthorized: Invalid GitHub token');
+    }
+
+    if (!orgsResponse.ok) {
+        throw new Error(`Failed to fetch organizations: ${orgsResponse.statusText}`);
+    }
+
+    const orgs = await orgsResponse.json();
+    const allPullRequests = [];
+
+    for (const org of orgs) {
+        const reposURL = `${GITHUB_API_URL}/orgs/${org.login}/repos?type=all&per_page=100&page=1`;
+        const reposResponse = await fetch(reposURL, {
             headers: {
                 Authorization: `token ${token}`,
             },
         });
 
-        // Check if the username and token were valid
-        if (orgsResponse.status === 401) {
-            throw new Error('Unauthorized: Invalid GitHub token');
+        if (!reposResponse.ok) {
+            throw new Error(`Failed to fetch repositories for ${org.login}: ${reposResponse.statusText}`);
         }
 
-        if (!orgsResponse.ok) {
-            throw new Error(`Failed to fetch organizations: ${orgsResponse.statusText}`);
-        }
+        const repos = await reposResponse.json();
 
-        const orgs = await orgsResponse.json();
-        const allPullRequests = [];
-
-        for (const org of orgs) {
-            const reposURL = `${GITHUB_API_URL}/orgs/${org.login}/repos?type=all&per_page=100&page=1`;
-            const reposResponse = await fetch(reposURL, {
+        for (const repo of repos) {
+            const prsURL = `${GITHUB_API_URL}/repos/${org.login}/${repo.name}/pulls?state=open&per_page=100&page=1`;
+            const prsResponse = await fetch(prsURL, {
                 headers: {
                     Authorization: `token ${token}`,
                 },
             });
 
-            if (!reposResponse.ok) {
-                throw new Error(`Failed to fetch repositories for ${org.login}: ${reposResponse.statusText}`);
+            if (!prsResponse.ok) {
+                throw new Error(`Failed to fetch pull requests for ${repo.name}: ${prsResponse.statusText}`);
             }
 
-            const repos = await reposResponse.json();
+            const pullRequests = await prsResponse.json();
 
-            for (const repo of repos) {
-                const prsURL = `${GITHUB_API_URL}/repos/${org.login}/${repo.name}/pulls?state=open&per_page=100&page=1`;
-                const prsResponse = await fetch(prsURL, {
-                    headers: {
-                        Authorization: `token ${token}`,
-                    },
-                });
+            // Filter pull requests where the user is in the requested_reviewers list
+            const userRequestedPRs = pullRequests.filter((pr) =>
+                pr.requested_reviewers.some((reviewer) => reviewer.login === username)
+            );
 
-                if (!prsResponse.ok) {
-                    throw new Error(`Failed to fetch pull requests for ${repo.name}: ${prsResponse.statusText}`);
-                }
-
-                const pullRequests = await prsResponse.json();
-
-                // Filter pull requests where the user is in the requested_reviewers list
-                const userRequestedPRs = pullRequests.filter((pr) =>
-                    pr.requested_reviewers.some((reviewer) => reviewer.login === username)
-                );
-
-                allPullRequests.push(...userRequestedPRs);
-            }
+            allPullRequests.push(...userRequestedPRs);
         }
-
-        console.log('Open Pull Requests:', allPullRequests.length);
-        return allPullRequests;
-    } catch (error) {
-        console.error('Error fetching pull requests:', error.message);
-        chrome.storage.local.set({ lastError: error.message }); // Store the error message
-        return []; // Return an empty array to avoid breaking the flow
     }
+
+    console.log('Open Pull Requests:', allPullRequests.length);
+    return allPullRequests;
 }
 
 // Function to trigger a push notification using chrome.notifications API
-function triggerPushNotification(newPRCount) {
+function triggerPushNotification(msg) {
     const notificationOptions = {
         type: 'basic',
         iconUrl: '/icons/icon48.png', // Replace with the path to your extension's icon
-        title: 'New Pull Requests',
-        message: `You have ${newPRCount} new pull requests to review.`,
+        title: 'GitPing | Notice',
+        message: msg,
         priority: 2
     };
 
     chrome.notifications.create('newPullRequests', notificationOptions, (notificationId) => {
-        console.log('Notification shown with ID:', notificationId);
+        if (chrome.runtime.lastError) {
+            console.error('Failed to create notification:', chrome.runtime.lastError.message);
+        } else {
+            console.log('Notification shown with ID:', notificationId);
+        }
     });
 
     // Optional: Add a click event listener for the notification
@@ -132,7 +130,7 @@ async function checkForUpdates() {
                     updateExtensionBadge(pullRequests.length);
 
                     // Trigger a push notification for new pull requests
-                    triggerPushNotification(pullRequests.length);
+                    triggerPushNotification(`You have ${pullRequests.length} new pull requests to review.`);
                 }
 
                 // Store the current timestamp as the last update time
@@ -143,7 +141,6 @@ async function checkForUpdates() {
         }
     } catch (error) {
         chrome.storage.local.set({ lastError: error.message }); // Store the error message
-        updateExtensionBadge(0); // Clear the badge if an error occurs
     }
 }
 
@@ -162,6 +159,7 @@ chrome.alarms.create('checkForUpdates', { periodInMinutes: 1 });
 chrome.alarms.onAlarm.addListener((alarm) => {
     console.log(new Date().toLocaleString(), ': Alarm triggered:', alarm.name);
     if (alarm.name === 'checkForUpdates') {
+        triggerPushNotification("Checking for new pull requests...");
         checkForUpdates();
     }
 });
