@@ -101,7 +101,7 @@ function triggerPushNotification(msg) {
     chrome.notifications.onClicked.addListener((notificationId) => {
         if (notificationId === 'newPullRequests') {
             chrome.notifications.clear(notificationId); // Clear the notification
-            window.open('https://github.com/pulls/review-requested', '_blank'); // Open the GitHub page
+            chrome.tabs.create({ url: 'https://github.com/pulls/review-requested' }); // Open the GitHub page
         }
     });
 }
