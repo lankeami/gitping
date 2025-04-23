@@ -1,3 +1,5 @@
+import { fetchOrganizations, fetchRepositories, fetchPullRequests, filterPullRequestsByReviewer } from '../shared/githubApi.js';
+
 const GITHUB_API_URL = 'https://api.github.com';
 const POLLING_INTERVAL = 60000; // 1 minute
 
@@ -18,64 +20,24 @@ async function getUsername() {
 }
 
 async function fetchAndFilterPullRequests(username, token) {
-    // TODO - pageinate all Github requests
-    const orgsURL = `${GITHUB_API_URL}/user/orgs?per_page=100&page=1`;
-    const orgsResponse = await fetch(orgsURL, {
-        headers: {
-            Authorization: `token ${token}`,
-        },
-    });
-
-    // Check if the username and token were valid
-    if (orgsResponse.status === 401) {
-        throw new Error('Unauthorized: Invalid GitHub token');
-    }
-
-    if (!orgsResponse.ok) {
-        throw new Error(`Failed to fetch organizations: ${orgsResponse.statusText}`);
-    }
-
-    const orgs = await orgsResponse.json();
     const allPullRequests = [];
+    try {
+        const orgs = await fetchOrganizations(token);
 
-    for (const org of orgs) {
-        const reposURL = `${GITHUB_API_URL}/orgs/${org.login}/repos?type=all&per_page=100&page=1`;
-        const reposResponse = await fetch(reposURL, {
-            headers: {
-                Authorization: `token ${token}`,
-            },
-        });
+        for (const org of orgs) {
+            const repos = await fetchRepositories(org.login, token);
 
-        if (!reposResponse.ok) {
-            throw new Error(`Failed to fetch repositories for ${org.login}: ${reposResponse.statusText}`);
-        }
-
-        const repos = await reposResponse.json();
-
-        for (const repo of repos) {
-            const prsURL = `${GITHUB_API_URL}/repos/${org.login}/${repo.name}/pulls?state=open&per_page=100&page=1`;
-            const prsResponse = await fetch(prsURL, {
-                headers: {
-                    Authorization: `token ${token}`,
-                },
-            });
-
-            if (!prsResponse.ok) {
-                throw new Error(`Failed to fetch pull requests for ${repo.name}: ${prsResponse.statusText}`);
+            for (const repo of repos) {
+                const pullRequests = await fetchPullRequests(org.login, repo.name, token);
+                const userRequestedPRs = filterPullRequestsByReviewer(pullRequests, username);
+                allPullRequests.push(...userRequestedPRs);
             }
-
-            const pullRequests = await prsResponse.json();
-
-            // Filter pull requests where the user is in the requested_reviewers list
-            const userRequestedPRs = pullRequests.filter((pr) =>
-                pr.requested_reviewers.some((reviewer) => reviewer.login === username)
-            );
-
-            allPullRequests.push(...userRequestedPRs);
         }
+    } catch (error) {
+        console.error('Error fetching pull requests:', error);
+        throw error;
     }
 
-    console.log('Open Pull Requests:', allPullRequests.length);
     return allPullRequests;
 }
 
