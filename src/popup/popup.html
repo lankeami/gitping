@@ -169,6 +169,17 @@
             margin-top: 10px;
             text-align: center;
         }
+        .auth-help {
+            font-size: 12px;
+            color: #007bff;
+            text-align: center;
+            text-decoration: none;
+            margin: 0 auto;
+        }
+
+        .auth-help:hover {
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
@@ -192,6 +203,9 @@
     <div id="credentials">
         <input type="text" id="username" placeholder="GitHub Username">
         <input type="password" id="token" placeholder="GitHub Token">
+        <a href="https://github.com/lankeami/gitping#authentication" target="_blank" class="auth-help">
+            How to authenticate with GitHub?
+        </a>
         <button id="login-button">
             Login
         </button>

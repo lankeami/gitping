@@ -51,8 +51,10 @@ document.addEventListener('DOMContentLoaded', function () {
             displayPullRequests(pullRequests);
             updateExtensionBadge(pullRequests.length); // Update the badge with the number of PRs
         } else {
-            pullRequestsList.innerHTML = '<p>No pull requests found.</p>';
-            updateExtensionBadge(0); // Clear the badge if no PRs
+            if(username) {
+                pullRequestsList.innerHTML = '<p>No pull requests found.</p>';
+            }
+            updateExtensionBadge(''); // Clear the badge if no PRs
         }
     });
 
@@ -83,7 +85,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 updateExtensionBadge(pullRequests.length); // Update the badge with the number of PRs
             } else {
                 pullRequestsList.innerHTML = '<p>No pull requests found.</p>';
-                updateExtensionBadge(0); // Clear the badge if no PRs
+                updateExtensionBadge(''); // Clear the badge if no PRs
             }
         }
     });
