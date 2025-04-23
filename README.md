@@ -29,6 +29,29 @@ GitPing is a Chrome extension that helps developers keep track of open Pull Requ
 
 5. Click on "Load unpacked" and select the `gitping` directory.
 
+## Authentication
+
+To authenticate with GitHub and allow the extension to retrieve your Pull Requests:
+
+1. **Generate a GitHub Personal Access Token**:
+   - Go to your GitHub account's [Personal Access Tokens page](https://github.com/settings/tokens).
+   - Click on **"Generate new token (classic)"**.
+   - Provide a descriptive name for the token (e.g., "GitPing Extension").
+   - Under **Scopes**, select the following permissions:
+     - `repo` (Full control of private repositories, if needed)
+     - `read:org` (Read access to organization memberships)
+   - Set the expiration to **"No expiration"** to make the token last forever.
+   - Click **Generate token** and copy the token. **Save it securely**, as you won't be able to view it again.
+
+2. **Log in to the Extension**:
+   - Open the GitPing extension by clicking its icon in the Chrome toolbar.
+   - Enter your GitHub username and paste the generated token into the respective fields.
+   - Click **Login** to authenticate.
+
+3. **Start Using the Extension**:
+   - Once authenticated, the extension will start retrieving Pull Requests that require your review.
+   - You can view the Pull Requests in the popup interface and receive notifications for new ones.
+
 ## Usage
 
 - Click on the GitPing extension icon in the Chrome toolbar to open the popup interface.
