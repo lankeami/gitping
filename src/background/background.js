@@ -159,7 +159,6 @@ chrome.alarms.create('checkForUpdates', { periodInMinutes: 1 });
 chrome.alarms.onAlarm.addListener((alarm) => {
     console.log(new Date().toLocaleString(), ': Alarm triggered:', alarm.name);
     if (alarm.name === 'checkForUpdates') {
-        triggerPushNotification("Checking for new pull requests...");
         checkForUpdates();
     }
 });
