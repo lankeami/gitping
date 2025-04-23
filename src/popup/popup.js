@@ -1,4 +1,6 @@
+import { getAuthToken, getUsername, updateExtensionBadge, resetLocalStorage } from '../shared/storageUtils.js';
 import { fetchOrganizations, fetchRepositories, fetchPullRequests, filterPullRequestsByReviewer } from '../shared/githubApi.js';
+import { displayPullRequests } from '../shared/uiUtils.js';
 
 document.addEventListener('DOMContentLoaded', function () {
     const loginButton = document.getElementById('login-button');
@@ -10,13 +12,14 @@ document.addEventListener('DOMContentLoaded', function () {
     const credentialsDiv = document.getElementById('credentials');
     const headerSection = document.getElementById('header-section');
     const lastUpdateTimeElement = document.getElementById('last-update-time');
+    const lastErrorElement = document.getElementById('last-error');
     const iconContainer = document.getElementById('icon-container');
     const appIconContainer = document.getElementById('app-icon-container');
-    const lastErrorElement = document.getElementById('last-error');
+
 
     // Check if username is stored in local storage
-    chrome.storage.local.get(['githubUsername', 'lastUpdateTime', 'lastError', 'pullRequests'], function (result) {
-        const username = result.githubUsername;
+    chrome.storage.local.get(['githubUsername', 'lastUpdateTime', 'lastError', 'pullRequests'], async function (result) {
+        const username = await getUsername();
 
         if (username) {
             credentialsDiv.classList.add('hidden');
@@ -45,12 +48,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const pullRequests = result.pullRequests || [];
         if (pullRequests.length > 0) {
-            displayPullRequests(pullRequests);
+            displayPullRequests(pullRequests, pullRequestsList);
             updateExtensionBadge(pullRequests.length);
         } else {
-            if (username) {
-                pullRequestsList.innerHTML = '<p>No pull requests found.</p>';
-            }
+            pullRequestsList.innerHTML = '<p>No pull requests found.</p>';
             updateExtensionBadge('');
         }
     });
@@ -75,7 +76,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (namespace === 'local' && changes.pullRequests) {
             const pullRequests = changes.pullRequests.newValue || [];
             if (pullRequests.length > 0) {
-                displayPullRequests(pullRequests);
+                displayPullRequests(pullRequests, pullRequestsList);
                 updateExtensionBadge(pullRequests.length);
             } else {
                 pullRequestsList.innerHTML = '<p>No pull requests found.</p>';
@@ -107,7 +108,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             const pullRequests = await fetchAndFilterPullRequests(username, token);
             chrome.storage.local.set({ pullRequests }, function () {
-                displayPullRequests(pullRequests);
+                displayPullRequests(pullRequests, pullRequestsList);
                 updateExtensionBadge(pullRequests.length);
             });
         } else {
@@ -115,26 +116,31 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    resetButton.addEventListener('click', () => {
-        resetLocalStorage();
+    resetButton.addEventListener('click', async () => {
+        await resetLocalStorage();
         alert('Credentials and data have been reset.');
     });
 
-    async function resetLocalStorage() {
-        chrome.storage.local.remove(['githubToken', 'githubUsername', 'pullRequests', 'lastError', 'lastUpdateTime'], function () {
-            usernameInput.value = '';
-            tokenInput.value = '';
-            pullRequestsList.innerHTML = '';
-            credentialsDiv.classList.remove('hidden');
-            headerSection.classList.remove('hidden');
-            iconContainer.classList.add('hidden');
-            lastErrorElement.textContent = '';
-            lastErrorElement.classList.add('hidden');
-            lastUpdateTimeElement.textContent = '';
-
-            updateExtensionBadge(0);
-        });
-    }
+    refreshButton.addEventListener('click', async () => {
+        try {
+            const token = await getAuthToken();
+            const username = await getUsername();
+    
+            if (token && username) {
+                console.log('Refreshing pull requests...');
+                const pullRequests = await fetchAndFilterPullRequests(username, token);
+                chrome.storage.local.set({ pullRequests }, function () {
+                    displayPullRequests(pullRequests, pullRequestsList);
+                    updateExtensionBadge(pullRequests.length);
+                });
+            } else {
+                throw('Please ensure you are logged in with valid credentials.');
+            }
+        } catch (error) {
+            console.error('Error during refresh:', error);
+            chrome.storage.local.set({ lastError: error.message });
+        }
+    });
 
     async function fetchAndFilterPullRequests(username, token) {
         const allPullRequests = [];
@@ -156,56 +162,5 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         return allPullRequests;
-    }
-
-    function displayPullRequests(pullRequests) {
-        pullRequestsList.innerHTML = '';
-
-        pullRequests.forEach((pr) => {
-            const card = document.createElement('div');
-            card.className = 'pr-card';
-            card.onclick = () => {
-                window.open(pr.html_url, '_blank');
-            };
-
-            const highbrow = document.createElement('div');
-            highbrow.className = 'pr-highbrow';
-            highbrow.textContent = pr.base.repo.full_name;
-            card.appendChild(highbrow);
-
-            const title = document.createElement('div');
-            title.className = 'pr-title';
-            title.textContent = pr.title;
-            card.appendChild(title);
-
-            const subtitle = document.createElement('div');
-            subtitle.className = 'pr-subtitle';
-            subtitle.textContent = `Author: ${pr.user.login}`;
-            card.appendChild(subtitle);
-
-            const footnote = document.createElement('div');
-            footnote.className = 'pr-footnote';
-            const updatedAt = new Date(pr.updated_at).toLocaleString();
-            const requestedAt = new Date(pr.created_at).toLocaleString();
-
-            const updatedDiv = document.createElement('div');
-            updatedDiv.className = 'pr-footnote';
-            updatedDiv.textContent = `Updated: ${updatedAt}`;
-            footnote.appendChild(updatedDiv);
-
-            const requestedDiv = document.createElement('div');
-            requestedDiv.className = 'pr-footnote';
-            requestedDiv.textContent = `Created: ${requestedAt}`;
-            footnote.appendChild(requestedDiv);
-
-            card.appendChild(footnote);
-            pullRequestsList.appendChild(card);
-        });
-    }
-
-    function updateExtensionBadge(count) {
-        console.log('Updating badge with count:', count);
-        chrome.action.setBadgeText({ text: count.toString() });
-        chrome.action.setBadgeBackgroundColor({ color: '#FF8469' });
     }
 });
