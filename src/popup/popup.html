@@ -93,17 +93,38 @@
             padding: 10px; /* Optional padding */
             box-sizing: border-box; /* Include padding and border in the width */
         }
+
         .icon-container {
             display: flex;
-            justify-content: space-between; /* Space between left and right sections */
-            align-items: center;
+            align-items: center; /* Center items vertically */
+            justify-content: center; /* Center the h1 horizontally */
             width: 100%; /* Ensure it spans the full width of the popup */
             margin-bottom: 10px;
+            position: relative; /* Allow absolute positioning for left-icons */
         }
+
         .left-icons {
+            position: absolute; /* Position the icons absolutely */
+            left: 0; /* Align them to the left */
             display: flex;
             gap: 10px; /* Add spacing between the refresh and trashcan icons */
         }
+
+        #app-icon-container {
+            position: absolute; /* Position the app icon absolutely */
+            right: 0; /* Align it to the right */
+        }
+
+        .icon-container a {
+            text-decoration: none; /* Remove underline from the link */
+        }
+
+        .icon-container h1 {
+            margin: 0;
+            font-size: 18px;
+            color: #333;
+        }
+
         .footnote {
             font-size: 12px;
             color: #888;
@@ -184,10 +205,12 @@
 </head>
 <body>
     <div id="header-section">
-        <h1>GitPing</h1>
-        <p>Get pinged for pull requests that need your review</p>
+        <a href="https://github.com/lankeami/gitping" target="_blank" style="text-decoration: none;">
+            <h1>GitPing</h1>
+        </a>
+        <p id="header-section-description">Get pinged for pull requests that need your review</p>
     </div>
-    <div id="icon-container" class="icon-container hidden">
+    <div id="icon-container" class="icon-container">
         <div class="left-icons">
             <button id="refresh-button">
                 <img src="./images/refresh-icon.png" alt="Refresh" width="20" height="20">
@@ -196,6 +219,9 @@
                 <img src="./images/trashcan-icon.png" alt="Reset" width="20" height="20">
             </button>
         </div>
+        <a href="https://github.com/lankeami/gitping" target="_blank" style="text-decoration: none;">
+            <h1>GitPing</h1>
+        </a>
         <div id="app-icon-container">
             <img id="app-icon" src="./images/app-icon.png" alt="App Icon">
         </div>
