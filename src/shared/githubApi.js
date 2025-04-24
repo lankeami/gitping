@@ -97,6 +97,7 @@ export function filterPullRequestsByReviewer(pullRequests, username) {
 
 /**
  * Fetch and filter pull requests where the user is a requested reviewer.
+ * Includes repositories from both organizations and the user's personal repositories.
  * @param {string} username - GitHub username.
  * @param {string} token - GitHub personal access token.
  * @returns {Promise<Array>} - List of filtered pull requests.
@@ -104,16 +105,23 @@ export function filterPullRequestsByReviewer(pullRequests, username) {
 export async function fetchAndFilterPullRequests(username, token) {
     const allPullRequests = [];
     try {
+        // Fetch repositories from organizations
         const organizations = await fetchOrganizations(token);
-
         for (const org of organizations) {
             const repositories = await fetchRepositories(org.login, token);
-
             for (const repo of repositories) {
                 const pullRequests = await fetchPullRequests(org.login, repo.name, token);
                 const userRequestedPRs = filterPullRequestsByReviewer(pullRequests, username);
                 allPullRequests.push(...userRequestedPRs);
             }
+        }
+
+        // Fetch user's personal repositories
+        const userRepositories = await fetchUserRepositories(token);
+        for (const repo of userRepositories) {
+            const pullRequests = await fetchPullRequests(repo.owner.login, repo.name, token);
+            const userRequestedPRs = filterPullRequestsByReviewer(pullRequests, username);
+            allPullRequests.push(...userRequestedPRs);
         }
     } catch (error) {
         throw new Error(`Failed to fetch and filter pull requests: ${error.message}`);
