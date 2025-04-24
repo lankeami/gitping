@@ -1,10 +1,10 @@
 const GITHUB_API_BASE_URL = 'https://api.github.com';
 
 /**
- * Helper method to perform a fetch request to the GitHub API.
+ * Helper method to perform a fetch request to the GitHub API with pagination support.
  * @param {string} path - The API path (relative to the base URL).
  * @param {string} token - GitHub personal access token.
- * @returns {Promise<any>} - The JSON response from the API.
+ * @returns {Promise<any[]>} - The combined JSON response from all pages.
  * @throws {Error} - If the response is not OK.
  */
 async function fetchFromGitHub(path, token) {
@@ -19,7 +19,35 @@ async function fetchFromGitHub(path, token) {
         throw new Error(`GitHub API request failed: ${response.statusText}`);
     }
 
-    return response.json();
+    const data = await response.json();
+
+    // Check for pagination in the Link header
+    const linkHeader = response.headers.get('Link');
+    if (linkHeader) {
+        const nextPageUrl = getNextPageUrl(linkHeader);
+        if (nextPageUrl) {
+            const nextPageData = await fetchFromGitHub(nextPageUrl.replace(GITHUB_API_BASE_URL, ''), token);
+            return data.concat(nextPageData);
+        }
+    }
+
+    return data;
+}
+
+/**
+ * Helper method to extract the next page URL from the Link header.
+ * @param {string} linkHeader - The Link header from the GitHub API response.
+ * @returns {string|null} - The URL for the next page, or null if there is no next page.
+ */
+function getNextPageUrl(linkHeader) {
+    const links = linkHeader.split(',').map((link) => link.trim());
+    for (const link of links) {
+        const [url, rel] = link.split(';').map((part) => part.trim());
+        if (rel === 'rel="next"') {
+            return url.slice(1, -1); // Remove the angle brackets around the URL
+        }
+    }
+    return null;
 }
 
 /**
