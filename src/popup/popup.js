@@ -1,5 +1,5 @@
 import { getAuthToken, getUsername, updateExtensionBadge, resetLocalStorage } from '../shared/storageUtils.js';
-import { fetchOrganizations, fetchRepositories, fetchPullRequests, filterPullRequestsByReviewer } from '../shared/githubApi.js';
+import { fetchOrganizations, fetchRepositories, fetchPullRequests, filterPullRequestsByReviewer, fetchAndFilterPullRequests } from '../shared/githubApi.js';
 import { displayPullRequests } from '../shared/uiUtils.js';
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -145,26 +145,4 @@ document.addEventListener('DOMContentLoaded', function () {
             chrome.storage.local.set({ lastError: error.message });
         }
     });
-
-    async function fetchAndFilterPullRequests(username, token) {
-        const allPullRequests = [];
-        try {
-            const organizations = await fetchOrganizations(token);
-
-            for (const org of organizations) {
-                const repositories = await fetchRepositories(org.login, token);
-
-                for (const repo of repositories) {
-                    const pullRequests = await fetchPullRequests(org.login, repo.name, token);
-                    const userRequestedPRs = filterPullRequestsByReviewer(pullRequests, username);
-                    allPullRequests.push(...userRequestedPRs);
-                }
-            }
-        } catch (error) {
-            chrome.storage.local.set({ lastError: error.message });
-            updateExtensionBadge('?');
-        }
-
-        return allPullRequests;
-    }
 });
