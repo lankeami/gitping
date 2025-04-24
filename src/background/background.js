@@ -35,6 +35,11 @@ async function checkForUpdates() {
             const pullRequests = await fetchAndFilterPullRequests(username, token);
             chrome.storage.local.set({ pullRequests });
             updateExtensionBadge(pullRequests.length);
+
+            // Store the current timestamp as the last update time
+            chrome.storage.local.set({ lastUpdateTime: new Date().toISOString() });
+            // Clear the Last Error
+            chrome.storage.local.set({ lastError: "" });
         }
     } catch (error) {
         console.error('Error during update check:', error);

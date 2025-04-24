@@ -35,7 +35,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const lastUpdateTime = new Date(result.lastUpdateTime).toLocaleString();
             lastUpdateTimeElement.textContent = `Last updated: ${lastUpdateTime}`;
         } else {
-            lastUpdateTimeElement.textContent = 'Last updated: Never';
+            lastUpdateTimeElement.textContent = '';
         }
 
         if (result.lastError) {
@@ -51,7 +51,11 @@ document.addEventListener('DOMContentLoaded', function () {
             displayPullRequests(pullRequests, pullRequestsList);
             updateExtensionBadge(pullRequests.length);
         } else {
-            pullRequestsList.innerHTML = '<p>No pull requests found.</p>';
+            if (username) {
+                pullRequestsList.innerHTML = '<p>No pull requests found.</p>';
+            } else {
+                pullRequestsList.innerHTML = '';
+            }
             updateExtensionBadge('');
         }
     });
