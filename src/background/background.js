@@ -11,10 +11,11 @@ async function checkForUpdates() {
 
         if (token && username) {
             const pullRequests = await fetchAndFilterPullRequests(username, token);
-            const personalPRReviews = pullRequests.personal;
-            const teamPRReviews = pullRequests.teams;
-            chrome.storage.local.set({ personalPRReviews });
-            updateExtensionBadge(personalPRReviews.length);
+            const personalPullRequests = pullRequests.personal;
+            const teamPullRequests = pullRequests.teams;
+            chrome.storage.local.set({ personalPullRequests });
+            chrome.storage.local.set({ teamPullRequests });
+            updateExtensionBadge(personalPullRequests.length);
 
             // Store the current timestamp as the last update time
             chrome.storage.local.set({ lastUpdateTime: new Date().toISOString() });

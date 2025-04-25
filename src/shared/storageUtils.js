@@ -27,6 +27,10 @@ export async function getUsername() {
  * @param {number|string} count - The number to display on the badge.
  */
 export function updateExtensionBadge(count) {
+    if(count === undefined || count === null) {
+        return;
+    }
+
     const text = count > 0 ? count.toString() : '';
     chrome.action.setBadgeText({ text });
     chrome.action.setBadgeBackgroundColor({ color: '#FF8469' });

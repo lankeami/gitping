@@ -54,7 +54,7 @@
             background-color: #f9f9f9;
             cursor: pointer;
             transition: box-shadow 0.2s ease;
-            width: 100%; /* Make the card span the full width */
+            width: 230px; /* Make the card span the full width */
             box-sizing: border-box; /* Include padding and border in width */
         }
         .pr-card:hover {
@@ -89,9 +89,14 @@
         body {
             position: relative;
             width: 300px; /* Set the desired width of the popup */
+            height: 450px; /* Set the desired height of the popup */
             margin: 0; /* Remove default margin */
-            padding: 10px; /* Optional padding */
+            padding-top: 10px;
+            padding-bottom: 10px; 
+            padding-left: 2px;
+            padding-right: 5px;
             box-sizing: border-box; /* Include padding and border in the width */
+            overflow: hidden; /* Prevent the entire popup from scrolling */
         }
 
         .icon-container {
@@ -188,6 +193,7 @@
             font-size: 12px;
             color: #888;
             margin-top: 10px;
+            padding-bottom: 10px;
             text-align: center;
         }
         .auth-help {
@@ -207,12 +213,15 @@
             display: flex;
             height: 100%;
             width: 100%;
+            overflow-y: auto; /* Enable vertical scrolling */
+            overflow-x: hidden; /* Prevent horizontal scrolling */
         }
 
         #tabs {
             display: flex;
             flex-direction: column;
-            width: 150px;
+            width: 40px; 
+            height: 40px;
             background-color: #f4f4f4;
             border-right: 1px solid #ddd;
         }
@@ -234,7 +243,7 @@
 
         #content {
             flex-grow: 1;
-            padding: 10px;
+            padding: 5px;
         }
 
         .tab-content {
@@ -243,6 +252,17 @@
 
         .tab-content.active {
             display: block;
+        }
+
+        ul {
+            padding: 0;
+            margin: 0;
+            list-style: none; /* Remove default bullet points */
+        }
+        .pull-request-list {
+            padding: 0 !important;
+            margin: 0 !important;
+            list-style: none; /* Remove default list styling */
         }
     </style>
 </head>
@@ -283,15 +303,19 @@
     <!-- Display tabs for user requested reviews and team requested reviews -->
     <div id="popup-container">
         <div id="tabs">
-            <button id="personal-tab" class="tab active">Personal Reviews</button>
-            <button id="team-tab" class="tab">Team Reviews</button>
+            <button id="personal-tab" class="tab active" title="Personal Review Requests">
+                <img src="./images/person.png" alt="Personal Review Requests" width="20" height="20">
+            </button>
+            <button id="team-tab" class="tab" title="Team Review Requests">
+                <img src="./images/team.png" alt="Team Review Requests" width="20" height="20">
+            </button>
         </div>
         <div id="content">
             <div id="personal-content" class="tab-content active">
-                <ul id="personal-pull-requests-list"></ul>
+                <ul class="pull-request-list" id="personal-pull-requests-list"></ul>
             </div>
             <div id="team-content" class="tab-content">
-                <ul id="team-pull-requests-list"></ul>
+                <ul class="pull-request-list" id="team-pull-requests-list"></ul>
             </div>
         </div>
     </div>

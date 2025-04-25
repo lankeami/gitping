@@ -3,13 +3,10 @@ import { fetchAndFilterPullRequests } from '../shared/githubApi.js';
 import { displayPullRequests } from '../shared/uiUtils.js';
 
 
-
-
 document.addEventListener('DOMContentLoaded', function () {
     const loginButton = document.getElementById('login-button');
     const refreshButton = document.getElementById('refresh-button');
     const resetButton = document.getElementById('reset-button');
-    const pullRequestsList = document.getElementById('pull-requests-list');
     const usernameInput = document.getElementById('username');
     const tokenInput = document.getElementById('token');
     const credentialsDiv = document.getElementById('credentials');
@@ -48,18 +45,18 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (token && username) {
             const pullRequests = await fetchAndFilterPullRequests(username, token);
-            const personalPRReviews = pullRequests.personal;
-            const teamPRReviews = pullRequests.teams;
+            const personalPullRequests = pullRequests.personal;
+            const teamPullRequests = pullRequests.teams;
 
             // Display personal pull requests
-            chrome.storage.local.set({ personalPRReviews }, function () {
-                displayPullRequests(personalPRReviews, personalPullRequestsList);
-                updateExtensionBadge(personalPRReviews.length);
+            chrome.storage.local.set({ personalPullRequests }, function () {
+                displayPullRequests(personalPullRequests, personalPullRequestsList);
+                updateExtensionBadge(personalPullRequests.length);
             });
 
             // Display team pull requests
-            chrome.storage.local.set({ teamPRReviews }, function () {
-                displayPullRequests(teamPRReviews, teamPullRequestsList);
+            chrome.storage.local.set({ teamPullRequests }, function () {
+                displayPullRequests(teamPullRequests, teamPullRequestsList);
             });
         } else {
             console.error('Error:', error);
@@ -68,7 +65,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // Check if username is stored in local storage
-    chrome.storage.local.get(['githubUsername', 'lastUpdateTime', 'lastError', 'pullRequests'], async function (result) {
+    chrome.storage.local.get(['githubUsername', 'lastUpdateTime', 'lastError', 'personalPullRequests', 'teamPullRequests'], async function (result) {
         const username = await getUsername();
 
         if (username) {
@@ -96,15 +93,23 @@ document.addEventListener('DOMContentLoaded', function () {
             lastErrorElement.classList.add('hidden');
         }
 
-        const pullRequests = result.pullRequests || [];
-        if (pullRequests.length > 0) {
-            displayPullRequests(pullRequests, teamPullRequestsList);
-            updateExtensionBadge(teamPullRequestsList.length);
+        const teamPullRequests = result.teamPullRequests || [];
+        if (teamPullRequests.length > 0) {
+            displayPullRequests(teamPullRequests, teamPullRequestsList);
+        }
+
+        const personalPullRequests = result.personalPullRequests || [];
+        if (personalPullRequests.length > 0) {
+            displayPullRequests(personalPullRequests, personalPullRequestsList);
+            updateExtensionBadge(personalPullRequestsList.length);
         } else {
+            console.log('No personal pull requests found.');
             if (username) {
-                teamPullRequestsList.innerHTML = '<p>No pull requests found.</p>';
+                console.log('No personal pull requests found for user:', username);
+                personalPullRequestsList.innerHTML = '<p>No pull requests found.</p>';
             } else {
-                teamPullRequestsList.innerHTML = '';
+                console.log('No personal pull requests found and no username provided.');
+                personalPullRequestsList.innerHTML = '';
             }
             updateExtensionBadge('');
         }
@@ -112,6 +117,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Listen for changes to chrome.storage.local
     chrome.storage.onChanged.addListener((changes, namespace) => {
+        // Did lastError change?
         if (namespace === 'local' && changes.lastError) {
             if (changes.lastError.newValue) {
                 lastErrorElement.textContent = `Error: ${changes.lastError.newValue}`;
@@ -122,19 +128,31 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
 
+        // Did lastUpdateTime change?
         if (namespace === 'local' && changes.lastUpdateTime) {
             const lastUpdateTime = new Date(changes.lastUpdateTime.newValue).toLocaleString();
             lastUpdateTimeElement.textContent = `Last updated: ${lastUpdateTime}`;
         }
 
-        if (namespace === 'local' && changes.pullRequests) {
-            const pullRequests = changes.pullRequests.newValue || [];
+        // Did personalPullRequests change?
+        if (namespace === 'local' && changes.personalPullRequests) {
+            const pullRequests = changes.personalPullRequests.newValue || [];
+            if (pullRequests.length > 0) {
+                displayPullRequests(pullRequests, personalPullRequestsList);
+                updateExtensionBadge(pullRequests.length);
+            } else {
+                personalPullRequestsList.innerHTML = '<p>No pull requests found.</p>';
+                updateExtensionBadge('');
+            }
+        }
+
+        // Did teamPullRequests change?
+        if (namespace === 'local' && changes.teamPullRequests) {
+            const pullRequests = changes.teamPullRequests.newValue || [];
             if (pullRequests.length > 0) {
                 displayPullRequests(pullRequests, teamPullRequestsList);
-                updateExtensionBadge(teamPullRequestsList.length);
             } else {
                 teamPullRequestsList.innerHTML = '<p>No pull requests found.</p>';
-                updateExtensionBadge('');
             }
         }
     });
@@ -159,6 +177,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 headerSection.classList.add('hidden');
                 iconContainer.classList.remove('hidden');
             });
+            lastUpdateTimeElement.textContent = "Fetching latest pull requests.";
 
             updateDisplays()
         } else {
@@ -172,6 +191,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     refreshButton.addEventListener('click', async () => {
+        lastUpdateTimeElement.textContent = "Fetching latest pull requests.";
         updateDisplays()
     });
 });
