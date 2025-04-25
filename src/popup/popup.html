@@ -201,6 +201,49 @@
         .auth-help:hover {
             text-decoration: underline;
         }
+
+        /* tab structure for different pages of pull requests */
+        #popup-container {
+            display: flex;
+            height: 100%;
+            width: 100%;
+        }
+
+        #tabs {
+            display: flex;
+            flex-direction: column;
+            width: 150px;
+            background-color: #f4f4f4;
+            border-right: 1px solid #ddd;
+        }
+
+        .tab {
+            padding: 10px;
+            text-align: left;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-size: 14px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .tab.active {
+            background-color: #e0e0e0;
+            font-weight: bold;
+        }
+
+        #content {
+            flex-grow: 1;
+            padding: 10px;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
     </style>
 </head>
 <body>
@@ -236,7 +279,23 @@
             Login
         </button>
     </div>
-    <ul id="pull-requests-list"></ul>
+
+    <!-- Display tabs for user requested reviews and team requested reviews -->
+    <div id="popup-container">
+        <div id="tabs">
+            <button id="personal-tab" class="tab active">Personal Reviews</button>
+            <button id="team-tab" class="tab">Team Reviews</button>
+        </div>
+        <div id="content">
+            <div id="personal-content" class="tab-content active">
+                <ul id="personal-pull-requests-list"></ul>
+            </div>
+            <div id="team-content" class="tab-content">
+                <ul id="team-pull-requests-list"></ul>
+            </div>
+        </div>
+    </div>
+
     <div id="last-update-time" class="footnote"></div>
     <div id="last-error" class="error hidden"></div>
     <script type="module" src="popup.js"></script>

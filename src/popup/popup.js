@@ -2,24 +2,8 @@ import { getAuthToken, getUsername, updateExtensionBadge, resetLocalStorage } fr
 import { fetchAndFilterPullRequests } from '../shared/githubApi.js';
 import { displayPullRequests } from '../shared/uiUtils.js';
 
-async function updateDisplays(pullRequestsList) {
-    const token = await getAuthToken();
-    const username = await getUsername();
 
-    if (token && username) {
-        const pullRequests = await fetchAndFilterPullRequests(username, token);
-        const personalPRReviews = pullRequests.personal;
-        const teamPRReviews = pullRequests.teams;
 
-        chrome.storage.local.set({ personalPRReviews }, function () {
-            displayPullRequests(personalPRReviews, pullRequestsList);
-            updateExtensionBadge(personalPRReviews.length);
-        });
-    } else {
-        console.error('Error:', error);
-        chrome.storage.local.set({ lastError: error.message });
-    }
-}
 
 document.addEventListener('DOMContentLoaded', function () {
     const loginButton = document.getElementById('login-button');
@@ -35,6 +19,53 @@ document.addEventListener('DOMContentLoaded', function () {
     const iconContainer = document.getElementById('icon-container');
     const appIconContainer = document.getElementById('app-icon-container');
 
+    const personalTab = document.getElementById('personal-tab');
+    const teamTab = document.getElementById('team-tab');
+    const personalContent = document.getElementById('personal-content');
+    const teamContent = document.getElementById('team-content');
+    const personalPullRequestsList = document.getElementById('personal-pull-requests-list');
+    const teamPullRequestsList = document.getElementById('team-pull-requests-list');
+
+    // Tab switching logic
+    personalTab.addEventListener('click', () => {
+        personalTab.classList.add('active');
+        teamTab.classList.remove('active');
+        personalContent.classList.add('active');
+        teamContent.classList.remove('active');
+    });
+
+    teamTab.addEventListener('click', () => {
+        teamTab.classList.add('active');
+        personalTab.classList.remove('active');
+        teamContent.classList.add('active');
+        personalContent.classList.remove('active');
+    });
+
+    // Fetch and display pull requests
+    async function updateDisplays() {
+        const token = await getAuthToken();
+        const username = await getUsername();
+
+        if (token && username) {
+            const pullRequests = await fetchAndFilterPullRequests(username, token);
+            const personalPRReviews = pullRequests.personal;
+            const teamPRReviews = pullRequests.teams;
+
+            // Display personal pull requests
+            chrome.storage.local.set({ personalPRReviews }, function () {
+                displayPullRequests(personalPRReviews, personalPullRequestsList);
+                updateExtensionBadge(personalPRReviews.length);
+            });
+
+            // Display team pull requests
+            chrome.storage.local.set({ teamPRReviews }, function () {
+                displayPullRequests(teamPRReviews, teamPullRequestsList);
+            });
+        } else {
+            console.error('Error:', error);
+            chrome.storage.local.set({ lastError: error.message });
+        }
+    }
 
     // Check if username is stored in local storage
     chrome.storage.local.get(['githubUsername', 'lastUpdateTime', 'lastError', 'pullRequests'], async function (result) {
@@ -67,13 +98,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const pullRequests = result.pullRequests || [];
         if (pullRequests.length > 0) {
-            displayPullRequests(pullRequests, pullRequestsList);
-            updateExtensionBadge(pullRequests.length);
+            displayPullRequests(pullRequests, teamPullRequestsList);
+            updateExtensionBadge(teamPullRequestsList.length);
         } else {
             if (username) {
-                pullRequestsList.innerHTML = '<p>No pull requests found.</p>';
+                teamPullRequestsList.innerHTML = '<p>No pull requests found.</p>';
             } else {
-                pullRequestsList.innerHTML = '';
+                teamPullRequestsList.innerHTML = '';
             }
             updateExtensionBadge('');
         }
@@ -99,10 +130,10 @@ document.addEventListener('DOMContentLoaded', function () {
         if (namespace === 'local' && changes.pullRequests) {
             const pullRequests = changes.pullRequests.newValue || [];
             if (pullRequests.length > 0) {
-                displayPullRequests(pullRequests, pullRequestsList);
-                updateExtensionBadge(pullRequests.length);
+                displayPullRequests(pullRequests, teamPullRequestsList);
+                updateExtensionBadge(teamPullRequestsList.length);
             } else {
-                pullRequestsList.innerHTML = '<p>No pull requests found.</p>';
+                teamPullRequestsList.innerHTML = '<p>No pull requests found.</p>';
                 updateExtensionBadge('');
             }
         }
@@ -129,7 +160,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 iconContainer.classList.remove('hidden');
             });
 
-            updateDisplays(pullRequestsList)
+            updateDisplays()
         } else {
             alert('Please enter both your username and token.');
         }
@@ -141,6 +172,6 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     refreshButton.addEventListener('click', async () => {
-        updateDisplays(pullRequestsList)
+        updateDisplays()
     });
 });
