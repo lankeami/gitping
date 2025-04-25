@@ -1,6 +1,25 @@
 import { getAuthToken, getUsername, updateExtensionBadge, resetLocalStorage } from '../shared/storageUtils.js';
-import { fetchOrganizations, fetchRepositories, fetchPullRequests, filterPullRequestsByReviewer, fetchAndFilterPullRequests } from '../shared/githubApi.js';
+import { fetchAndFilterPullRequests } from '../shared/githubApi.js';
 import { displayPullRequests } from '../shared/uiUtils.js';
+
+async function updateDisplays(pullRequestsList) {
+    const token = await getAuthToken();
+    const username = await getUsername();
+
+    if (token && username) {
+        const pullRequests = await fetchAndFilterPullRequests(username, token);
+        const personalPRReviews = pullRequests.personal;
+        const teamPRReviews = pullRequests.teams;
+
+        chrome.storage.local.set({ personalPRReviews }, function () {
+            displayPullRequests(personalPRReviews, pullRequestsList);
+            updateExtensionBadge(personalPRReviews.length);
+        });
+    } else {
+        console.error('Error:', error);
+        chrome.storage.local.set({ lastError: error.message });
+    }
+}
 
 document.addEventListener('DOMContentLoaded', function () {
     const loginButton = document.getElementById('login-button');
@@ -110,11 +129,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 iconContainer.classList.remove('hidden');
             });
 
-            const pullRequests = await fetchAndFilterPullRequests(username, token);
-            chrome.storage.local.set({ pullRequests }, function () {
-                displayPullRequests(pullRequests, pullRequestsList);
-                updateExtensionBadge(pullRequests.length);
-            });
+            updateDisplays(pullRequestsList)
         } else {
             alert('Please enter both your username and token.');
         }
@@ -126,23 +141,6 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     refreshButton.addEventListener('click', async () => {
-        try {
-            const token = await getAuthToken();
-            const username = await getUsername();
-    
-            if (token && username) {
-                console.log('Refreshing pull requests...');
-                const pullRequests = await fetchAndFilterPullRequests(username, token);
-                chrome.storage.local.set({ pullRequests }, function () {
-                    displayPullRequests(pullRequests, pullRequestsList);
-                    updateExtensionBadge(pullRequests.length);
-                });
-            } else {
-                throw('Please ensure you are logged in with valid credentials.');
-            }
-        } catch (error) {
-            console.error('Error during refresh:', error);
-            chrome.storage.local.set({ lastError: error.message });
-        }
+        updateDisplays(pullRequestsList)
     });
 });
