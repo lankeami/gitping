@@ -1,6 +1,6 @@
 import { getAuthToken, getUsername, updateExtensionBadge, resetLocalStorage } from '../shared/storageUtils.js';
 import { fetchAndFilterPullRequests } from '../shared/githubApi.js';
-import { displayPullRequests } from '../shared/uiUtils.js';
+import { displayPullRequests, resetUI } from '../shared/uiUtils.js';
 
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const lastErrorElement = document.getElementById('last-error');
     const iconContainer = document.getElementById('icon-container');
     const appIconContainer = document.getElementById('app-icon-container');
+    const popupContainer = document.getElementById('popup-container');
 
     const personalTab = document.getElementById('personal-tab');
     const teamTab = document.getElementById('team-tab');
@@ -72,10 +73,12 @@ document.addEventListener('DOMContentLoaded', function () {
             credentialsDiv.classList.add('hidden');
             headerSection.classList.add('hidden');
             iconContainer.classList.remove('hidden');
+            popupContainer.classList.remove('hidden');
         } else {
             credentialsDiv.classList.remove('hidden');
             headerSection.classList.remove('hidden');
             iconContainer.classList.add('hidden');
+            popupContainer.classList.add('hidden');
         }
 
         if (result.lastUpdateTime) {
@@ -187,11 +190,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
     resetButton.addEventListener('click', async () => {
         await resetLocalStorage();
+        resetUI();
         alert('Credentials and data have been reset.');
     });
 
     refreshButton.addEventListener('click', async () => {
         lastUpdateTimeElement.textContent = "Fetching latest pull requests.";
-        updateDisplays()
+        updateDisplays();
     });
 });

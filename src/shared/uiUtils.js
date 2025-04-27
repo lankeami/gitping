@@ -47,3 +47,34 @@ export function displayPullRequests(pullRequests, pullRequestsList) {
         pullRequestsList.appendChild(card);
     });
 }
+
+/**
+ * Resets the UI by hiding the popup container, clearing the last update time and error,
+ * and showing the credentials section.
+ */
+export function resetUI() {
+    // Hide the popup container
+    const popupContainer = document.getElementById('popup-container');
+    if (popupContainer) {
+        popupContainer.classList.add('hidden');
+    }
+
+    // Clear the last update time
+    const lastUpdateTime = document.getElementById('last-update-time');
+    if (lastUpdateTime) {
+        lastUpdateTime.textContent = '';
+    }
+
+    // Clear the last error
+    const lastError = document.getElementById('last-error');
+    if (lastError) {
+        lastError.textContent = '';
+        lastError.classList.add('hidden');
+    }
+
+    // Show the credentials section
+    const credentialsSection = document.getElementById('credentials');
+    if (credentialsSection) {
+        credentialsSection.classList.remove('hidden');
+    }
+}
