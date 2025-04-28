@@ -77,4 +77,13 @@ export function resetUI() {
     if (credentialsSection) {
         credentialsSection.classList.remove('hidden');
     }
+
+    // Purge local storage
+    chrome.storage.local.clear(() => {
+        if (chrome.runtime.lastError) {
+            console.error('Error clearing local storage:', chrome.runtime.lastError);
+        } else {
+            console.log('Local storage cleared successfully.');
+        }
+    });
 }
