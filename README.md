@@ -1,3 +1,5 @@
+![image](https://github.com/user-attachments/assets/be92371d-e519-415f-ad34-88a51efc4118)
+
 # GitPing Extension
 
 GitPing is a Chrome extension that helps developers keep track of open Pull Requests on GitHub that require their review. It periodically polls the GitHub API to retrieve the latest Pull Requests and provides notifications for new requests.
@@ -65,3 +67,12 @@ Contributions are welcome! Please open an issue or submit a pull request for any
 ## License
 
 This project is licensed under the MIT License. See the LICENSE file for more details.
+[(see license)](LICENSE)
+
+## Security Policy
+
+We'll notify user's of issues on our [security policy page](SECURITY.md).
+
+## Privacy Policy
+
+We don't collect and/or sell your information. All your information is stored locally on your browser's local storage. You can read more in our [Privacy Policy Page](PRIVACY_POLICY.md).
