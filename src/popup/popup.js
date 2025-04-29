@@ -1,12 +1,12 @@
 import { getAuthToken, getUsername, updateExtensionBadge, resetLocalStorage } from '../shared/storageUtils.js';
-import { fetchOrganizations, fetchRepositories, fetchPullRequests, filterPullRequestsByReviewer, fetchAndFilterPullRequests } from '../shared/githubApi.js';
-import { displayPullRequests } from '../shared/uiUtils.js';
+import { fetchAndFilterPullRequests } from '../shared/githubApi.js';
+import { displayPullRequests, resetUI } from '../shared/uiUtils.js';
+
 
 document.addEventListener('DOMContentLoaded', function () {
     const loginButton = document.getElementById('login-button');
     const refreshButton = document.getElementById('refresh-button');
     const resetButton = document.getElementById('reset-button');
-    const pullRequestsList = document.getElementById('pull-requests-list');
     const usernameInput = document.getElementById('username');
     const tokenInput = document.getElementById('token');
     const credentialsDiv = document.getElementById('credentials');
@@ -15,20 +15,70 @@ document.addEventListener('DOMContentLoaded', function () {
     const lastErrorElement = document.getElementById('last-error');
     const iconContainer = document.getElementById('icon-container');
     const appIconContainer = document.getElementById('app-icon-container');
+    const popupContainer = document.getElementById('popup-container');
 
+    const personalTab = document.getElementById('personal-tab');
+    const teamTab = document.getElementById('team-tab');
+    const personalContent = document.getElementById('personal-content');
+    const teamContent = document.getElementById('team-content');
+    const personalPullRequestsList = document.getElementById('personal-pull-requests-list');
+    const teamPullRequestsList = document.getElementById('team-pull-requests-list');
+
+    // Tab switching logic
+    personalTab.addEventListener('click', () => {
+        personalTab.classList.add('active');
+        teamTab.classList.remove('active');
+        personalContent.classList.add('active');
+        teamContent.classList.remove('active');
+    });
+
+    teamTab.addEventListener('click', () => {
+        teamTab.classList.add('active');
+        personalTab.classList.remove('active');
+        teamContent.classList.add('active');
+        personalContent.classList.remove('active');
+    });
+
+    // Fetch and display pull requests
+    async function updateDisplays() {
+        const token = await getAuthToken();
+        const username = await getUsername();
+
+        if (token && username) {
+            const pullRequests = await fetchAndFilterPullRequests(username, token);
+            const personalPullRequests = pullRequests.personal;
+            const teamPullRequests = pullRequests.teams;
+
+            // Display personal pull requests
+            chrome.storage.local.set({ personalPullRequests }, function () {
+                displayPullRequests(personalPullRequests, personalPullRequestsList);
+                updateExtensionBadge(personalPullRequests.length);
+            });
+
+            // Display team pull requests
+            chrome.storage.local.set({ teamPullRequests }, function () {
+                displayPullRequests(teamPullRequests, teamPullRequestsList);
+            });
+        } else {
+            console.error('Error:', error);
+            chrome.storage.local.set({ lastError: error.message });
+        }
+    }
 
     // Check if username is stored in local storage
-    chrome.storage.local.get(['githubUsername', 'lastUpdateTime', 'lastError', 'pullRequests'], async function (result) {
+    chrome.storage.local.get(['githubUsername', 'lastUpdateTime', 'lastError', 'personalPullRequests', 'teamPullRequests'], async function (result) {
         const username = await getUsername();
 
         if (username) {
             credentialsDiv.classList.add('hidden');
             headerSection.classList.add('hidden');
             iconContainer.classList.remove('hidden');
+            popupContainer.classList.remove('hidden');
         } else {
             credentialsDiv.classList.remove('hidden');
             headerSection.classList.remove('hidden');
             iconContainer.classList.add('hidden');
+            popupContainer.classList.add('hidden');
         }
 
         if (result.lastUpdateTime) {
@@ -46,15 +96,23 @@ document.addEventListener('DOMContentLoaded', function () {
             lastErrorElement.classList.add('hidden');
         }
 
-        const pullRequests = result.pullRequests || [];
-        if (pullRequests.length > 0) {
-            displayPullRequests(pullRequests, pullRequestsList);
-            updateExtensionBadge(pullRequests.length);
+        const teamPullRequests = result.teamPullRequests || [];
+        if (teamPullRequests.length > 0) {
+            displayPullRequests(teamPullRequests, teamPullRequestsList);
+        }
+
+        const personalPullRequests = result.personalPullRequests || [];
+        if (personalPullRequests.length > 0) {
+            displayPullRequests(personalPullRequests, personalPullRequestsList);
+            updateExtensionBadge(personalPullRequestsList.length);
         } else {
+            console.log('No personal pull requests found.');
             if (username) {
-                pullRequestsList.innerHTML = '<p>No pull requests found.</p>';
+                console.log('No personal pull requests found for user:', username);
+                personalPullRequestsList.innerHTML = '<p>No pull requests found.</p>';
             } else {
-                pullRequestsList.innerHTML = '';
+                console.log('No personal pull requests found and no username provided.');
+                personalPullRequestsList.innerHTML = '';
             }
             updateExtensionBadge('');
         }
@@ -62,6 +120,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Listen for changes to chrome.storage.local
     chrome.storage.onChanged.addListener((changes, namespace) => {
+        // Did lastError change?
         if (namespace === 'local' && changes.lastError) {
             if (changes.lastError.newValue) {
                 lastErrorElement.textContent = `Error: ${changes.lastError.newValue}`;
@@ -72,19 +131,31 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
 
+        // Did lastUpdateTime change?
         if (namespace === 'local' && changes.lastUpdateTime) {
             const lastUpdateTime = new Date(changes.lastUpdateTime.newValue).toLocaleString();
             lastUpdateTimeElement.textContent = `Last updated: ${lastUpdateTime}`;
         }
 
-        if (namespace === 'local' && changes.pullRequests) {
-            const pullRequests = changes.pullRequests.newValue || [];
+        // Did personalPullRequests change?
+        if (namespace === 'local' && changes.personalPullRequests) {
+            const pullRequests = changes.personalPullRequests.newValue || [];
             if (pullRequests.length > 0) {
-                displayPullRequests(pullRequests, pullRequestsList);
+                displayPullRequests(pullRequests, personalPullRequestsList);
                 updateExtensionBadge(pullRequests.length);
             } else {
-                pullRequestsList.innerHTML = '<p>No pull requests found.</p>';
+                personalPullRequestsList.innerHTML = '<p>No pull requests found.</p>';
                 updateExtensionBadge('');
+            }
+        }
+
+        // Did teamPullRequests change?
+        if (namespace === 'local' && changes.teamPullRequests) {
+            const pullRequests = changes.teamPullRequests.newValue || [];
+            if (pullRequests.length > 0) {
+                displayPullRequests(pullRequests, teamPullRequestsList);
+            } else {
+                teamPullRequestsList.innerHTML = '<p>No pull requests found.</p>';
             }
         }
     });
@@ -109,12 +180,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 headerSection.classList.add('hidden');
                 iconContainer.classList.remove('hidden');
             });
+            lastUpdateTimeElement.textContent = "Fetching latest pull requests.";
 
-            const pullRequests = await fetchAndFilterPullRequests(username, token);
-            chrome.storage.local.set({ pullRequests }, function () {
-                displayPullRequests(pullRequests, pullRequestsList);
-                updateExtensionBadge(pullRequests.length);
-            });
+            updateDisplays()
         } else {
             alert('Please enter both your username and token.');
         }
@@ -122,27 +190,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
     resetButton.addEventListener('click', async () => {
         await resetLocalStorage();
+        resetUI();
         alert('Credentials and data have been reset.');
     });
 
     refreshButton.addEventListener('click', async () => {
-        try {
-            const token = await getAuthToken();
-            const username = await getUsername();
-    
-            if (token && username) {
-                console.log('Refreshing pull requests...');
-                const pullRequests = await fetchAndFilterPullRequests(username, token);
-                chrome.storage.local.set({ pullRequests }, function () {
-                    displayPullRequests(pullRequests, pullRequestsList);
-                    updateExtensionBadge(pullRequests.length);
-                });
-            } else {
-                throw('Please ensure you are logged in with valid credentials.');
-            }
-        } catch (error) {
-            console.error('Error during refresh:', error);
-            chrome.storage.local.set({ lastError: error.message });
-        }
+        lastUpdateTimeElement.textContent = "Fetching latest pull requests.";
+        updateDisplays();
     });
 });

@@ -60,6 +60,15 @@ export async function fetchOrganizations(token) {
 }
 
 /**
+ * Fetch teams for the authenticated user.
+ * @param {string} token - GitHub personal access token.
+ * @returns {Promise<Array>} - List of teams.
+ */
+export async function fetchTeams(token) {
+    return fetchFromGitHub('/user/teams?per_page=100', token);
+}
+
+/**
  * Fetch repositories for a given organization.
  * @param {string} org - Organization name.
  * @param {string} token - GitHub personal access token.
@@ -102,6 +111,20 @@ export function filterPullRequestsByReviewer(pullRequests, username) {
 }
 
 /**
+ * Filter pull requests where the user is in a team that is requested to review.
+ * @param {Array} pullRequests - List of pull requests.
+ * @param {string} teams - List of Teams.
+ * @returns {Array} - Filtered pull requests.
+ */
+export function filterPullRequestsByTeams(pullRequests, teams) {
+    return pullRequests.filter((pr) =>
+        pr.requested_teams.some((team) =>
+            teams.some((t) => t.id === team.id)
+        )
+    );
+}
+
+/**
  * Fetch and filter pull requests where the user is a requested reviewer.
  * Includes repositories from both organizations and the user's personal repositories.
  * @param {string} username - GitHub username.
@@ -110,28 +133,40 @@ export function filterPullRequestsByReviewer(pullRequests, username) {
  */
 export async function fetchAndFilterPullRequests(username, token) {
     const allPullRequests = [];
-    try {
-        // Fetch repositories from organizations
-        const organizations = await fetchOrganizations(token);
-        for (const org of organizations) {
-            const repositories = await fetchRepositories(org.login, token);
-            for (const repo of repositories) {
-                const pullRequests = await fetchPullRequests(org.login, repo.name, token);
-                const userRequestedPRs = filterPullRequestsByReviewer(pullRequests, username);
-                allPullRequests.push(...userRequestedPRs);
-            }
-        }
+    const teamPullRequests = [];
+    const results = {};
+    const teams = await fetchTeams(token);
 
-        // Fetch user's personal repositories
-        const userRepositories = await fetchUserRepositories(token);
-        for (const repo of userRepositories) {
-            const pullRequests = await fetchPullRequests(repo.owner.login, repo.name, token);
+    // Fetch repositories from organizations
+    const organizations = await fetchOrganizations(token);
+    for (const org of organizations) {
+        const repositories = await fetchRepositories(org.login, token);
+        for (const repo of repositories) {
+            const pullRequests = await fetchPullRequests(org.login, repo.name, token);
+
+            // Filter pull requests where the user is a requested reviewer
             const userRequestedPRs = filterPullRequestsByReviewer(pullRequests, username);
             allPullRequests.push(...userRequestedPRs);
+
+            // Filter pull requests where the user is a member of the team requested for review
+            const teamRequestedPRs = filterPullRequestsByTeams(pullRequests, teams);
+            teamPullRequests.push(...teamRequestedPRs);
         }
-    } catch (error) {
-        throw new Error(`Failed to fetch and filter pull requests: ${error.message}`);
     }
 
-    return allPullRequests;
+    // Fetch user's personal repositories
+    const userRepositories = await fetchUserRepositories(token);
+    for (const repo of userRepositories) {
+        const pullRequests = await fetchPullRequests(repo.owner.login, repo.name, token);
+        const userRequestedPRs = filterPullRequestsByReviewer(pullRequests, username);
+        allPullRequests.push(...userRequestedPRs);
+
+        const teamRequestedPRs = filterPullRequestsByTeams(pullRequests, teams);
+        teamPullRequests.push(...teamRequestedPRs);
+    }
+
+    results['personal'] = allPullRequests;
+    results['teams'] = teamPullRequests;
+
+    return results;
 }

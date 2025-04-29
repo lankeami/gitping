@@ -54,7 +54,7 @@
             background-color: #f9f9f9;
             cursor: pointer;
             transition: box-shadow 0.2s ease;
-            width: 100%; /* Make the card span the full width */
+            width: 310px; /* Make the card span the full width */
             box-sizing: border-box; /* Include padding and border in width */
         }
         .pr-card:hover {
@@ -81,17 +81,18 @@
             font-size: 12px;
             color: #999;
         }
-        #pull-requests-list {
-            padding: 0;
-            margin: 0;
-            list-style: none; /* Remove default list styling */
-        }
+
         body {
             position: relative;
-            width: 300px; /* Set the desired width of the popup */
+            width: 400px; /* Set the desired width of the popup */
+            height: 450px; /* Set the desired height of the popup */
             margin: 0; /* Remove default margin */
-            padding: 10px; /* Optional padding */
+            padding-top: 10px;
+            padding-bottom: 10px; 
+            padding-left: 2px;
+            padding-right: 5px;
             box-sizing: border-box; /* Include padding and border in the width */
+            overflow: hidden; /* Prevent the entire popup from scrolling */
         }
 
         .icon-container {
@@ -137,6 +138,8 @@
             flex-direction: column;
             gap: 10px; /* Add spacing between inputs and the button */
             margin-top: 20px; /* Add some spacing from the top */
+            padding-left: 35px;
+            padding-right: 35px;
         }
 
         #credentials input {
@@ -163,6 +166,7 @@
         #header-section {
             text-align: center;
             margin-bottom: 20px;
+            padding-top: 10px;
         }
 
         #header-section h1 {
@@ -188,6 +192,7 @@
             font-size: 12px;
             color: #888;
             margin-top: 10px;
+            padding-bottom: 10px;
             text-align: center;
         }
         .auth-help {
@@ -200,6 +205,63 @@
 
         .auth-help:hover {
             text-decoration: underline;
+        }
+
+        /* tab structure for different pages of pull requests */
+        #popup-container {
+            display: flex;
+            height: 100%;
+            width: 100%;
+            overflow-y: auto; /* Enable vertical scrolling */
+            overflow-x: hidden; /* Prevent horizontal scrolling */
+        }
+
+        #tabs {
+            display: flex;
+            flex-direction: column;
+            width: 40px; 
+            height: 40px;
+            border-right: 1px solid #ddd;
+        }
+
+        .tab {
+            padding: 10px;
+            text-align: left;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-size: 14px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .tab.active {
+            background-color: #e0e0e0;
+            font-weight: bold;
+        }
+
+        #content {
+            flex-grow: 1;
+            padding: 5px;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            padding-left: 10px;
+        }
+
+        ul {
+            padding: 0;
+            margin: 0;
+            list-style: none; /* Remove default bullet points */
+        }
+        .pull-request-list {
+            padding: 0 !important;
+            margin: 0 !important;
+            list-style: none; /* Remove default list styling */
         }
     </style>
 </head>
@@ -227,6 +289,7 @@
         </div>
     </div>
     <div id="credentials">
+        <img src="./images/header.gif" alt="GitPing Header" width="100%" height="auto">
         <input type="text" id="username" placeholder="GitHub Username">
         <input type="password" id="token" placeholder="GitHub Token">
         <a href="https://github.com/lankeami/gitping#authentication" target="_blank" class="auth-help">
@@ -236,7 +299,31 @@
             Login
         </button>
     </div>
-    <ul id="pull-requests-list"></ul>
+
+    <!-- Display tabs for user requested reviews and team requested reviews -->
+    <div id="popup-container">
+        <div id="tabs">
+            <button id="personal-tab" class="tab active" title="Personal Review Requests">
+                <img src="./images/person.png" alt="Personal Review Requests" width="20" height="20">
+            </button>
+            <button id="team-tab" class="tab" title="Team Review Requests">
+                <img src="./images/team.png" alt="Team Review Requests" width="20" height="20">
+            </button>
+        </div>
+        <div id="content">
+            <!-- Personal Reviews Tab Content -->
+            <div id="personal-content" class="tab-content active">
+                <h2>Reviews For You To Approve</h2>
+                <ul class="pull-request-list" id="personal-pull-requests-list"></ul>
+            </div>
+            <!-- Team Reviews Tab Content -->
+            <div id="team-content" class="tab-content">
+                <h2>Reviews For Your Teams to Approve</h2>
+                <ul class="pull-request-list" id="team-pull-requests-list"></ul>
+            </div>
+        </div>
+    </div>
+
     <div id="last-update-time" class="footnote"></div>
     <div id="last-error" class="error hidden"></div>
     <script type="module" src="popup.js"></script>

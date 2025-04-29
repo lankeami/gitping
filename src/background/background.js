@@ -1,7 +1,27 @@
-import { getAuthToken, getUsername, updateExtensionBadge, resetLocalStorage } from '../shared/storageUtils.js';
-import { fetchOrganizations, fetchRepositories, fetchPullRequests, filterPullRequestsByReviewer, fetchAndFilterPullRequests } from '../shared/githubApi.js';
+import { getAuthToken, getUsername, updateExtensionBadge, getPersonalReviewRequests } from '../shared/storageUtils.js';
+import { fetchAndFilterPullRequests } from '../shared/githubApi.js';
 
-const POLLING_INTERVAL = 60000; // 1 minute
+const POLLING_INTERVAL_MINUTES = 2;
+
+/**
+ * Flattens a list of pull requests to a list of commit hashes.
+ * @param {Array} pullRequests - List of pull request objects.
+ * @returns {Array<string>} - List of commit hashes.
+ */
+function flattenPullRequestsToCommitHashes(pullRequests) {
+    if (!Array.isArray(pullRequests)) {
+        console.log('Invalid pull requests data:', pullRequests);
+        return [];
+    }
+    if (pullRequests.length === 0) {
+        console.log('No pull requests found.');
+        return [];
+    }
+    // Assuming each pull request has a `head` property with a `sha` field
+    // If the structure is different, adjust this line accordingly
+
+    return pullRequests.map((pr) => pr.head.sha); // Assuming `head.sha` contains the commit hash
+}
 
 // Use getAuthToken and getUsername from shared module
 async function checkForUpdates() {
@@ -10,9 +30,29 @@ async function checkForUpdates() {
         const username = await getUsername();
 
         if (token && username) {
+            // pull the current personal pull requests from local storage
+            const currentPersonalPullRequests = await getPersonalReviewRequests();
+
+            // Check Github for new pull requests
             const pullRequests = await fetchAndFilterPullRequests(username, token);
-            chrome.storage.local.set({ pullRequests });
-            updateExtensionBadge(pullRequests.length);
+
+            // Set the fetched pull requests in local storage
+            const personalPullRequests = pullRequests.personal;
+            const teamPullRequests = pullRequests.teams;
+            chrome.storage.local.set({ personalPullRequests });
+            chrome.storage.local.set({ teamPullRequests });
+
+            // compare the flattened pull requests with the previously stored ones
+            const currentPersonalPullRequestsHashes = flattenPullRequestsToCommitHashes(currentPersonalPullRequests);
+            const personalPullRequestsHashes = flattenPullRequestsToCommitHashes(personalPullRequests);
+
+            // Check if there are new pull requests
+            const newPullRequests = personalPullRequests.filter((pr) => !currentPersonalPullRequestsHashes.includes(pr.head.sha));
+            if (newPullRequests.length > 0) {
+                // Update the extension badge with the count of personal pull requests
+                console.log('New personal pull requests:', newPullRequests);
+                updateExtensionBadge(personalPullRequests.length);
+            }
 
             // Store the current timestamp as the last update time
             chrome.storage.local.set({ lastUpdateTime: new Date().toISOString() });
@@ -20,16 +60,15 @@ async function checkForUpdates() {
             chrome.storage.local.set({ lastError: "" });
         }
     } catch (error) {
-        console.error('Error during update check:', error);
-        updateExtensionBadge('?');
+        console.error('checkForUpdates Error:', error);
     }
 }
 
 // Create an alarm to trigger periodic updates
-chrome.alarms.create('checkForUpdates', { periodInMinutes: 1 });
+chrome.alarms.create('checkForUpdates', { periodInMinutes: POLLING_INTERVAL_MINUTES });
 
 chrome.alarms.onAlarm.addListener((alarm) => {
-    console.log(new Date().toLocaleString(), ': Alarm triggered:', alarm.name);
+    console.log(new Date().toLocaleString(), ': Job scheduled:', alarm.name);
     if (alarm.name === 'checkForUpdates') {
         checkForUpdates();
     }
