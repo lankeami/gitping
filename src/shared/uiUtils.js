@@ -4,8 +4,31 @@
  * @param {HTMLElement} pullRequestsList - The DOM element to render the pull requests into.
  */
 export function displayPullRequests(pullRequests, pullRequestsList) {
-    pullRequestsList.innerHTML = '';
+    // Hide all tab content
+    const allTabContents = document.querySelectorAll('.tab-content');
+    allTabContents.forEach((content) => {
+        content.classList.add('hidden');
+    });
 
+    // Show the tab content associated with the pullRequestsList
+    const parentTabContent = pullRequestsList.closest('.tab-content');
+    if (parentTabContent) {
+        parentTabContent.classList.remove('hidden');
+    }
+
+    if (!Array.isArray(pullRequests)) {
+        console.log('Invalid pull requests data:', pullRequests);
+        pullRequestsList.innerHTML = '<div class="no-pull-requests">No pull requests found.</div>';
+        return;
+    }
+
+    if (pullRequests.length === 0) {
+        console.log('No pull requests found.');
+        pullRequestsList.innerHTML = '<div class="no-pull-requests">No pull requests found.</div>';
+        return;
+    }
+
+    pullRequestsList.innerHTML = '';
     pullRequests.forEach((pr) => {
         const card = document.createElement('div');
         card.className = 'pr-card';
@@ -49,6 +72,73 @@ export function displayPullRequests(pullRequests, pullRequestsList) {
 }
 
 /**
+ * Display a list of comments as cards in the mentions tab.
+ * @param {Array} comments - List of comments to display.
+ * @param {HTMLElement} commentsList - The DOM element to render the comments into.
+ */
+export function displayItemComments(comments, commentsList) {
+    // Check for mentions - only show the list if there are mentions
+    console.log('Checking comments:', comments);
+    if (!Array.isArray(comments) || comments.length === 0) {
+        console.log('No comments found.');
+        commentsList.innerHTML = '<div class="no-pull-requests">No mentions found.</div>';
+        return;
+    }
+    // Clear the comments list
+    commentsList.innerHTML = '';
+
+    comments.forEach((comment) => {
+        const card = document.createElement('div');
+        card.className = 'pr-card';
+        card.onclick = () => {
+            window.open(comment.pull_request.html_url, '_blank'); // Navigate to the pull request
+        };
+
+        // Extract repository name from repository_url
+        const repoUrlParts = comment.repository_url.split('/');
+        const repoName = `${repoUrlParts[repoUrlParts.length - 2]}/${repoUrlParts[repoUrlParts.length - 1]}`;
+
+        // Highbrow: Repository name
+        const highbrow = document.createElement('div');
+        highbrow.className = 'pr-highbrow';
+        highbrow.textContent = repoName;
+        card.appendChild(highbrow);
+
+        // Title: First n characters of the comment body (fallback to empty string if body is null/undefined)
+        const title = document.createElement('div');
+        title.className = 'pr-title';
+        title.textContent = comment.title;
+        card.appendChild(title);
+
+        // Author: Comment author
+        const author = document.createElement('div');
+        author.className = 'pr-subtitle';
+        author.textContent = `Author: ${comment.user.login}`;
+        card.appendChild(author);
+
+        const footnote = document.createElement('div');
+        footnote.className = 'pr-footnote';
+        const updatedAt = new Date(comment.updated_at).toLocaleString();
+        const requestedAt = new Date(comment.created_at).toLocaleString();
+
+        const updatedDiv = document.createElement('div');
+        updatedDiv.className = 'pr-footnote';
+        updatedDiv.textContent = `Updated: ${updatedAt}`;
+        footnote.appendChild(updatedDiv);
+
+        const requestedDiv = document.createElement('div');
+        requestedDiv.className = 'pr-footnote';
+        requestedDiv.textContent = `Created: ${requestedAt}`;
+        footnote.appendChild(requestedDiv);
+        
+        card.appendChild(footnote);
+
+        // Append the card to the comments list
+        commentsList.appendChild(card);
+    });
+}
+
+/**
  * Resets the UI by hiding the popup container, clearing the last update time and error,
  * and showing the credentials section.
  */
@@ -87,3 +177,4 @@ export function resetUI() {
         }
     });
 }
+

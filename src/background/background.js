@@ -1,4 +1,4 @@
-import { getAuthToken, getUsername, updateExtensionBadge, getPersonalReviewRequests } from '../shared/storageUtils.js';
+import { getAuthToken, getUsername, updateExtensionBadge, getPersonalReviewRequests, getLastUpdateTime } from '../shared/storageUtils.js';
 import { fetchAndFilterPullRequests } from '../shared/githubApi.js';
 
 const POLLING_INTERVAL_MINUTES = 2;
@@ -23,35 +23,64 @@ function flattenPullRequestsToCommitHashes(pullRequests) {
     return pullRequests.map((pr) => pr.head.sha); // Assuming `head.sha` contains the commit hash
 }
 
+/**
+ * Flattens a list of mentions to a list of ids.
+ * @param {Array} mentions - List of mention objects.
+ * @returns {Array<string>} - List of commit hashes.
+ */
+function flattenMentionsToIds(mentions) {
+    if (!Array.isArray(mentions)) {
+        console.log('Invalid mentions data:', mentions);
+        return [];
+    }
+    if (mentions.length === 0) {
+        console.log('No mentions found.');
+        return [];
+    }
+    // Assuming each mention has a `commit` property with a `sha` field
+    // If the structure is different, adjust this line accordingly
+
+    return mentions.map((mention) => mention.id); // Assuming `commit.sha` contains the commit hash
+}
+
+
 // Use getAuthToken and getUsername from shared module
 async function checkForUpdates() {
     try {
         const token = await getAuthToken();
         const username = await getUsername();
+        const lastUpdateTime = await getLastUpdateTime();
 
         if (token && username) {
             // pull the current personal pull requests from local storage
             const currentPersonalPullRequests = await getPersonalReviewRequests();
 
             // Check Github for new pull requests
-            const pullRequests = await fetchAndFilterPullRequests(username, token);
+            const pullRequests = await fetchAndFilterPullRequests(username, token, lastUpdateTime);
 
             // Set the fetched pull requests in local storage
             const personalPullRequests = pullRequests.personal;
             const teamPullRequests = pullRequests.teams;
+            const mentionsPullRequests = pullRequests.mentions;
+
             chrome.storage.local.set({ personalPullRequests });
             chrome.storage.local.set({ teamPullRequests });
+            chrome.storage.local.set({ mentionsPullRequests });
 
             // compare the flattened pull requests with the previously stored ones
             const currentPersonalPullRequestsHashes = flattenPullRequestsToCommitHashes(currentPersonalPullRequests);
             const personalPullRequestsHashes = flattenPullRequestsToCommitHashes(personalPullRequests);
+            const mentionsIds = flattenMentionsToIds(mentionsPullRequests);
 
             // Check if there are new pull requests
             const newPullRequests = personalPullRequests.filter((pr) => !currentPersonalPullRequestsHashes.includes(pr.head.sha));
-            if (newPullRequests.length > 0) {
+            const newMentions = mentionsPullRequests.filter((mention) => !mentionsIds.includes(mention.id));
+
+            if (newPullRequests.length > 0 || newMentions.length > 0) {
                 // Update the extension badge with the count of personal pull requests
                 console.log('New personal pull requests:', newPullRequests);
-                updateExtensionBadge(personalPullRequests.length);
+                console.log('New mentions:', newMentions);
+                updateExtensionBadge(newPullRequests.length + newMentions.length);
             }
 
             // Store the current timestamp as the last update time
@@ -60,7 +89,7 @@ async function checkForUpdates() {
             chrome.storage.local.set({ lastError: "" });
         }
     } catch (error) {
-        console.error('checkForUpdates Error:', error);
+        console.error(error);
     }
 }
 

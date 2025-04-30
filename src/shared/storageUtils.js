@@ -23,6 +23,30 @@ export async function getUsername() {
 }
 
 /**
+ * Retrieve the lastUpdateTime from chrome.storage.local.
+ * @returns {Promise<string>} - The GitHub username.
+ */
+export async function getLastUpdateTime() {
+    return new Promise((resolve) => {
+        chrome.storage.local.get(['lastUpdateTime'], (result) => {
+            resolve(result.lastUpdateTime);
+        });
+    });
+}
+
+/**
+ * Retrieve the lastError from chrome.storage.local.
+ * @returns {Promise<string>} - The last error message.
+ */
+export async function getLastError() {
+    return new Promise((resolve) => {
+        chrome.storage.local.get(['lastError'], (result) => {
+            resolve(result.lastError);
+        });
+    });
+}
+
+/**
  * Retrieve review requests for user from chrome.storage.local.
  * @returns {Promise<string>} - The GitHub username.
  */
