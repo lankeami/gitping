@@ -4,8 +4,32 @@
  * @param {HTMLElement} pullRequestsList - The DOM element to render the pull requests into.
  */
 export function displayPullRequests(pullRequests, pullRequestsList) {
-    pullRequestsList.innerHTML = '';
+    // Hide all tab content
+    const allTabContents = document.querySelectorAll('.tab-content');
+    allTabContents.forEach((content) => {
+        content.classList.add('hidden');
+    });
 
+
+    // Show the tab content associated with the pullRequestsList
+    const parentTabContent = pullRequestsList.closest('.tab-content');
+    if (parentTabContent) {
+        parentTabContent.classList.remove('hidden');
+    }
+
+    if (!Array.isArray(pullRequests)) {
+        console.log('Invalid pull requests data:', pullRequests);
+        pullRequestsList.innerHTML = '<div class="no-pull-requests">No pull requests found.</div>';
+        return;
+    }
+
+    if (pullRequests.length === 0) {
+        console.log('No pull requests found.');
+        pullRequestsList.innerHTML = '<div class="no-pull-requests">No pull requests found.</div>';
+        return;
+    }
+
+    pullRequestsList.innerHTML = '';
     pullRequests.forEach((pr) => {
         const card = document.createElement('div');
         card.className = 'pr-card';
@@ -87,3 +111,4 @@ export function resetUI() {
         }
     });
 }
+

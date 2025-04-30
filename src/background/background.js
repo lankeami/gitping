@@ -1,4 +1,4 @@
-import { getAuthToken, getUsername, updateExtensionBadge, getPersonalReviewRequests } from '../shared/storageUtils.js';
+import { getAuthToken, getUsername, updateExtensionBadge, getPersonalReviewRequests, getLastUpdateTime } from '../shared/storageUtils.js';
 import { fetchAndFilterPullRequests } from '../shared/githubApi.js';
 
 const POLLING_INTERVAL_MINUTES = 2;
@@ -28,23 +28,28 @@ async function checkForUpdates() {
     try {
         const token = await getAuthToken();
         const username = await getUsername();
+        const lastUpdateTime = await getLastUpdateTime();
 
         if (token && username) {
             // pull the current personal pull requests from local storage
             const currentPersonalPullRequests = await getPersonalReviewRequests();
 
             // Check Github for new pull requests
-            const pullRequests = await fetchAndFilterPullRequests(username, token);
+            const pullRequests = await fetchAndFilterPullRequests(username, token, lastUpdateTime);
 
             // Set the fetched pull requests in local storage
             const personalPullRequests = pullRequests.personal;
             const teamPullRequests = pullRequests.teams;
+            const mentionsPullRequests = pullRequests.mentions;
+
             chrome.storage.local.set({ personalPullRequests });
             chrome.storage.local.set({ teamPullRequests });
+            chrome.storage.local.set({ mentionsPullRequests });
 
             // compare the flattened pull requests with the previously stored ones
             const currentPersonalPullRequestsHashes = flattenPullRequestsToCommitHashes(currentPersonalPullRequests);
             const personalPullRequestsHashes = flattenPullRequestsToCommitHashes(personalPullRequests);
+            const mentionPullRequestsHashes = flattenPullRequestsToCommitHashes(mentionsPullRequests);
 
             // Check if there are new pull requests
             const newPullRequests = personalPullRequests.filter((pr) => !currentPersonalPullRequestsHashes.includes(pr.head.sha));
