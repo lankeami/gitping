@@ -188,6 +188,26 @@ async function requestHasMentions(pullRequest, username, token, since=(new Date(
 }
 
 /**
+ * Search for mentions of the user in the comments of a pull request.
+ * @param {string} username - GitHub username.
+ * @param {string} token - GitHub personal access token.
+ */
+export async function searchForMentions(username, token) {
+    const issues = await fetchFromGitHub(`/search/issues?q=mentions:${username}&sort=created&order=desc&per_page=100`, token);
+    const results = issues.items || [];
+
+    // filter out comments that have comment.pull_request.merged_at not null
+    const filteredResults = results.filter((issue) => {
+        if (issue.state) {
+            return issue.state !== "closed";
+        }
+        return true;
+    });
+
+    return filteredResults;
+}
+
+/**
  * Fetch and filter pull requests where the user is a requested reviewer.
  * Includes repositories from both organizations and the user's personal repositories.
  * @param {string} username - GitHub username.
@@ -198,7 +218,6 @@ async function requestHasMentions(pullRequest, username, token, since=(new Date(
 export async function fetchAndFilterPullRequests(username, token, since=null) {
     const allPullRequests = [];
     const teamPullRequests = [];
-    const mentionPullRequests = [];
 
     const results = {};
     const teams = await fetchTeams(token);
@@ -217,13 +236,6 @@ export async function fetchAndFilterPullRequests(username, token, since=null) {
             // Filter pull requests where the user is a member of the team requested for review
             const teamRequestedPRs = filterPullRequestsByTeams(pullRequests, teams);
             teamPullRequests.push(...teamRequestedPRs);
-
-            // Filter pull requests that mention the user
-            for (const pr of pullRequests) {
-                if (await requestHasMentions(pr, username, token, since)) {
-                    mentionPullRequests.push(pr);
-                }
-            }
         }
     }
 
@@ -236,13 +248,10 @@ export async function fetchAndFilterPullRequests(username, token, since=null) {
 
         const teamRequestedPRs = filterPullRequestsByTeams(pullRequests, teams);
         teamPullRequests.push(...teamRequestedPRs);
-
-        for (const pr of pullRequests) {
-            if (await requestHasMentions(pr, username)) {
-                mentionPullRequests.push(pr);
-            }
-        }
     }
+
+    // Check for mentions in the pull requests
+    const mentionPullRequests = await searchForMentions(username, token);
 
     results['personal'] = allPullRequests;
     results['teams'] = teamPullRequests;

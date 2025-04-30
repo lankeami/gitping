@@ -1,6 +1,6 @@
 import { getAuthToken, getUsername, updateExtensionBadge, resetLocalStorage, getLastUpdateTime, getLastError } from '../shared/storageUtils.js';
 import { fetchAndFilterPullRequests } from '../shared/githubApi.js';
-import { displayPullRequests, resetUI } from '../shared/uiUtils.js';
+import { displayPullRequests, resetUI, displayItemComments } from '../shared/uiUtils.js';
 
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -82,7 +82,7 @@ document.addEventListener('DOMContentLoaded', function () {
             // Display mentions pull requests (if applicable)
             const mentionsPullRequests = pullRequests.mentions || [];
             chrome.storage.local.set({ mentionsPullRequests }, function () {
-                displayPullRequests(mentionsPullRequests, mentionsPullRequestsList);
+                displayItemComments(mentionsPullRequests, mentionsPullRequestsList);
             });
         } else {
             console.error('Error:', error);
@@ -114,7 +114,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    function hidePopup() {
+    async function hidePopup() {
         credentialsDiv.classList.remove('hidden');
         headerSection.classList.remove('hidden');
         iconContainer.classList.add('hidden');
@@ -125,13 +125,13 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // Check if username is stored in local storage
-    chrome.storage.local.get(['githubUsername', 'lastUpdateTime', 'lastError', 'personalPullRequests', 'teamPullRequests'], async function (result) {
+    chrome.storage.local.get(['githubUsername', 'lastUpdateTime', 'lastError', 'personalPullRequests', 'teamPullRequests', 'mentionsPullRequests'], async function (result) {
         const username = await getUsername();
 
         if (username) {
             await showPopup();
         } else {
-            hidePopup();
+            await hidePopup();
         }
 
         const teamPullRequests = result.teamPullRequests || [];
@@ -152,6 +152,9 @@ document.addEventListener('DOMContentLoaded', function () {
             }
             updateExtensionBadge('');
         }
+
+        const mentionsPullRequests = result.mentionsPullRequests || [];
+        displayItemComments(mentionsPullRequests, mentionsPullRequestsList);
     });
 
 
@@ -195,7 +198,7 @@ document.addEventListener('DOMContentLoaded', function () {
         // Did mentionsPullRequests change?
         if (namespace === 'local' && changes.mentionsPullRequests) {
             const pullRequests = changes.mentionsPullRequests.newValue || [];
-            displayPullRequests(pullRequests, mentionsPullRequestsList);
+            displayItemComments(pullRequests, mentionsPullRequestsList);
         }
     });
 
