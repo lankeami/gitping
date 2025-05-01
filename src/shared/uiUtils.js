@@ -29,6 +29,11 @@ export function displayPullRequests(pullRequests, pullRequestsList) {
     }
 
     pullRequestsList.innerHTML = '';
+
+    // sort pull requests by updated_at date in descending order
+    pullRequests.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
+    // Create a card for each pull request
+    // and append it to the pull requests list
     pullRequests.forEach((pr) => {
         const card = document.createElement('div');
         card.className = 'pr-card';
@@ -86,6 +91,10 @@ export function displayItemComments(comments, commentsList) {
     // Clear the comments list
     commentsList.innerHTML = '';
 
+    // sort comments by updated_at date in descending order
+    comments.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
+    // Create a card for each comment
+    // and append it to the comments list
     comments.forEach((comment) => {
         const card = document.createElement('div');
         card.className = 'pr-card';
