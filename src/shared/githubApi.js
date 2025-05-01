@@ -125,66 +125,13 @@ export function filterPullRequestsByTeams(pullRequests, teams) {
 }
 
 /**
- * Fetch all the comments for a Pull Request
- * @param {Object} pullRequest - The pull request object for which we're fetching comments
- * @param {string} token - GitHub personal access token.
- * @param {string} since - Optional parameter to filter comments since a specific date
- * see docs here: https://docs.github.com/en/rest/pulls/comments?apiVersion=2022-11-28#list-review-comments-on-a-pull-request
+ * Filter pull requests where the author is the user.
+ * @param {Array} pullRequests - List of pull requests.
+ * @param {string} username - GitHub username.
+ * @returns {Array} - Filtered pull requests.
  */
-export function getReviewComments(pullRequest, token, since) {
-    let path = `/repos/${pullRequest.base.repo.full_name}/pulls/${pullRequest.number}/comments?sort=created&direction=desc&per_page=100`;
-    if (since) {
-        path += `&since=${new Date(since).toISOString()}`;
-    }
-    // Fetch the comments from the GitHub API
-    return fetchFromGitHub(path, token);
-}
-
-/**
- * Fetch all comments for an Issue
- * @param {Object} pullRequest - The issue object for which we're fetching comments
- * @param {string} token - GitHub personal access token.
- * @param {string} since - Optional parameter to filter comments since a specific date
- * see docs here: https://docs.github.com/en/rest/issues/comments?apiVersion=2022-11-28#list-issue-comments
- */
-export function getIssueComments(pullRequest, token, since) {
-    let path = `/repos/${pullRequest.base.repo.full_name}/issues/${pullRequest.number}/comments?per_page=100`;
-    if (since) {
-        path += `&since=${new Date(since).toISOString()}`;
-    }
-    // Fetch the comments from the GitHub API
-    return fetchFromGitHub(path, token);
-}
-
-/**
- * 
- * @param {*} pullRequest 
- * @param {*} username 
- * @param {*} token
- * @param {string} since
- * @returns boolean - true = this pull request has a mention fo you / false = no mentions
- */
-async function requestHasMentions(pullRequest, username, token, since=(new Date().toISOString())) {
-    // check if the last updated time on the pr is after the since date
-    if (since) {
-        const lastUpdated = new Date(pullRequest.updated_at);
-        const sinceDate = new Date(since);
-        if (lastUpdated < sinceDate) {
-            return false;
-        }
-    }
-
-    const comments = [];
-    const reviewComments = await getReviewComments(pullRequest, token, since);
-    const issueComments = await getIssueComments(pullRequest, token, since);
-    comments.push(...reviewComments);
-    comments.push(...issueComments);
-
-    // check if the user is mentioned in any of the comments
-    return comments.some((comment) => {
-        const body = comment.body || '';
-        return body.includes(`@${username}`) || body.includes(`@${username.toLowerCase()}`);
-    });
+export function filterPullRequestsByAuthor(pullRequests, username) {
+    return pullRequests.filter((pr) => pr.user.login === username);
 }
 
 /**
@@ -218,6 +165,7 @@ export async function searchForMentions(username, token) {
 export async function fetchAndFilterPullRequests(username, token, since=null) {
     const allPullRequests = [];
     const teamPullRequests = [];
+    const myPullRequests = [];
 
     const results = {};
     const teams = await fetchTeams(token);
@@ -236,6 +184,10 @@ export async function fetchAndFilterPullRequests(username, token, since=null) {
             // Filter pull requests where the user is a member of the team requested for review
             const teamRequestedPRs = filterPullRequestsByTeams(pullRequests, teams);
             teamPullRequests.push(...teamRequestedPRs);
+
+            // Filter pull requests where the user is the author
+            const authorPRs = filterPullRequestsByAuthor(pullRequests, username);
+            myPullRequests.push(...authorPRs);
         }
     }
 
@@ -248,6 +200,9 @@ export async function fetchAndFilterPullRequests(username, token, since=null) {
 
         const teamRequestedPRs = filterPullRequestsByTeams(pullRequests, teams);
         teamPullRequests.push(...teamRequestedPRs);
+
+        const authorPRs = filterPullRequestsByAuthor(pullRequests, username);
+        myPullRequests.push(...authorPRs);
     }
 
     // Check for mentions in the pull requests
@@ -256,6 +211,7 @@ export async function fetchAndFilterPullRequests(username, token, since=null) {
     results['personal'] = allPullRequests;
     results['teams'] = teamPullRequests;
     results['mentions'] = mentionPullRequests;
+    results['mine'] = myPullRequests;
 
     return results;
 }
