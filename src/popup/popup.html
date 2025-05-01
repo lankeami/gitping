@@ -306,6 +306,9 @@
             <button id="personal-tab" class="tab active" title="Personal Review Requests">
                 <img src="./images/person.png" alt="Personal Review Requests" width="20" height="20">
             </button>
+            <button id="mine-tab" class="tab" title="Reviews you requested">
+                <img src="./images/requests.png" alt="Reviews you requested" width="20" height="20">
+            </button>
             <button id="team-tab" class="tab" title="Team Review Requests">
                 <img src="./images/team.png" alt="Team Review Requests" width="20" height="20">
             </button>
@@ -318,6 +321,11 @@
             <div id="personal-content" class="tab-content active">
                 <h2>Reviews For You To Approve</h2>
                 <ul class="pull-request-list" id="personal-pull-requests-list"></ul>
+            </div>
+            <!-- Mine Tab Content -->
+            <div id="mine-content" class="tab-content">
+                <h2>Reviews You Have Requested</h2>
+                <ul class="pull-request-list" id="mine-pull-requests-list"></ul>
             </div>
             <!-- Team Reviews Tab Content -->
             <div id="team-content" class="tab-content">

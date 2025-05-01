@@ -25,6 +25,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const personalPullRequestsList = document.getElementById('personal-pull-requests-list');
     const teamPullRequestsList = document.getElementById('team-pull-requests-list');
     const mentionsPullRequestsList = document.getElementById('mentions-pull-requests-list');
+    const minePullRequestsList = document.getElementById('mine-pull-requests-list');
 
     /**
      * Handles tab switching by hiding all tab content and activating the selected tab.
@@ -84,6 +85,12 @@ document.addEventListener('DOMContentLoaded', function () {
             chrome.storage.local.set({ mentionsPullRequests }, function () {
                 displayItemComments(mentionsPullRequests, mentionsPullRequestsList);
             });
+
+            // Display mine pull requests (if applicable)
+            const minePullRequests = pullRequests.mine || [];
+            chrome.storage.local.set({ minePullRequests }, function () {
+                displayPullRequests(minePullRequests, minePullRequestsList);
+            });
         } else {
             console.error('Error:', error);
             chrome.storage.local.set({ lastError: error.message });
@@ -91,6 +98,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     async function showPopup() {
+        console.log('showPopup called');
         credentialsDiv.classList.add('hidden');
         headerSection.classList.add('hidden');
         iconContainer.classList.remove('hidden');
@@ -112,6 +120,8 @@ document.addEventListener('DOMContentLoaded', function () {
             lastErrorElement.textContent = '';
             lastErrorElement.classList.add('hidden');
         }
+
+        switchTab('personal'); // Set the default tab to "personal"
     }
 
     async function hidePopup() {
@@ -125,19 +135,11 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // Check if username is stored in local storage
-    chrome.storage.local.get(['githubUsername', 'lastUpdateTime', 'lastError', 'personalPullRequests', 'teamPullRequests', 'mentionsPullRequests'], async function (result) {
+    chrome.storage.local.get(['githubUsername', 'lastUpdateTime', 'lastError', 'personalPullRequests', 'teamPullRequests', 'mentionsPullRequests', 'minePullRequests'], async function (result) {
         const username = await getUsername();
 
-        if (username) {
-            await showPopup();
-        } else {
-            await hidePopup();
-        }
-
         const teamPullRequests = result.teamPullRequests || [];
-        if (teamPullRequests.length > 0) {
-            displayPullRequests(teamPullRequests, teamPullRequestsList);
-        }
+        displayPullRequests(teamPullRequests, teamPullRequestsList);
 
         const personalPullRequests = result.personalPullRequests || [];
         if (personalPullRequests.length > 0) {
@@ -153,8 +155,17 @@ document.addEventListener('DOMContentLoaded', function () {
             updateExtensionBadge('');
         }
 
+        const minePullRequests = result.minePullRequests || [];
+        displayPullRequests(minePullRequests, minePullRequestsList);
+
         const mentionsPullRequests = result.mentionsPullRequests || [];
         displayItemComments(mentionsPullRequests, mentionsPullRequestsList);
+
+        if (username) {
+            await showPopup();
+        } else {
+            await hidePopup();
+        }
     });
 
 
@@ -199,6 +210,12 @@ document.addEventListener('DOMContentLoaded', function () {
         if (namespace === 'local' && changes.mentionsPullRequests) {
             const pullRequests = changes.mentionsPullRequests.newValue || [];
             displayItemComments(pullRequests, mentionsPullRequestsList);
+        }
+
+        // Did minePullRequests change?
+        if (namespace === 'local' && changes.minePullRequests) {
+            const pullRequests = changes.minePullRequests.newValue || [];
+            displayPullRequests(pullRequests, minePullRequestsList);
         }
     });
 

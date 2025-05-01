@@ -78,7 +78,6 @@ export function displayPullRequests(pullRequests, pullRequestsList) {
  */
 export function displayItemComments(comments, commentsList) {
     // Check for mentions - only show the list if there are mentions
-    console.log('Checking comments:', comments);
     if (!Array.isArray(comments) || comments.length === 0) {
         console.log('No comments found.');
         commentsList.innerHTML = '<div class="no-pull-requests">No mentions found.</div>';
