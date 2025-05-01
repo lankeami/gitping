@@ -58,6 +58,30 @@ export async function getPersonalReviewRequests() {
     });
 }
 
+/** getMentions
+ * Retrieve mentions from chrome.storage.local.
+ * @returns {Promise<string>} - The GitHub username.
+ */
+export async function getMentions() {
+    return new Promise((resolve) => {
+        chrome.storage.local.get(['mentionsPullRequests'], (result) => {
+            resolve(result.mentionsPullRequests);
+        });
+    });
+}
+
+/** getMinePullRequests
+ * Retrieve mine pull requests from chrome.storage.local.
+ * @returns {Promise<string>} - The GitHub username.
+ */
+export async function getMinePullRequests() {
+    return new Promise((resolve) => {
+        chrome.storage.local.get(['minePullRequests'], (result) => {
+            resolve(result.minePullRequests);
+        });
+    });
+}
+
 /**
  * Update the extension badge with the given count.
  * @param {number|string} count - The number to display on the badge.
