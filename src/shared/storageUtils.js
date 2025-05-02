@@ -35,6 +35,22 @@ export async function getLastUpdateTime() {
 }
 
 /**
+ * Set the lastUpdateTime in chrome.storage.local.
+ * @returns {Promise<void>} - A promise that resolves when the operation is complete.
+ * @description Sets the last update time to the current date and time in local storage.
+ * The time is formatted as a locale string.
+ */
+export async function setLastUpdateTime() {
+    const lastUpdateTime = new Date().toLocaleString();
+
+    return new Promise((resolve) => {
+        chrome.storage.local.set({ lastUpdateTime }, () => {
+            resolve();
+        });
+    });
+}
+
+/**
  * Retrieve the lastError from chrome.storage.local.
  * @returns {Promise<string>} - The last error message.
  */
@@ -42,6 +58,18 @@ export async function getLastError() {
     return new Promise((resolve) => {
         chrome.storage.local.get(['lastError'], (result) => {
             resolve(result.lastError);
+        });
+    });
+}
+
+/**
+ * Set the lastError in chrome.storage.local.
+ * @param {string} lastError - The last error message to set.
+ */
+export async function setLastError(lastError) {
+    return new Promise((resolve) => {
+        chrome.storage.local.set({ lastError }, () => {
+            resolve();
         });
     });
 }
@@ -78,6 +106,38 @@ export async function getMinePullRequests() {
     return new Promise((resolve) => {
         chrome.storage.local.get(['minePullRequests'], (result) => {
             resolve(result.minePullRequests);
+        });
+    });
+}
+
+/**
+ * getTeamPullRequests
+ * Retrieve team pull requests from chrome.storage.local.
+ * @returns {Promise<string>} - The GitHub username.   
+ */
+export async function getTeamPullRequests() {
+    return new Promise((resolve) => {
+        chrome.storage.local.get(['teamPullRequests'], (result) => {
+            resolve(result.teamPullRequests);
+        });
+    });
+}
+
+/**
+ * getStoredPullRequests
+ * Retrieve all pull requests from chrome.storage.local.
+ * @returns {Promise<string>} - The GitHub username.
+ */
+export async function getStoredPullRequests() {
+    return new Promise((resolve) => {
+        // TODO: hard coded Tab names / stored pull requests -- make them configurable
+        chrome.storage.local.get(['personalPullRequests', 'teamPullRequests', 'mentionsPullRequests', 'minePullRequests'], (result) => {
+            resolve({
+                personal: result.personalPullRequests,
+                team: result.teamPullRequests,
+                mentions: result.mentionsPullRequests,
+                mine: result.minePullRequests
+            });
         });
     });
 }

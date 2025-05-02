@@ -1,4 +1,4 @@
-import { getAuthToken, getUsername, updateExtensionBadge, resetLocalStorage, getLastUpdateTime, getLastError } from '../shared/storageUtils.js';
+import { getAuthToken, getUsername, updateExtensionBadge, resetLocalStorage, getLastUpdateTime, getLastError, setLastError } from '../shared/storageUtils.js';
 import { fetchAndFilterPullRequests } from '../shared/githubApi.js';
 import { displayPullRequests, resetUI, displayItemComments, displayBadgeCount } from '../shared/uiUtils.js';
 
@@ -55,17 +55,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (token && username) {
             if (overridePRs) {
-                console.log('Using override pull requests:', overridePRs);
                 pullRequests = overridePRs;
             } else {
                 pullRequests = await fetchAndFilterPullRequests(username, token, lastUpdateTime);
-                console.log('Fetched pull requests:', pullRequests);
             }
 
             // TODO: hard coded Tab names / stored pull requests -- make them configurable
             const config = {
                 personal: pullRequests.personalPullRequests || pullRequests.personal,
-                team: pullRequests.teamPullRequests         || pullRequests.teams,
+                team: pullRequests.teamPullRequests         || pullRequests.team,
                 mention: pullRequests.mentionsPullRequests  || pullRequests.mentions,
                 mine: pullRequests.minePullRequests         || pullRequests.mine,
             }
@@ -75,8 +73,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 var pullRequests = config[element];
                 var listElement = document.getElementById(`${element}-pull-requests-list`);
                 if (listElement) {
-                    console.log('Element:', element);
-                    console.log('Pull Requests:', pullRequests);
                     chrome.storage.local.set({ [`${element}PullRequests`]: pullRequests }, function () {
                         displayPullRequests(pullRequests, listElement);
                         displayBadgeCount(element, pullRequests);
@@ -85,7 +81,7 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         } else {
             console.error('Error:', error);
-            chrome.storage.local.set({ lastError: error.message });
+            setLastError(error.message);
         }
     }
 
