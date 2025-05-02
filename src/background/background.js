@@ -34,7 +34,6 @@ function flattenMentionsToIds(mentions) {
         return [];
     }
     if (mentions.length === 0) {
-        console.log('No mentions found.');
         return [];
     }
     // Assuming each mention has a `commit` property with a `sha` field

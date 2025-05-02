@@ -232,6 +232,7 @@
             font-size: 14px;
             border-top: 1px solid #ddd;
             border-right: 1px solid #ddd;
+            position: relative;
         }
 
         .tab.active {
@@ -262,6 +263,24 @@
             padding: 0 !important;
             margin: 0 !important;
             list-style: none; /* Remove default list styling */
+        }
+        /* Style for the badge */
+        .tab-badge {
+            position: absolute;
+            bottom: 5px; /* Position the badge at the bottom */
+            right: 5px; /* Position the badge at the right */
+            color: #FF8469;
+            font-size: 12px;
+            font-weight: bold;
+            border-radius: 50%;
+            padding-top: 2px;
+            display: inline-block;
+            min-width: 20px;
+            text-align: right;
+        }
+
+        .tab-badge.hidden {
+            display: none;
         }
     </style>
 </head>
@@ -305,15 +324,19 @@
         <div id="tabs">
             <button id="personal-tab" class="tab active" title="Personal Review Requests">
                 <img src="./images/person.png" alt="Personal Review Requests" width="20" height="20">
+                <span id="personal-badge" class="tab-badge hidden">0</span>
             </button>
             <button id="mine-tab" class="tab" title="Reviews you requested">
                 <img src="./images/requests.png" alt="Reviews you requested" width="20" height="20">
+                <span id="mine-badge" class="tab-badge hidden">0</span>
             </button>
             <button id="team-tab" class="tab" title="Team Review Requests">
                 <img src="./images/team.png" alt="Team Review Requests" width="20" height="20">
+                <span id="team-badge" class="tab-badge hidden">0</span>
             </button>
             <button id="mention-tab" class="tab" title="Reviews you were mentioned on">
                 <img src="./images/mention.png" alt="Reviews you were mentioned on" width="20" height="20">
+                <span id="mention-badge" class="tab-badge hidden">0</span>
             </button>
         </div>
         <div id="content">
@@ -335,7 +358,7 @@
             <!-- Mentions Tab Content -->
             <div id="mention-content" class="tab-content">
                 <h2>Reviews You Were Mentioned On</h2>
-                <ul class="pull-request-list" id="mentions-pull-requests-list"></ul>
+                <ul class="pull-request-list" id="mention-pull-requests-list"></ul>
             </div>
         </div>
     </div>

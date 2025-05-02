@@ -186,3 +186,28 @@ export function resetUI() {
     });
 }
 
+/**
+ * Display the badge count on a tab for the number of pull requests
+ * @param {string} prefix - tab prefix
+ * @param {Array} pullRequests - List of pull requests to display.
+ * @param {Date} lastViewedTime - The last time this tab was viewed.
+ */
+export function displayBadgeCount(prefix, pullRequests, lastViewedTime=null) {
+    const pullRequestCount = pullRequests.length;
+    const badgeText = pullRequestCount > 0 ? pullRequestCount : '';
+
+    // Find the badge element and update the text
+    const badgeElement = document.getElementById(`${prefix}-badge`);
+    if (badgeElement) {
+        badgeElement.textContent = badgeText;
+    }
+
+    if (badgeText === '') {
+        badgeElement.classList.add('hidden');
+    } else {
+        badgeElement.classList.remove('hidden');
+    }
+
+    // TODO: Compare the count of pullRequests that occurred after lastViewedTime
+    // and update the badge accordingly
+}

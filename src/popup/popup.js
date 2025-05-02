@@ -1,6 +1,6 @@
 import { getAuthToken, getUsername, updateExtensionBadge, resetLocalStorage, getLastUpdateTime, getLastError } from '../shared/storageUtils.js';
 import { fetchAndFilterPullRequests } from '../shared/githubApi.js';
-import { displayPullRequests, resetUI, displayItemComments } from '../shared/uiUtils.js';
+import { displayPullRequests, resetUI, displayItemComments, displayBadgeCount } from '../shared/uiUtils.js';
 
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -21,12 +21,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const tabs = document.querySelectorAll('.tab');
     const tabContents = document.querySelectorAll('.tab-content');
 
-    // Tab content elements
-    const personalPullRequestsList = document.getElementById('personal-pull-requests-list');
-    const teamPullRequestsList = document.getElementById('team-pull-requests-list');
-    const mentionsPullRequestsList = document.getElementById('mentions-pull-requests-list');
-    const minePullRequestsList = document.getElementById('mine-pull-requests-list');
-
     /**
      * Handles tab switching by hiding all tab content and activating the selected tab.
      * @param {string} tabId - The ID of the tab to activate.
@@ -45,51 +39,49 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (selectedTab && selectedContent) {
             selectedTab.classList.add('active');
-            selectedContent.classList.add('active');
-            selectedContent.classList.remove('hidden');
+            selectedContent.classList = ["tab-content", "active"];
         }
     }
 
-    // Add event listeners to tabs
-    tabs.forEach((tab) => {
-        tab.addEventListener('click', () => {
-            const tabId = tab.id.replace('-tab', ''); // Extract the tab ID (e.g., "personal", "team", "mentions")
-            switchTab(tabId);
-        });
-    });
-
-    // Fetch and display pull requests
-    async function updateDisplays() {
+    /**
+     * Fetch and display all pull requests
+     * @param {object} overridePRs 
+     */
+    async function updateDisplays(overridePRs=null) {
         const token = await getAuthToken();
         const username = await getUsername();
         const lastUpdateTime = await getLastUpdateTime();
+        var pullRequests = null;
 
         if (token && username) {
-            const pullRequests = await fetchAndFilterPullRequests(username, token, lastUpdateTime);
-            const personalPullRequests = pullRequests.personal;
-            const teamPullRequests = pullRequests.teams;
+            if (overridePRs) {
+                console.log('Using override pull requests:', overridePRs);
+                pullRequests = overridePRs;
+            } else {
+                pullRequests = await fetchAndFilterPullRequests(username, token, lastUpdateTime);
+                console.log('Fetched pull requests:', pullRequests);
+            }
 
-            // Display personal pull requests
-            chrome.storage.local.set({ personalPullRequests }, function () {
-                displayPullRequests(personalPullRequests, personalPullRequestsList);
-                updateExtensionBadge(personalPullRequests.length);
-            });
+            // TODO: hard coded Tab names / stored pull requests -- make them configurable
+            const config = {
+                personal: pullRequests.personalPullRequests || pullRequests.personal,
+                team: pullRequests.teamPullRequests         || pullRequests.teams,
+                mention: pullRequests.mentionsPullRequests  || pullRequests.mentions,
+                mine: pullRequests.minePullRequests         || pullRequests.mine,
+            }
 
-            // Display team pull requests
-            chrome.storage.local.set({ teamPullRequests }, function () {
-                displayPullRequests(teamPullRequests, teamPullRequestsList);
-            });
-
-            // Display mentions pull requests (if applicable)
-            const mentionsPullRequests = pullRequests.mentions || [];
-            chrome.storage.local.set({ mentionsPullRequests }, function () {
-                displayItemComments(mentionsPullRequests, mentionsPullRequestsList);
-            });
-
-            // Display mine pull requests (if applicable)
-            const minePullRequests = pullRequests.mine || [];
-            chrome.storage.local.set({ minePullRequests }, function () {
-                displayPullRequests(minePullRequests, minePullRequestsList);
+            // set all displays
+            Object.keys(config).forEach(element => {
+                var pullRequests = config[element];
+                var listElement = document.getElementById(`${element}-pull-requests-list`);
+                if (listElement) {
+                    console.log('Element:', element);
+                    console.log('Pull Requests:', pullRequests);
+                    chrome.storage.local.set({ [`${element}PullRequests`]: pullRequests }, function () {
+                        displayPullRequests(pullRequests, listElement);
+                        displayBadgeCount(element, pullRequests);
+                    });
+                }
             });
         } else {
             console.error('Error:', error);
@@ -98,7 +90,6 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     async function showPopup() {
-        console.log('showPopup called');
         credentialsDiv.classList.add('hidden');
         headerSection.classList.add('hidden');
         iconContainer.classList.remove('hidden');
@@ -134,40 +125,20 @@ document.addEventListener('DOMContentLoaded', function () {
         lastErrorElement.classList.add('hidden');
     }
 
-    // Check if username is stored in local storage
-    chrome.storage.local.get(['githubUsername', 'lastUpdateTime', 'lastError', 'personalPullRequests', 'teamPullRequests', 'mentionsPullRequests', 'minePullRequests'], async function (result) {
-        const username = await getUsername();
+    function updateDisplaysFromStorage() {
+        // Check if username is stored in local storage
+        // TODO: hard coded Tab names / stored pull requests -- make them configurable
+        chrome.storage.local.get(['githubUsername', 'lastUpdateTime', 'lastError', 'personalPullRequests', 'teamPullRequests', 'mentionsPullRequests', 'minePullRequests'], async function (result) {
+            const username = await getUsername();
 
-        const teamPullRequests = result.teamPullRequests || [];
-        displayPullRequests(teamPullRequests, teamPullRequestsList);
-
-        const personalPullRequests = result.personalPullRequests || [];
-        if (personalPullRequests.length > 0) {
-            displayPullRequests(personalPullRequests, personalPullRequestsList);
-            updateExtensionBadge(personalPullRequestsList.length);
-        } else {
-            console.log('No personal pull requests found.');
             if (username) {
-                personalPullRequestsList.innerHTML = '<p>No pull requests found.</p>';
+                await showPopup();
+                updateDisplays(result);
             } else {
-                personalPullRequestsList.innerHTML = '';
+                await hidePopup();
             }
-            updateExtensionBadge('');
-        }
-
-        const minePullRequests = result.minePullRequests || [];
-        displayPullRequests(minePullRequests, minePullRequestsList);
-
-        const mentionsPullRequests = result.mentionsPullRequests || [];
-        displayItemComments(mentionsPullRequests, mentionsPullRequestsList);
-
-        if (username) {
-            await showPopup();
-        } else {
-            await hidePopup();
-        }
-    });
-
+        });
+    }
 
     // Listen for changes to chrome.storage.local
     chrome.storage.onChanged.addListener((changes, namespace) => {
@@ -188,35 +159,7 @@ document.addEventListener('DOMContentLoaded', function () {
             lastUpdateTimeElement.textContent = `Last updated: ${lastUpdateTime}`;
         }
 
-        // Did personalPullRequests change?
-        if (namespace === 'local' && changes.personalPullRequests) {
-            const pullRequests = changes.personalPullRequests.newValue || [];
-            displayPullRequests(pullRequests, personalPullRequestsList);
-
-            if (pullRequests.length > 0) {
-                updateExtensionBadge(pullRequests.length);
-            } else {
-                updateExtensionBadge('');
-            }
-        }
-
-        // Did teamPullRequests change?
-        if (namespace === 'local' && changes.teamPullRequests) {
-            const pullRequests = changes.teamPullRequests.newValue || [];
-            displayPullRequests(pullRequests, teamPullRequestsList);
-        }
-
-        // Did mentionsPullRequests change?
-        if (namespace === 'local' && changes.mentionsPullRequests) {
-            const pullRequests = changes.mentionsPullRequests.newValue || [];
-            displayItemComments(pullRequests, mentionsPullRequestsList);
-        }
-
-        // Did minePullRequests change?
-        if (namespace === 'local' && changes.minePullRequests) {
-            const pullRequests = changes.minePullRequests.newValue || [];
-            displayPullRequests(pullRequests, minePullRequestsList);
-        }
+        updateDisplaysFromStorage();
     });
 
     appIconContainer.addEventListener('click', () => {
@@ -257,4 +200,14 @@ document.addEventListener('DOMContentLoaded', function () {
         lastUpdateTimeElement.textContent = "Fetching latest pull requests.";
         updateDisplays();
     });
+
+    // Add event listeners to tabs
+    tabs.forEach((tab) => {
+        tab.addEventListener('click', () => {
+            const tabId = tab.id.replace('-tab', ''); // Extract the tab ID (e.g., "personal", "team", "mentions")
+            switchTab(tabId);
+        });
+    });
+
+    updateDisplaysFromStorage();
 });

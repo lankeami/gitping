@@ -93,6 +93,7 @@ export function updateExtensionBadge(count) {
 
     const text = count > 0 ? count.toString() : '';
     chrome.action.setBadgeText({ text });
+    chrome.action.setBadgeTextColor({ color: '#FFFFFF' });
     chrome.action.setBadgeBackgroundColor({ color: '#FF8469' });
 
     if(count > 0) {
