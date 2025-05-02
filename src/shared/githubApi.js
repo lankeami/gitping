@@ -209,7 +209,7 @@ export async function fetchAndFilterPullRequests(username, token, since=null) {
     const mentionPullRequests = await searchForMentions(username, token);
 
     results['personal'] = allPullRequests;
-    results['teams'] = teamPullRequests;
+    results['team'] = teamPullRequests;
     results['mentions'] = mentionPullRequests;
     results['mine'] = myPullRequests;
 

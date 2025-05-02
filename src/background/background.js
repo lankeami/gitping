@@ -1,4 +1,4 @@
-import { getAuthToken, getUsername, updateExtensionBadge, getPersonalReviewRequests, getLastUpdateTime, getMentions, getMinePullRequests } from '../shared/storageUtils.js';
+import { getAuthToken, getUsername, updateExtensionBadge, getPersonalReviewRequests, getLastUpdateTime, getMentions, getMinePullRequests, getStoredPullRequests, setLastUpdateTime, setLastError } from '../shared/storageUtils.js';
 import { fetchAndFilterPullRequests } from '../shared/githubApi.js';
 
 const POLLING_INTERVAL_MINUTES = 2;
@@ -14,7 +14,6 @@ function flattenPullRequestsToCommitHashes(pullRequests) {
         return [];
     }
     if (pullRequests.length === 0) {
-        console.log('No pull requests found.');
         return [];
     }
     // Assuming each pull request has a `head` property with a `sha` field
@@ -34,7 +33,6 @@ function flattenMentionsToIds(mentions) {
         return [];
     }
     if (mentions.length === 0) {
-        console.log('No mentions found.');
         return [];
     }
     // Assuming each mention has a `commit` property with a `sha` field
@@ -42,7 +40,6 @@ function flattenMentionsToIds(mentions) {
 
     return mentions.map((mention) => mention.id); // Assuming `commit.sha` contains the commit hash
 }
-
 
 // Use getAuthToken and getUsername from shared module
 async function checkForUpdates() {
@@ -52,47 +49,43 @@ async function checkForUpdates() {
         const lastUpdateTime = await getLastUpdateTime();
 
         if (token && username) {
-            // pull the current personal pull requests from local storage
-            const currentPersonalPullRequests = await getPersonalReviewRequests();
-            const currentMentions = await getMentions();
-            const currentMine = await getMinePullRequests();
-
-            // Check Github for new pull requests
+            // do the new modular way
+            const currentPullRequests = await getStoredPullRequests();
             const pullRequests = await fetchAndFilterPullRequests(username, token, lastUpdateTime);
+            var diffs = {}
 
-            // Set the fetched pull requests in local storage
-            const personalPullRequests = pullRequests.personal;
-            const teamPullRequests = pullRequests.teams;
-            const mentionsPullRequests = pullRequests.mentions;
-            const minePullRequests = pullRequests.mine;
+            Object.keys(currentPullRequests).forEach(element => {
+                // see the difference between the current and the new pull requests
+                const currentPullRequestsHashes = flattenPullRequestsToCommitHashes(currentPullRequests[element]);
+                const newPullRequests = pullRequests[element].filter((pr) =>  {
+                    // if mentions, use id
+                    if (element === "mentions") {
+                        const currentMentionsIds = flattenMentionsToIds(currentPullRequests[element]);
+                        return !currentMentionsIds.includes(pr.id);
+                    } else {
+                        return !currentPullRequestsHashes.includes(pr.head.sha);
+                    }
+                });    
+                diffs[element] = newPullRequests;
+            });
 
-            chrome.storage.local.set({ personalPullRequests });
-            chrome.storage.local.set({ teamPullRequests });
-            chrome.storage.local.set({ mentionsPullRequests });
-            chrome.storage.local.set({ minePullRequests });
+            // save each set of pull requests in local storage
+            Object.keys(pullRequests).forEach(element => {
+                var key = element + "PullRequests";
+                // save key and value in local storage
+                chrome.storage.local.set({ [key]: pullRequests[element] });
+            });
 
-            // compare the flattened pull requests with the previously stored ones
-            const currentPersonalPullRequestsHashes = flattenPullRequestsToCommitHashes(currentPersonalPullRequests);
-            const currentMentionsIds = flattenMentionsToIds(currentMentions);
-            const currentMinePullRequestsHashes = flattenPullRequestsToCommitHashes(currentMine);
+            // set the last update time
+            setLastUpdateTime();
 
-            // Check if there are new pull requests
-            const newPullRequests = personalPullRequests.filter((pr) => !currentPersonalPullRequestsHashes.includes(pr.head.sha));
-            const newMentions = mentionsPullRequests.filter((mention) => !currentMentionsIds.includes(mention.id));
-            const newMine = minePullRequests.filter((pr) => !currentMinePullRequestsHashes.includes(pr.head.sha));
+            // update the extension badge with the sum of the lengths of the arrays in diffs
+            const totalNewPullRequests = Object.values(diffs).reduce((acc, arr) => acc + arr.length, 0);
+            updateExtensionBadge(totalNewPullRequests);
 
-            if (newPullRequests.length > 0 || newMentions.length > 0 || newMine.length > 0) {
-                // Update the extension badge with the count of personal pull requests
-                console.log('New personal pull requests:', newPullRequests);
-                console.log('New mentions:', newMentions);
-                console.log('New mine:', newMine);
-                updateExtensionBadge(newPullRequests.length + newMentions.length + newMine.length);
-            }
+            // reset the last error
+            setLastError("");
 
-            // Store the current timestamp as the last update time
-            chrome.storage.local.set({ lastUpdateTime: new Date().toLocaleString() });
-            // Clear the Last Error
-            chrome.storage.local.set({ lastError: "" });
         }
     } catch (error) {
         console.error(error);
