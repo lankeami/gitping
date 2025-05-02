@@ -55,14 +55,14 @@ async function checkForUpdates() {
             var diffs = {}
 
             Object.keys(currentPullRequests).forEach(element => {
-                // see the difference between the current and the new pull requests
-                const currentPullRequestsHashes = flattenPullRequestsToCommitHashes(currentPullRequests[element]);
+                // see the difference between the current and the new pull requests                
                 const newPullRequests = pullRequests[element].filter((pr) =>  {
                     // if mentions, use id
                     if (element === "mentions") {
                         const currentMentionsIds = flattenMentionsToIds(currentPullRequests[element]);
                         return !currentMentionsIds.includes(pr.id);
                     } else {
+                        const currentPullRequestsHashes = flattenPullRequestsToCommitHashes(currentPullRequests[element]);
                         return !currentPullRequestsHashes.includes(pr.head.sha);
                     }
                 });    
