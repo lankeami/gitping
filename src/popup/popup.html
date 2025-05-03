@@ -109,9 +109,10 @@
             left: 0; /* Align them to the left */
             display: flex;
             gap: 10px; /* Add spacing between the refresh and trashcan icons */
+            padding-left: 10px;
         }
 
-        #app-icon-container {
+        #right-icon-container {
             position: absolute; /* Position the app icon absolutely */
             right: 0; /* Align it to the right */
         }
@@ -282,6 +283,14 @@
         .tab-badge.hidden {
             display: none;
         }
+        .header-icon {
+            background: none;
+            border: none;
+            cursor: pointer;
+            display: inline-block;
+            vertical-align: middle;
+            padding: 0px;
+        }
     </style>
 </head>
 <body>
@@ -293,18 +302,20 @@
     </div>
     <div id="icon-container" class="icon-container">
         <div class="left-icons">
-            <button id="refresh-button">
-                <img src="./images/refresh-icon.png" alt="Refresh" width="20" height="20">
+            <button class="header-icon" id="app-icon-container">
+                <img id="app-icon" src="./images/app-icon.png" alt="App Icon" width="20" height="20">
             </button>
-            <button id="reset-button">
-                <img src="./images/trashcan-icon.png" alt="Reset" width="20" height="20">
+            <button class="header-icon" id="refresh-button">
+                <img src="./images/refresh-icon.png" alt="Refresh" width="20" height="20">
             </button>
         </div>
         <a href="https://github.com/lankeami/gitping" target="_blank" style="text-decoration: none;">
             <h1>GitPing</h1>
         </a>
-        <div id="app-icon-container">
-            <img id="app-icon" src="./images/app-icon.png" alt="App Icon">
+        <div id="right-icon-container">
+            <button class="header-icon" id="reset-button">
+                <img src="./images/trashcan-icon.png" alt="Reset" width="20" height="20">
+            </button>
         </div>
     </div>
     <div id="credentials">

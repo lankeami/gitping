@@ -183,6 +183,13 @@ export function resetUI() {
             console.log('Local storage cleared successfully.');
         }
     });
+
+    // Clear all tab-badges
+    const allBadges = document.querySelectorAll('.tab-badge');
+    allBadges.forEach((badge) => {
+        badge.textContent = '';
+        badge.classList.add('hidden');
+    });
 }
 
 /**

@@ -187,6 +187,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 headerSection.classList.add('hidden');
                 iconContainer.classList.remove('hidden');
             });
+            
             lastUpdateTimeElement.textContent = "Fetching latest pull requests.";
 
             updateDisplays()
