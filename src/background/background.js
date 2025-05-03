@@ -85,7 +85,6 @@ async function checkForUpdates() {
 
             // reset the last error
             setLastError("");
-
         }
     } catch (error) {
         console.error(error);

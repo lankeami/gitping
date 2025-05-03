@@ -1,4 +1,4 @@
-import { getAuthToken, getUsername, resetLocalStorage, getLastUpdateTime, getLastError, setLastError, updateExtensionBadge } from '../shared/storageUtils.js';
+import { getAuthToken, getUsername, resetLocalStorage, getLastUpdateTime, getLastError, setLastError, updateExtensionBadge, setLastUpdateTime } from '../shared/storageUtils.js';
 import { fetchAndFilterPullRequests } from '../shared/githubApi.js';
 import { displayPullRequests, resetUI, displayItemComments, displayBadgeCount } from '../shared/uiUtils.js';
 
@@ -84,6 +84,9 @@ document.addEventListener('DOMContentLoaded', function () {
                     });
                 }
             });
+
+            setLastUpdateTime();
+            setLastError();
         } else {
             console.error('Error:', error);
             setLastError(error.message);
