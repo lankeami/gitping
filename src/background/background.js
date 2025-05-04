@@ -88,6 +88,7 @@ async function checkForUpdates() {
         }
     } catch (error) {
         console.error(error);
+        setLastError(error.message);
     }
 }
 
