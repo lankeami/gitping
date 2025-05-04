@@ -23,6 +23,18 @@ export async function getUsername() {
 }
 
 /**
+ * Retrieve the GitHub API URL from chrome.storage.local.
+ * @returns {Promise<string>} - The GitHub API URL.
+ */
+export async function getGitHubApiBaseUrl() {
+    return new Promise((resolve) => {
+        chrome.storage.local.get(['githubApiBaseUrl'], (result) => {
+            resolve(result.githubApiBaseUrl);
+        });
+    });
+}
+
+/**
  * Retrieve the lastUpdateTime from chrome.storage.local.
  * @returns {Promise<string>} - The GitHub username.
  */

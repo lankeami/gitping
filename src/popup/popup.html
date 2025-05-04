@@ -33,8 +33,16 @@
     </div>
     <div id="credentials">
         <img src="./images/header.gif" alt="GitPing Header" width="100%" height="auto">
-        <input type="text" id="username" placeholder="GitHub Username">
-        <input type="password" id="token" placeholder="GitHub Token">
+    
+        <label for="username">GitHub Username</label>
+        <input type="text" id="username" placeholder="Enter your GitHub username">
+    
+        <label for="token">GitHub Token</label>
+        <input type="password" id="token" placeholder="Enter your GitHub token">
+    
+        <label for="api-base-url">GitHub API Base URL</label>
+        <input type="text" id="api-base-url" value="https://api.github.com" placeholder="e.g., https://api.github.com">
+    
         <a href="https://github.com/lankeami/gitping#authentication" target="_blank" class="auth-help">
             How to authenticate with GitHub?
         </a>

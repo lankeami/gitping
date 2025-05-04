@@ -1,4 +1,4 @@
-const GITHUB_API_BASE_URL = 'https://api.github.com';
+import { getGitHubApiBaseUrl } from './storageUtils.js';
 
 /**
  * Helper method to perform a fetch request to the GitHub API with pagination support.
@@ -8,6 +8,12 @@ const GITHUB_API_BASE_URL = 'https://api.github.com';
  * @throws {Error} - If the response is not OK.
  */
 async function fetchFromGitHub(path, token) {
+    const GITHUB_API_BASE_URL = await getGitHubApiBaseUrl();
+
+    if (!GITHUB_API_BASE_URL) {
+        throw new Error('Error: GitHub API URL is not set.');
+    }
+
     const url = `${GITHUB_API_BASE_URL}${path}`;
     const response = await fetch(url, {
         headers: {

@@ -199,6 +199,10 @@ export function resetUI() {
  * @param {Date} lastViewedTime - The last time this tab was viewed.
  */
 export function displayBadgeCount(prefix, pullRequests, lastViewedTime=null) {
+    // Check if pullRequests is an array
+    if (!Array.isArray(pullRequests)) {
+        return;
+    }
     const pullRequestCount = pullRequests.length;
     const badgeText = pullRequestCount > 0 ? pullRequestCount : '';
 

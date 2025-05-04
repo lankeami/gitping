@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const refreshButton = document.getElementById('refresh-button');
     const resetButton = document.getElementById('reset-button');
     const usernameInput = document.getElementById('username');
+    const apiBaseUrlInput = document.getElementById('api-base-url');
     const tokenInput = document.getElementById('token');
     const credentialsDiv = document.getElementById('credentials');
     const headerSection = document.getElementById('header-section');
@@ -179,20 +180,26 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     loginButton.addEventListener('click', async () => {
-        const token = tokenInput.value;
-        const username = usernameInput.value;
-        if (token && username) {
-            chrome.storage.local.set({ githubToken: token, githubUsername: username }, function () {
-                credentialsDiv.classList.add('hidden');
-                headerSection.classList.add('hidden');
-                iconContainer.classList.remove('hidden');
-            });
-            
-            lastUpdateTimeElement.textContent = "Fetching latest pull requests.";
-
-            updateDisplays()
-        } else {
-            alert('Please enter both your username and token.');
+        try {
+            const token = tokenInput.value;
+            const username = usernameInput.value;
+            const apiBaseUrl = apiBaseUrlInput.value;
+            if (token && username && apiBaseUrl) {
+                chrome.storage.local.set({ githubToken: token, githubUsername: username, githubApiBaseUrl: apiBaseUrl }, function () {
+                    credentialsDiv.classList.add('hidden');
+                    headerSection.classList.add('hidden');
+                    iconContainer.classList.remove('hidden');
+                });
+                
+                lastUpdateTimeElement.textContent = "Fetching latest pull requests.";
+    
+                updateDisplays()
+            } else {
+                alert('Please enter both your username and token.');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            setLastError(error.message);
         }
     });
 
