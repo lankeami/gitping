@@ -1,0 +1,286 @@
+.hidden {
+    display: none !important;
+}
+#login-button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    display: inline-block;
+    vertical-align: middle;
+}
+#reset-button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: red;
+    display: inline-block;
+    vertical-align: middle;
+}
+#app-icon {
+    display: inline-block;
+    vertical-align: middle;
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    position: relative;
+}
+.badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background-color: red;
+    color: white;
+    font-size: 10px;
+    font-weight: bold;
+    border-radius: 50%;
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.pr-card {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 10px;
+    margin: 10px 0;
+    background-color: #f9f9f9;
+    cursor: pointer;
+    transition: box-shadow 0.2s ease;
+    width: 310px; /* Make the card span the full width */
+    box-sizing: border-box; /* Include padding and border in width */
+}
+.pr-card:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+.pr-highbrow {
+    font-size: 14px;
+    font-weight: bold;
+    color: #555;
+    margin-bottom: 5px;
+}
+.pr-title {
+    font-size: 16px;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 5px;
+}
+.pr-subtitle {
+    font-size: 14px;
+    color: #777;
+    margin-bottom: 5px;
+}
+.pr-footnote {
+    font-size: 12px;
+    color: #999;
+}
+
+body {
+    position: relative;
+    width: 400px; /* Set the desired width of the popup */
+    height: 450px; /* Set the desired height of the popup */
+    margin: 0; /* Remove default margin */
+    padding-top: 10px;
+    padding-bottom: 10px; 
+    padding-left: 2px;
+    padding-right: 5px;
+    box-sizing: border-box; /* Include padding and border in the width */
+    overflow: hidden; /* Prevent the entire popup from scrolling */
+}
+
+.icon-container {
+    display: flex;
+    align-items: center; /* Center items vertically */
+    justify-content: center; /* Center the h1 horizontally */
+    width: 100%; /* Ensure it spans the full width of the popup */
+    margin-bottom: 10px;
+    position: relative; /* Allow absolute positioning for left-icons */
+}
+
+.left-icons {
+    position: absolute; /* Position the icons absolutely */
+    left: 0; /* Align them to the left */
+    display: flex;
+    gap: 10px; /* Add spacing between the refresh and trashcan icons */
+    padding-left: 10px;
+}
+
+#right-icon-container {
+    position: absolute; /* Position the app icon absolutely */
+    right: 0; /* Align it to the right */
+}
+
+.icon-container a {
+    text-decoration: none; /* Remove underline from the link */
+}
+
+.icon-container h1 {
+    margin: 0;
+    font-size: 18px;
+    color: #333;
+}
+
+.footnote {
+    font-size: 12px;
+    color: #888;
+    margin-top: 10px;
+    text-align: center;
+}
+
+#credentials {
+    display: flex;
+    flex-direction: column;
+    gap: 10px; /* Add spacing between inputs and the button */
+    margin-top: 20px; /* Add some spacing from the top */
+    padding-left: 35px;
+    padding-right: 35px;
+}
+
+#credentials input {
+    padding: 8px;
+    font-size: 14px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+#login-button {
+    padding: 10px;
+    font-size: 14px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+#login-button:hover {
+    background-color: #0056b3;
+}
+
+#header-section {
+    text-align: center;
+    margin-bottom: 20px;
+    padding-top: 10px;
+}
+
+#header-section h1 {
+    font-size: 20px;
+    margin: 0;
+    color: #333;
+}
+
+#header-section p {
+    font-size: 14px;
+    margin: 5px 0 0;
+    color: #666;
+}
+
+.error {
+    color: red;
+    font-size: 12px;
+    margin-top: 5px;
+    text-align: center;
+}
+
+#last-update-time {
+    font-size: 12px;
+    color: #888;
+    margin-top: 10px;
+    padding-bottom: 10px;
+    text-align: center;
+}
+.auth-help {
+    font-size: 12px;
+    color: #007bff;
+    text-align: center;
+    text-decoration: none;
+    margin: 0 auto;
+}
+
+.auth-help:hover {
+    text-decoration: underline;
+}
+
+/* tab structure for different pages of pull requests */
+#popup-container {
+    display: flex;
+    height: 100%;
+    width: 100%;
+    overflow-y: auto; /* Enable vertical scrolling */
+    overflow-x: hidden; /* Prevent horizontal scrolling */
+}
+
+#tabs {
+    display: flex;
+    flex-direction: column;
+    width: 40px; 
+    height: 40px;
+}
+
+.tab {
+    padding: 10px;
+    text-align: left;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 14px;
+    border-top: 1px solid #ddd;
+    border-right: 1px solid #ddd;
+    position: relative;
+}
+
+.tab.active {
+    background-color: #e0e0e0;
+    font-weight: bold;
+}
+
+#content {
+    flex-grow: 1;
+    padding: 5px;
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+    padding-left: 10px;
+}
+
+ul {
+    padding: 0;
+    margin: 0;
+    list-style: none; /* Remove default bullet points */
+}
+.pull-request-list {
+    padding: 0 !important;
+    margin: 0 !important;
+    list-style: none; /* Remove default list styling */
+}
+/* Style for the badge */
+.tab-badge {
+    position: absolute;
+    bottom: 5px; /* Position the badge at the bottom */
+    right: 5px; /* Position the badge at the right */
+    color: #FF8469;
+    font-size: 12px;
+    font-weight: bold;
+    border-radius: 50%;
+    padding-top: 2px;
+    display: inline-block;
+    min-width: 20px;
+    text-align: right;
+}
+
+.tab-badge.hidden {
+    display: none;
+}
+.header-icon {
+    background: none;
+    border: none;
+    cursor: pointer;
+    display: inline-block;
+    vertical-align: middle;
+    padding: 0px;
+}
