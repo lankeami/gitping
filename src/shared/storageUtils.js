@@ -79,6 +79,9 @@ export async function getLastError() {
  * @param {string} lastError - The last error message to set.
  */
 export async function setLastError(lastError) {
+    if (lastError === undefined || lastError === null) {
+        lastError = '';
+    }
     return new Promise((resolve) => {
         chrome.storage.local.set({ lastError }, () => {
             resolve();

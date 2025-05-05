@@ -211,6 +211,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     refreshButton.addEventListener('click', async () => {
         lastUpdateTimeElement.textContent = "Fetching latest pull requests.";
+        setLastError();
         updateDisplays();
     });
 

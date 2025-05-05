@@ -84,7 +84,7 @@ async function checkForUpdates() {
             updateExtensionBadge(totalNewPullRequests);
 
             // reset the last error
-            setLastError("");
+            setLastError();
         }
     } catch (error) {
         console.error(error);
