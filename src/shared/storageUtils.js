@@ -35,6 +35,18 @@ export async function getGitHubApiBaseUrl() {
 }
 
 /**
+ * Retrieve the polling interval from chrome.storage.local.
+ * @returns {Promise<number>} - The polling interval in milliseconds.
+ */
+export async function getPollingInterval() {
+    return new Promise((resolve) => {
+        chrome.storage.local.get(['pollingInterval'], (result) => {
+            resolve(parseInt(result.pollingInterval, 2));
+        });
+    });
+}
+
+/**
  * Retrieve the lastUpdateTime from chrome.storage.local.
  * @returns {Promise<string>} - The GitHub username.
  */

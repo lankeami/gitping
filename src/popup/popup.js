@@ -17,6 +17,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const iconContainer = document.getElementById('icon-container');
     const appIconContainer = document.getElementById('app-icon-container');
     const popupContainer = document.getElementById('popup-container');
+    const settingsButton = document.getElementById('settings-button');
+
 
     // Tab elements
     const tabs = document.querySelectorAll('.tab');
@@ -213,6 +215,10 @@ document.addEventListener('DOMContentLoaded', function () {
         lastUpdateTimeElement.textContent = "Fetching latest pull requests.";
         setLastError();
         updateDisplays();
+    });
+
+    settingsButton.addEventListener('click', () => {
+        chrome.runtime.openOptionsPage();
     });
 
     // Add event listeners to tabs

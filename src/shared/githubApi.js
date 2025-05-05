@@ -212,11 +212,11 @@ export async function fetchAndFilterPullRequests(username, token, since=null) {
     }
 
     // Check for mentions in the pull requests
-    const mentionPullRequests = await searchForMentions(username, token);
+    const mentionsPullRequests = await searchForMentions(username, token);
 
     results['personal'] = allPullRequests;
     results['team'] = teamPullRequests;
-    results['mentions'] = mentionPullRequests;
+    results['mentions'] = mentionsPullRequests;
     results['mine'] = myPullRequests;
 
     return results;

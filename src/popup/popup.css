@@ -90,24 +90,26 @@ body {
 
 .icon-container {
     display: flex;
-    align-items: center; /* Center items vertically */
-    justify-content: center; /* Center the h1 horizontally */
+    align-items: center; /* Vertically align items */
+    justify-content: space-between; /* Space out left and right icons */
     width: 100%; /* Ensure it spans the full width of the popup */
     margin-bottom: 10px;
-    position: relative; /* Allow absolute positioning for left-icons */
+    position: relative; /* Allow relative positioning for child elements */
+}
+
+.left-icons,
+#right-icon-container {
+    display: flex;
+    gap: 10px; /* Add consistent spacing between icons */
+    align-items: center; /* Vertically align icons */
 }
 
 .left-icons {
-    position: absolute; /* Position the icons absolutely */
-    left: 0; /* Align them to the left */
-    display: flex;
-    gap: 10px; /* Add spacing between the refresh and trashcan icons */
-    padding-left: 10px;
+    padding-left: 10px; /* Add padding to the left */
 }
 
 #right-icon-container {
-    position: absolute; /* Position the app icon absolutely */
-    right: 0; /* Align it to the right */
+    padding-right: 10px; /* Add padding to the right */
 }
 
 .icon-container a {
