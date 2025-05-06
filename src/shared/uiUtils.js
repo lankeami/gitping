@@ -84,7 +84,6 @@ export function displayPullRequests(pullRequests, pullRequestsList) {
 export function displayItemComments(comments, commentsList) {
     // Check for mentions - only show the list if there are mentions
     if (!Array.isArray(comments) || comments.length === 0) {
-        console.log('No comments found.');
         commentsList.innerHTML = '<div class="no-pull-requests">No mentions found.</div>';
         return;
     }
@@ -184,6 +183,29 @@ export function resetUI() {
             console.log('Local storage cleared successfully.');
         }
     });
+
+    // Clear all tab-badges
+    const allBadges = document.querySelectorAll('.tab-badge');
+    allBadges.forEach((badge) => {
+        badge.textContent = '';
+        badge.classList.add('hidden');
+    });
+
+    // Clear all pul-request-lists
+    const allPullRequestLists = document.querySelectorAll('.pull-requests-list');
+    allPullRequestLists.forEach((list) => {
+        if (list.id === 'mentions-pull-requests-list') {
+            list.innerHTML = '<div class="no-pull-requests">No mentions found.</div>';
+        } else {
+            list.innerHTML = '<div class="no-pull-requests">No pull requests found.</div>';
+        }
+    });
+
+    // Clear all mentions-lists
+    const allMentionsLists = document.querySelectorAll('.mentions-list');
+    allMentionsLists.forEach((list) => {
+        list.innerHTML = '<div class="no-pull-requests">No mentions found.</div>';
+    });
 }
 
 /**
@@ -193,6 +215,10 @@ export function resetUI() {
  * @param {Date} lastViewedTime - The last time this tab was viewed.
  */
 export function displayBadgeCount(prefix, pullRequests, lastViewedTime=null) {
+    // Check if pullRequests is an array
+    if (!Array.isArray(pullRequests)) {
+        return;
+    }
     const pullRequestCount = pullRequests.length;
     const badgeText = pullRequestCount > 0 ? pullRequestCount : '';
 

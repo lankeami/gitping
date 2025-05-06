@@ -1,7 +1,5 @@
-import { getAuthToken, getUsername, updateExtensionBadge, getPersonalReviewRequests, getLastUpdateTime, getMentions, getMinePullRequests, getStoredPullRequests, setLastUpdateTime, setLastError } from '../shared/storageUtils.js';
+import { getAuthToken, getUsername, updateExtensionBadge, getPersonalReviewRequests, getLastUpdateTime, getMentions, getMinePullRequests, getStoredPullRequests, setLastUpdateTime, setLastError, getPollingInterval } from '../shared/storageUtils.js';
 import { fetchAndFilterPullRequests } from '../shared/githubApi.js';
-
-const POLLING_INTERVAL_MINUTES = 2;
 
 /**
  * Flattens a list of pull requests to a list of commit hashes.
@@ -84,16 +82,17 @@ async function checkForUpdates() {
             updateExtensionBadge(totalNewPullRequests);
 
             // reset the last error
-            setLastError("");
-
+            setLastError();
         }
     } catch (error) {
         console.error(error);
+        setLastError(error.message);
     }
 }
 
 // Create an alarm to trigger periodic updates
-chrome.alarms.create('checkForUpdates', { periodInMinutes: POLLING_INTERVAL_MINUTES });
+const pollingInterval = 2;
+chrome.alarms.create('checkForUpdates', { periodInMinutes: pollingInterval });
 
 chrome.alarms.onAlarm.addListener((alarm) => {
     console.log(new Date().toLocaleString(), ': Job scheduled:', alarm.name);

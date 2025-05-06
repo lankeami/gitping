@@ -1,4 +1,4 @@
-import { getAuthToken, getUsername, resetLocalStorage, getLastUpdateTime, getLastError, setLastError, updateExtensionBadge } from '../shared/storageUtils.js';
+import { getAuthToken, getUsername, resetLocalStorage, getLastUpdateTime, getLastError, setLastError, updateExtensionBadge, setLastUpdateTime, getFirstUpdateTime } from '../shared/storageUtils.js';
 import { fetchAndFilterPullRequests } from '../shared/githubApi.js';
 import { displayPullRequests, resetUI, displayItemComments, displayBadgeCount } from '../shared/uiUtils.js';
 
@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const refreshButton = document.getElementById('refresh-button');
     const resetButton = document.getElementById('reset-button');
     const usernameInput = document.getElementById('username');
+    const apiBaseUrlInput = document.getElementById('api-base-url');
     const tokenInput = document.getElementById('token');
     const credentialsDiv = document.getElementById('credentials');
     const headerSection = document.getElementById('header-section');
@@ -16,6 +17,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const iconContainer = document.getElementById('icon-container');
     const appIconContainer = document.getElementById('app-icon-container');
     const popupContainer = document.getElementById('popup-container');
+    const settingsButton = document.getElementById('settings-button');
+
 
     // Tab elements
     const tabs = document.querySelectorAll('.tab');
@@ -84,6 +87,9 @@ document.addEventListener('DOMContentLoaded', function () {
                     });
                 }
             });
+
+            setLastUpdateTime();
+            setLastError();
         } else {
             console.error('Error:', error);
             setLastError(error.message);
@@ -130,11 +136,14 @@ document.addEventListener('DOMContentLoaded', function () {
         // Check if username is stored in local storage
         // TODO: hard coded Tab names / stored pull requests -- make them configurable
         chrome.storage.local.get(['githubUsername', 'lastUpdateTime', 'lastError', 'personalPullRequests', 'teamPullRequests', 'mentionsPullRequests', 'minePullRequests'], async function (result) {
-            const username = await getUsername();
+            const username = result.githubUsername
+            const firstUpdateTime = await getFirstUpdateTime();
 
             if (username) {
                 await showPopup();
-                updateDisplays(result);
+                if(firstUpdateTime) {
+                    updateDisplays(result);
+                }
                 updateExtensionBadge(0);
             } else {
                 await hidePopup();
@@ -176,19 +185,26 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     loginButton.addEventListener('click', async () => {
-        const token = tokenInput.value;
-        const username = usernameInput.value;
-        if (token && username) {
-            chrome.storage.local.set({ githubToken: token, githubUsername: username }, function () {
-                credentialsDiv.classList.add('hidden');
-                headerSection.classList.add('hidden');
-                iconContainer.classList.remove('hidden');
-            });
-            lastUpdateTimeElement.textContent = "Fetching latest pull requests.";
-
-            updateDisplays()
-        } else {
-            alert('Please enter both your username and token.');
+        try {
+            const token = tokenInput.value;
+            const username = usernameInput.value;
+            const apiBaseUrl = apiBaseUrlInput.value;
+            if (token && username && apiBaseUrl) {
+                chrome.storage.local.set({ githubToken: token, githubUsername: username, githubApiBaseUrl: apiBaseUrl }, function () {
+                    credentialsDiv.classList.add('hidden');
+                    headerSection.classList.add('hidden');
+                    iconContainer.classList.remove('hidden');
+                });
+                
+                lastUpdateTimeElement.textContent = "Fetching latest pull requests.";
+    
+                await updateDisplays();
+            } else {
+                alert('Please enter both your username and token.');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            setLastError(error.message);
         }
     });
 
@@ -200,7 +216,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
     refreshButton.addEventListener('click', async () => {
         lastUpdateTimeElement.textContent = "Fetching latest pull requests.";
+        setLastError();
         updateDisplays();
+    });
+
+    settingsButton.addEventListener('click', () => {
+        chrome.runtime.openOptionsPage();
     });
 
     // Add event listeners to tabs
