@@ -190,6 +190,22 @@ export function resetUI() {
         badge.textContent = '';
         badge.classList.add('hidden');
     });
+
+    // Clear all pul-request-lists
+    const allPullRequestLists = document.querySelectorAll('.pull-requests-list');
+    allPullRequestLists.forEach((list) => {
+        if (list.id === 'mentions-pull-requests-list') {
+            list.innerHTML = '<div class="no-pull-requests">No mentions found.</div>';
+        } else {
+            list.innerHTML = '<div class="no-pull-requests">No pull requests found.</div>';
+        }
+    });
+
+    // Clear all mentions-lists
+    const allMentionsLists = document.querySelectorAll('.mentions-list');
+    allMentionsLists.forEach((list) => {
+        list.innerHTML = '<div class="no-pull-requests">No mentions found.</div>';
+    });
 }
 
 /**

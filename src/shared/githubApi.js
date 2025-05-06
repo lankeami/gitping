@@ -1,4 +1,4 @@
-import { getGitHubApiBaseUrl } from './storageUtils.js';
+import { getGitHubApiBaseUrl, setFirstUpdateTime } from './storageUtils.js';
 
 /**
  * Helper method to perform a fetch request to the GitHub API with pagination support.
@@ -218,6 +218,9 @@ export async function fetchAndFilterPullRequests(username, token, since=null) {
     results['team'] = teamPullRequests;
     results['mentions'] = mentionsPullRequests;
     results['mine'] = myPullRequests;
+
+    // ensure we set the first update time -- used for display purposes
+    setFirstUpdateTime();
 
     return results;
 }

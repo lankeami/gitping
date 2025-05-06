@@ -1,4 +1,4 @@
-import { getAuthToken, getUsername, resetLocalStorage, getLastUpdateTime, getLastError, setLastError, updateExtensionBadge, setLastUpdateTime } from '../shared/storageUtils.js';
+import { getAuthToken, getUsername, resetLocalStorage, getLastUpdateTime, getLastError, setLastError, updateExtensionBadge, setLastUpdateTime, getFirstUpdateTime } from '../shared/storageUtils.js';
 import { fetchAndFilterPullRequests } from '../shared/githubApi.js';
 import { displayPullRequests, resetUI, displayItemComments, displayBadgeCount } from '../shared/uiUtils.js';
 
@@ -136,11 +136,14 @@ document.addEventListener('DOMContentLoaded', function () {
         // Check if username is stored in local storage
         // TODO: hard coded Tab names / stored pull requests -- make them configurable
         chrome.storage.local.get(['githubUsername', 'lastUpdateTime', 'lastError', 'personalPullRequests', 'teamPullRequests', 'mentionsPullRequests', 'minePullRequests'], async function (result) {
-            const username = await getUsername();
+            const username = result.githubUsername
+            const firstUpdateTime = await getFirstUpdateTime();
 
             if (username) {
                 await showPopup();
-                updateDisplays(result);
+                if(firstUpdateTime) {
+                    updateDisplays(result);
+                }
                 updateExtensionBadge(0);
             } else {
                 await hidePopup();
@@ -195,7 +198,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 
                 lastUpdateTimeElement.textContent = "Fetching latest pull requests.";
     
-                updateDisplays()
+                await updateDisplays();
             } else {
                 alert('Please enter both your username and token.');
             }

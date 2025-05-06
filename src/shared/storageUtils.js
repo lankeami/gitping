@@ -75,6 +75,44 @@ export async function setLastUpdateTime() {
 }
 
 /**
+ * sets the firstUpdateTime in chrome.storage.local.
+ * @returns {Promise<void>} - A promise that resolves when the operation is complete.
+ * @description Sets the first update time to the current date and time in local storage.
+ * The time is formatted as a locale string.
+ */
+export async function setFirstUpdateTime() {
+    const firstUpdateTime = new Date().toLocaleString();
+
+    // check if the time is already set
+    // if it is, do not set it again, just return
+    // this is used to prevent overwriting the first update time
+    const isSet = await getFirstUpdateTime();
+    if (isSet) {
+        return;
+    }
+
+    return new Promise((resolve) => {
+        chrome.storage.local.set({ firstUpdateTime }, () => {
+            resolve();
+        });
+    });
+}
+
+/** 
+ * retrieves the firstUpdateTime from chrome.storage.local.
+ * @returns {Promise<string>} - The first update time.
+ * @description Retrieves the first update time from local storage.
+ * The time is formatted as a locale string.
+ */
+export async function getFirstUpdateTime() {
+    return new Promise((resolve) => {
+        chrome.storage.local.get(['firstUpdateTime'], (result) => {
+            resolve(result.firstUpdateTime);
+        });
+    });
+}
+
+/**
  * Retrieve the lastError from chrome.storage.local.
  * @returns {Promise<string>} - The last error message.
  */
@@ -194,12 +232,13 @@ export function updateExtensionBadge(count) {
  */
 export async function resetLocalStorage() {
     return new Promise((resolve) => {
-        chrome.storage.local.remove(
-            ['githubToken', 'githubUsername', 'pullRequests', 'lastError', 'lastUpdateTime'],
-            () => {
-                resolve();
+        chrome.storage.local.clear(() => {
+            if (chrome.runtime.lastError) {
+                console.error('Error clearing local storage:', chrome.runtime.lastError);
+            } else {
+                console.log('Local storage cleared successfully.');
             }
-        );
+        });
     });
 }
 
