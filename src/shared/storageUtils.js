@@ -113,6 +113,35 @@ export async function getFirstUpdateTime() {
 }
 
 /**
+ * sets the lastViewedTime in chrome.storage.local.
+ * @returns {Promise<void>} - A promise that resolves when the operation is complete.
+ * @description Sets the last viewed time to the current date and time in local storage.
+ * The time is formatted as a locale string.
+ */
+export async function setLastViewedTime() {
+    const lastViewedTime = new Date().toLocaleString();
+
+    return new Promise((resolve) => {
+        chrome.storage.local.set({ lastViewedTime }, () => {
+            resolve();
+        });
+    });
+}
+
+/**
+ * retrieves the lastViewedTime from chrome.storage.local.
+ * @returns {Promise<string>} - The last viewed time.
+ * @description Retrieves the last viewed time from local storage.
+ */
+export async function getLastViewedTime() {
+    return new Promise((resolve) => {
+        chrome.storage.local.get(['lastViewedTime'], (result) => {
+            resolve(result.lastViewedTime);
+        });
+    });
+}
+
+/**
  * Retrieve the lastError from chrome.storage.local.
  * @returns {Promise<string>} - The last error message.
  */

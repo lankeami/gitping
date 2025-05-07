@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "GitPing",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "A Chrome extension that polls GitHub for open Pull Requests requiring review.",
   "permissions": [
     "storage",

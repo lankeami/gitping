@@ -1,4 +1,4 @@
-import { getAuthToken, getUsername, resetLocalStorage, getLastUpdateTime, getLastError, setLastError, updateExtensionBadge, setLastUpdateTime, getFirstUpdateTime } from '../shared/storageUtils.js';
+import { getAuthToken, getUsername, resetLocalStorage, getLastUpdateTime, getLastError, setLastError, updateExtensionBadge, setLastUpdateTime, getFirstUpdateTime, setLastViewedTime, getLastViewedTime } from '../shared/storageUtils.js';
 import { fetchAndFilterPullRequests } from '../shared/githubApi.js';
 import { displayPullRequests, resetUI, displayItemComments, displayBadgeCount } from '../shared/uiUtils.js';
 
@@ -108,6 +108,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const lastUpdateTime = await getLastUpdateTime();
         const lastError = await getLastError();
+        setLastViewedTime();
 
         if (lastUpdateTime) {
             lastUpdateTimeElement.textContent = `Last updated: ${lastUpdateTime}`;

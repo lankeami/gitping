@@ -1,4 +1,4 @@
-import { getAuthToken, getUsername, updateExtensionBadge, getPersonalReviewRequests, getLastUpdateTime, getMentions, getMinePullRequests, getStoredPullRequests, setLastUpdateTime, setLastError, getPollingInterval } from '../shared/storageUtils.js';
+import { getAuthToken, getUsername, updateExtensionBadge, getPersonalReviewRequests, getLastUpdateTime, getMentions, getMinePullRequests, getStoredPullRequests, setLastUpdateTime, setLastError, getPollingInterval, getLastViewedTime } from '../shared/storageUtils.js';
 import { fetchAndFilterPullRequests } from '../shared/githubApi.js';
 
 /**
@@ -50,18 +50,23 @@ async function checkForUpdates() {
             // do the new modular way
             const currentPullRequests = await getStoredPullRequests();
             const pullRequests = await fetchAndFilterPullRequests(username, token, lastUpdateTime);
+            const lastViewedTime = await getLastViewedTime();
             var diffs = {}
 
             Object.keys(currentPullRequests).forEach(element => {
                 // see the difference between the current and the new pull requests                
                 const newPullRequests = pullRequests[element].filter((pr) =>  {
-                    // if mentions, use id
-                    if (element === "mentions") {
-                        const currentMentionsIds = flattenMentionsToIds(currentPullRequests[element]);
-                        return !currentMentionsIds.includes(pr.id);
-                    } else {
-                        const currentPullRequestsHashes = flattenPullRequestsToCommitHashes(currentPullRequests[element]);
-                        return !currentPullRequestsHashes.includes(pr.head.sha);
+                    // if lastViewedTime is not set or null, include all pull requests
+                    if (lastViewedTime === null || lastViewedTime === undefined) {
+                        return true;
+                    }
+                    // if the pr's updated_at is not set, include it into diffs
+                    if (pr.updated_at === null || pr.updated_at === undefined) {
+                        return true;
+                    }
+                    // if the pr's updated_at is greater than the lastViewedTime, include it into diffs
+                    if (pr.updated_at > lastViewedTime) {
+                        return true;
                     }
                 });    
                 diffs[element] = newPullRequests;
