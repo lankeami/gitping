@@ -92,7 +92,7 @@ async function checkForUpdates() {
 
 // Create an alarm to trigger periodic updates
 const pollingInterval = 2;
-chrome.alarms.create('checkForUpdates', { periodInMinutes: pollingInterval });
+chrome.alarms.create('checkForUpdates', { periodInMinutes: pollingInterval, delayInMinutes: 0 });
 
 chrome.alarms.onAlarm.addListener((alarm) => {
     console.log(new Date().toLocaleString(), ': Job scheduled:', alarm.name);

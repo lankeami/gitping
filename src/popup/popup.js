@@ -59,7 +59,11 @@ document.addEventListener('DOMContentLoaded', function () {
         if (token && username) {
             if (overridePRs) {
                 pullRequests = overridePRs;
+                if(!getFirstUpdateTime()) {
+                    return;
+                }
             } else {
+                lastUpdateTimeElement.textContent = "Fetching latest pull requests.";
                 pullRequests = await fetchAndFilterPullRequests(username, token, lastUpdateTime);
             }
 
@@ -168,9 +172,8 @@ document.addEventListener('DOMContentLoaded', function () {
         if (namespace === 'local' && changes.lastUpdateTime) {
             const lastUpdateTime = new Date(changes.lastUpdateTime.newValue).toLocaleString();
             lastUpdateTimeElement.textContent = `Last updated: ${lastUpdateTime}`;
+            updateDisplaysFromStorage();
         }
-
-        updateDisplaysFromStorage();
     });
 
     appIconContainer.addEventListener('click', () => {
@@ -215,7 +218,6 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     refreshButton.addEventListener('click', async () => {
-        lastUpdateTimeElement.textContent = "Fetching latest pull requests.";
         setLastError();
         updateDisplays();
     });
