@@ -1,4 +1,4 @@
-import { getAuthToken, getUsername, resetLocalStorage, getLastUpdateTime, getLastError, setLastError, updateExtensionBadge, setLastUpdateTime, getFirstUpdateTime } from '../shared/storageUtils.js';
+import { getAuthToken, getUsername, resetLocalStorage, getLastUpdateTime, getLastError, setLastError, updateExtensionBadge, setLastUpdateTime, getFirstUpdateTime, setLastViewedTime, getLastViewedTime } from '../shared/storageUtils.js';
 import { fetchAndFilterPullRequests } from '../shared/githubApi.js';
 import { displayPullRequests, resetUI, displayItemComments, displayBadgeCount } from '../shared/uiUtils.js';
 
@@ -54,6 +54,8 @@ document.addEventListener('DOMContentLoaded', function () {
         const token = await getAuthToken();
         const username = await getUsername();
         const lastUpdateTime = await getLastUpdateTime();
+        const lastViewedTime = await getLastViewedTime();
+
         var pullRequests = null;
 
         if (token && username) {
@@ -83,9 +85,9 @@ document.addEventListener('DOMContentLoaded', function () {
                     chrome.storage.local.set({ [`${element}PullRequests`]: pullRequests }, function () {
                         // use displayItemComments on the mentions tab
                         if (element === "mention") {
-                            displayItemComments(pullRequests, listElement);
+                            displayItemComments(pullRequests, listElement, lastViewedTime);
                         } else {
-                            displayPullRequests(pullRequests, listElement);
+                            displayPullRequests(pullRequests, listElement, lastViewedTime);
                         }
                         displayBadgeCount(element, pullRequests);
                     });
@@ -144,10 +146,10 @@ document.addEventListener('DOMContentLoaded', function () {
             const firstUpdateTime = await getFirstUpdateTime();
 
             if (username) {
-                await showPopup();
                 if(firstUpdateTime) {
                     updateDisplays(result);
                 }
+                await showPopup();
                 updateExtensionBadge(0);
             } else {
                 await hidePopup();
@@ -232,6 +234,13 @@ document.addEventListener('DOMContentLoaded', function () {
             const tabId = tab.id.replace('-tab', ''); // Extract the tab ID (e.g., "personal", "team", "mentions")
             switchTab(tabId);
         });
+    });
+
+    // Call setLastViewedTime when the popup becomes hidden
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') {
+            setLastViewedTime();
+        }
     });
 
     updateDisplaysFromStorage();
