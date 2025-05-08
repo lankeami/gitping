@@ -65,7 +65,10 @@ async function checkForUpdates() {
                         return true;
                     }
                     // if the pr's updated_at is greater than the lastViewedTime, include it into diffs
-                    if (pr.updated_at > lastViewedTime) {
+                    // make sure they are both unix timestamps
+                    var prUpdatedAt = Date.parse(`${pr.updated_at}`);
+                    var viewedTime = Date.parse(lastViewedTime);
+                    if (prUpdatedAt > viewedTime) {
                         return true;
                     }
                 });    

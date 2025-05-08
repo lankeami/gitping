@@ -286,3 +286,11 @@ ul {
     vertical-align: middle;
     padding: 0px;
 }
+
+.highlight-updated {
+    font-weight: bold;
+    color: #0d6efd; /* Bootstrap primary blue */
+    background-color: #dbeafe; /* Light blue background */
+    padding: 2px 4px;
+    border-radius: 4px;
+}

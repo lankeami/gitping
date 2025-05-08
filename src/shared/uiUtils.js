@@ -3,7 +3,7 @@
  * @param {Array} pullRequests - List of pull requests to display.
  * @param {HTMLElement} pullRequestsList - The DOM element to render the pull requests into.
  */
-export function displayPullRequests(pullRequests, pullRequestsList) {
+export function displayPullRequests(pullRequests, pullRequestsList, lastViewedTime=null) {
     // Hide all tab content
     const allTabContents = document.querySelectorAll('.tab-content');
     allTabContents.forEach((content) => {
@@ -66,6 +66,11 @@ export function displayPullRequests(pullRequests, pullRequestsList) {
         updatedDiv.textContent = `Updated: ${updatedAt}`;
         footnote.appendChild(updatedDiv);
 
+        // Highlight the updatedAt text if it is greater than lastViewedTime
+        if (lastViewedTime && new Date(pr.updated_at) > new Date(lastViewedTime)) {
+            updatedDiv.classList.add('highlight-updated');
+        }
+
         const requestedDiv = document.createElement('div');
         requestedDiv.className = 'pr-footnote';
         requestedDiv.textContent = `Created: ${requestedAt}`;
@@ -81,7 +86,7 @@ export function displayPullRequests(pullRequests, pullRequestsList) {
  * @param {Array} comments - List of comments to display.
  * @param {HTMLElement} commentsList - The DOM element to render the comments into.
  */
-export function displayItemComments(comments, commentsList) {
+export function displayItemComments(comments, commentsList, lastViewedTime=null) {
     // Check for mentions - only show the list if there are mentions
     if (!Array.isArray(comments) || comments.length === 0) {
         commentsList.innerHTML = '<div class="no-pull-requests">No mentions found.</div>';
@@ -132,6 +137,11 @@ export function displayItemComments(comments, commentsList) {
         updatedDiv.className = 'pr-footnote';
         updatedDiv.textContent = `Updated: ${updatedAt}`;
         footnote.appendChild(updatedDiv);
+
+        // Highlight the updatedAt text if it is greater than lastViewedTime
+        if (lastViewedTime && new Date(comment.updated_at) > new Date(lastViewedTime)) {
+            updatedDiv.classList.add('highlight-updated');
+        }
 
         const requestedDiv = document.createElement('div');
         requestedDiv.className = 'pr-footnote';
