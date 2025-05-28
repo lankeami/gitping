@@ -223,4 +223,4 @@ export async function fetchAndFilterPullRequests(username, token, since=null) {
     setFirstUpdateTime();
 
     return results;
-}
+} 
