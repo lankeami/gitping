@@ -6,6 +6,8 @@ GitPing is a Chrome extension that helps developers keep track of open Pull Requ
 
 ## Features
 
+![](./src/popup/images/header.gif)
+
 - User authentication with GitHub
 - Periodic polling of GitHub for open Pull Requests
 - Local storage of Pull Requests for offline access
