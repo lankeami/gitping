@@ -73,6 +73,10 @@
                 <img src="./images/mention.png" alt="Reviews you were mentioned on" width="20" height="20">
                 <span id="mention-badge" class="tab-badge hidden">0</span>
             </button>
+            <button id="issues-tab" class="tab" title="Issues you own or were mentioned on">
+                <img src="./images/issues.png" alt="Issues you own or were mentioned on" width="20" height="20">
+                <span id="issues-badge" class="tab-badge hidden">0</span>
+            </button>
         </div>
         <div id="content">
             <!-- Personal Reviews Tab Content -->
@@ -94,6 +98,11 @@
             <div id="mention-content" class="tab-content">
                 <h2>Reviews You Were Mentioned On</h2>
                 <ul class="pull-request-list" id="mention-pull-requests-list"></ul>
+            </div>
+            <!-- Issues Tab Content -->
+            <div id="issues-content" class="tab-content">
+                <h2>Issues you own or were mentioned on</h2>
+                <ul class="pull-request-list" id="issues-pull-requests-list"></ul>
             </div>
         </div>
     </div>

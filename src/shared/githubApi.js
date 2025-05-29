@@ -105,6 +105,65 @@ export async function fetchPullRequests(org, repo, token) {
 }
 
 /**
+ * Fetch unresolved (open) issues authored by the user, ordered by last updated time.
+ * @param {string} username - GitHub username.
+ * @param {string} token - GitHub personal access token.
+ * @returns {Promise<Array>} - List of unresolved issues.
+ */
+export async function fetchUnresolvedIssuesByAuthor(username, token) {
+    // Use GitHub search API to find open issues authored by the user, sorted by updated
+    const query = `is:issue is:open author:${username}`;
+    const path = `/search/issues?q=${encodeURIComponent(query)}&sort=updated&order=desc&per_page=100`;
+    const response = await fetchFromGitHub(path, token);
+    // The search API returns items in the 'items' property
+    return response.items || [];
+}
+
+/**
+ * Fetch unresolved (open) issues where the user is metnioned, ordered by last updated time.
+ * @param {string} username - GitHub username.
+ * @param {string} token - GitHub personal access token.
+ * @returns {Promise<Array>} - List of unresolved issues.
+ */
+export async function fetchUnresolvedIssuesByMention(username, token) {
+    // Use GitHub search API to find open issues where the user is mentioned, sorted by updated
+    const query = `is:issue is:open mentions:${username}`;
+    const path = `/search/issues?q=${encodeURIComponent(query)}&sort=updated&order=desc&per_page=100`;
+    const response = await fetchFromGitHub(path, token);
+    // The search API returns items in the 'items' property
+    return response.items || [];
+}
+
+/**
+ * fetch both issues authored by the user and issues mentioning the user
+ * @param {string} username - GitHub username.
+ * @param {string} token - GitHub personal access token.
+ * @returns {Promise<Array>} - List of unresolved issues.
+ */
+export async function fetchUnresolvedIssues(username, token) {
+    const unresolvedIssuesByAuthor = await fetchUnresolvedIssuesByAuthor(username, token);
+    const unresolvedIssuesByMention = await fetchUnresolvedIssuesByMention(username, token);
+
+    // Combine both lists and remove duplicates
+    const combinedIssues = [...new Set([...unresolvedIssuesByAuthor, ...unresolvedIssuesByMention])];
+
+    // Map issues to the same structure as pull requests
+    return combinedIssues.map(issue => ({
+        ...issue,
+        pull_request: {
+            url: issue.pull_request ? issue.pull_request.url : null,
+            html_url: issue.html_url,
+            merged_at: null // Issues do not have merged_at, set to null
+        },
+        base: {
+            repo: {
+                full_name: issue.repository_url ? issue.repository_url.split('/').slice(-2).join('/') : null
+            }
+        }
+    }));
+}
+
+/**
  * Filter pull requests where the user is a requested reviewer.
  * @param {Array} pullRequests - List of pull requests.
  * @param {string} username - GitHub username.
@@ -214,10 +273,14 @@ export async function fetchAndFilterPullRequests(username, token, since=null) {
     // Check for mentions in the pull requests
     const mentionsPullRequests = await searchForMentions(username, token);
 
+    // Fetch unresolved issues authored by the user and issues where the user is mentioned
+    const issuesPullRequests = await fetchUnresolvedIssues(username, token);
+
     results['personal'] = allPullRequests;
-    results['team'] = teamPullRequests;
+    results['team']     = teamPullRequests;
     results['mentions'] = mentionsPullRequests;
-    results['mine'] = myPullRequests;
+    results['mine']     = myPullRequests;
+    results['issues']   = issuesPullRequests;
 
     // ensure we set the first update time -- used for display purposes
     setFirstUpdateTime();

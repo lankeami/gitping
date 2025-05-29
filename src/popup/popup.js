@@ -75,6 +75,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 team: pullRequests.teamPullRequests         || pullRequests.team,
                 mention: pullRequests.mentionsPullRequests  || pullRequests.mentions,
                 mine: pullRequests.minePullRequests         || pullRequests.mine,
+                issues: pullRequests.issuesPullRequests     || pullRequests.issues,
             }
 
             // set all displays
@@ -141,7 +142,7 @@ document.addEventListener('DOMContentLoaded', function () {
     function updateDisplaysFromStorage() {
         // Check if username is stored in local storage
         // TODO: hard coded Tab names / stored pull requests -- make them configurable
-        chrome.storage.local.get(['githubUsername', 'lastUpdateTime', 'lastError', 'personalPullRequests', 'teamPullRequests', 'mentionsPullRequests', 'minePullRequests'], async function (result) {
+        chrome.storage.local.get(['githubUsername', 'lastUpdateTime', 'lastError', 'personalPullRequests', 'teamPullRequests', 'mentionsPullRequests', 'minePullRequests', 'issuesPullRequests'], async function (result) {
             const username = result.githubUsername
             const firstUpdateTime = await getFirstUpdateTime();
 
