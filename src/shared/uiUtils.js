@@ -150,7 +150,7 @@ export function displayItemComments(comments, commentsList, lastViewedTime=null)
         card.appendChild(title);
 
         // Author: Comment author
-        const subtitle = cardUser(pr.user);
+        const subtitle = cardUser(comment.user);
         card.appendChild(subtitle);
 
         const footnote = document.createElement('div');
