@@ -44,6 +44,12 @@ export function displayPullRequests(pullRequests, pullRequestsList, lastViewedTi
         const highbrow = document.createElement('div');
         highbrow.className = 'pr-highbrow';
         highbrow.textContent = pr.base.repo.full_name;
+        if (pr.base.repo.owner) {
+            const ownerAvatar = avatarForUser(pr.base.repo.owner);
+            ownerAvatar.style.float = 'right';
+            ownerAvatar.style.marginLeft = '8px';
+            highbrow.appendChild(ownerAvatar);
+        }
         card.appendChild(highbrow);
 
         const title = document.createElement('div');

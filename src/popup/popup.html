@@ -26,8 +26,11 @@
             <h1>GitPing</h1>
         </a>
         <div id="right-icon-container">
-            <button class="header-icon" id="settings-button">
+            <button class="header-icon" id="settings-button" style="position: relative;">
                 <img src="./images/settings.png" alt="Settings" width="20" height="20">
+                <span id="user-avatar-container" style="display:none; position:absolute; top:0; right:0;">
+                    <img id="user-avatar" src="" alt="User Avatar" style="width:16px; height:16px; border-radius:50%; border:2px solid #fff;">
+                </span>
             </button>
             <button class="header-icon" id="reset-button">
                 <img src="./images/trashcan-icon.png" alt="Reset" width="20" height="20">
