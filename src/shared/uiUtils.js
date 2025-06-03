@@ -51,9 +51,7 @@ export function displayPullRequests(pullRequests, pullRequestsList, lastViewedTi
         title.textContent = pr.title;
         card.appendChild(title);
 
-        const subtitle = document.createElement('div');
-        subtitle.className = 'pr-subtitle';
-        subtitle.textContent = `Author: ${pr.user.login}`;
+        const subtitle = cardUser(pr.user);
         card.appendChild(subtitle);
 
         const footnote = document.createElement('div');
@@ -79,6 +77,35 @@ export function displayPullRequests(pullRequests, pullRequestsList, lastViewedTi
         card.appendChild(footnote);
         pullRequestsList.appendChild(card);
     });
+}
+
+function cardUser(user) {
+    const subtitle = document.createElement('div');
+    subtitle.className = 'pr-subtitle';
+
+    // Create the avatar image
+    const avatarImg = avatarForUser(user);
+
+    // Create the username span
+    const usernameSpan = document.createElement('span');
+    usernameSpan.textContent = user.login;
+
+    // Append avatar and username to subtitle
+    subtitle.appendChild(avatarImg);
+    subtitle.appendChild(usernameSpan);
+    return subtitle;
+}
+
+function avatarForUser(user) {
+    const avatarImg = document.createElement('img');
+    avatarImg.src = user.avatar_url;
+    avatarImg.alt = user.login;
+    avatarImg.style.width = '24px';
+    avatarImg.style.height = '24px';
+    avatarImg.style.borderRadius = '50%';
+    avatarImg.style.verticalAlign = 'middle';
+    avatarImg.style.marginRight = '8px';
+    return avatarImg;
 }
 
 /**
@@ -123,10 +150,8 @@ export function displayItemComments(comments, commentsList, lastViewedTime=null)
         card.appendChild(title);
 
         // Author: Comment author
-        const author = document.createElement('div');
-        author.className = 'pr-subtitle';
-        author.textContent = `Author: ${comment.user.login}`;
-        card.appendChild(author);
+        const subtitle = cardUser(comment.user);
+        card.appendChild(subtitle);
 
         const footnote = document.createElement('div');
         footnote.className = 'pr-footnote';
