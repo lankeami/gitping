@@ -1,5 +1,11 @@
 import { getGitHubApiBaseUrl, setFirstUpdateTime } from './storageUtils.js';
 
+//
+//
+//  CORE GITHUB API FUNCTIONS / HELPERS
+//
+//
+
 /**
  * Helper method to perform a fetch request to the GitHub API with pagination support.
  * @param {string} path - The API path (relative to the base URL).
@@ -94,6 +100,22 @@ export async function fetchUserRepositories(token) {
 }
 
 /**
+ * Search Issues from Github
+ */
+export async function searchIssues(query, token) {
+    const path = `/search/issues?q=${encodeURIComponent(query)}&sort=created&order=desc&per_page=100`;
+    const response = await fetchFromGitHub(path, token);
+    return response.items || [];
+}
+
+//
+//
+//  PULL REQUEST FUNCTIONS
+//
+//
+
+
+/**
  * Fetch pull requests for a given repository.
  * @param {string} org - Organization name.
  * @param {string} repo - Repository name.
@@ -104,64 +126,6 @@ export async function fetchPullRequests(org, repo, token) {
     return fetchFromGitHub(`/repos/${org}/${repo}/pulls?state=open&per_page=100`, token);
 }
 
-/**
- * Fetch unresolved (open) issues authored by the user, ordered by last updated time.
- * @param {string} username - GitHub username.
- * @param {string} token - GitHub personal access token.
- * @returns {Promise<Array>} - List of unresolved issues.
- */
-export async function fetchUnresolvedIssuesByAuthor(username, token) {
-    // Use GitHub search API to find open issues authored by the user, sorted by updated
-    const query = `is:issue is:open author:${username}`;
-    const path = `/search/issues?q=${encodeURIComponent(query)}&sort=updated&order=desc&per_page=100`;
-    const response = await fetchFromGitHub(path, token);
-    // The search API returns items in the 'items' property
-    return response.items || [];
-}
-
-/**
- * Fetch unresolved (open) issues where the user is metnioned, ordered by last updated time.
- * @param {string} username - GitHub username.
- * @param {string} token - GitHub personal access token.
- * @returns {Promise<Array>} - List of unresolved issues.
- */
-export async function fetchUnresolvedIssuesByMention(username, token) {
-    // Use GitHub search API to find open issues where the user is mentioned, sorted by updated
-    const query = `is:issue is:open mentions:${username}`;
-    const path = `/search/issues?q=${encodeURIComponent(query)}&sort=updated&order=desc&per_page=100`;
-    const response = await fetchFromGitHub(path, token);
-    // The search API returns items in the 'items' property
-    return response.items || [];
-}
-
-/**
- * fetch both issues authored by the user and issues mentioning the user
- * @param {string} username - GitHub username.
- * @param {string} token - GitHub personal access token.
- * @returns {Promise<Array>} - List of unresolved issues.
- */
-export async function fetchUnresolvedIssues(username, token) {
-    const unresolvedIssuesByAuthor = await fetchUnresolvedIssuesByAuthor(username, token);
-    const unresolvedIssuesByMention = await fetchUnresolvedIssuesByMention(username, token);
-
-    // Combine both lists and remove duplicates
-    const combinedIssues = [...new Set([...unresolvedIssuesByAuthor, ...unresolvedIssuesByMention])];
-
-    // Map issues to the same structure as pull requests
-    return combinedIssues.map(issue => ({
-        ...issue,
-        pull_request: {
-            url: issue.pull_request ? issue.pull_request.url : null,
-            html_url: issue.html_url,
-            merged_at: null // Issues do not have merged_at, set to null
-        },
-        base: {
-            repo: {
-                full_name: issue.repository_url ? issue.repository_url.split('/').slice(-2).join('/') : null
-            }
-        }
-    }));
-}
 
 /**
  * Filter pull requests where the user is a requested reviewer.
@@ -205,8 +169,27 @@ export function filterPullRequestsByAuthor(pullRequests, username) {
  * @param {string} token - GitHub personal access token.
  */
 export async function searchForMentions(username, token) {
-    const issues = await fetchFromGitHub(`/search/issues?q=mentions:${username}&sort=created&order=desc&per_page=100`, token);
-    const results = issues.items || [];
+    const mentions_query = `is:pr is:open mentions:${username}`;
+    const mentions = await searchIssues(mentions_query, token);
+    const comments_query = `is:pr is:open commenter:${username}`;
+    const comments = await searchIssues(comments_query, token);
+
+console.log("Mentions:", mentions.length, "Comments:", comments.length);
+
+    const results = [];
+
+    // Combine both results
+    results.push(...mentions, ...comments);
+    // sort the array, and make them unique by id
+    const uniqueResults = new Map();
+    results.forEach((item) => {
+        if (!uniqueResults.has(item.id)) {
+            uniqueResults.set(item.id, item);
+        }
+    });
+
+    results.length = 0; // Clear the original array
+    results.push(...uniqueResults.values());
 
     // filter out comments that have comment.pull_request.merged_at not null
     const filteredResults = results.filter((issue) => {
@@ -218,6 +201,79 @@ export async function searchForMentions(username, token) {
 
     return filteredResults;
 }
+
+/**
+ * Search for comments by the user in pull requests
+ * @param {string} username - GitHub username.
+ * @param {string} token - GitHub personal access token.
+ * @param {string} since - Optional parameter to filter comments since a specific date
+ * @returns {Promise<Array>} - List of comments made by the user.
+ */
+
+//
+//
+//  ISSUES FUNCTIONS
+//
+//
+
+/**
+ * Fetch unresolved (open) issues authored by the user, ordered by last updated time.
+ * @param {string} username - GitHub username.
+ * @param {string} token - GitHub personal access token.
+ * @returns {Promise<Array>} - List of unresolved issues.
+ */
+export async function fetchUnresolvedIssuesByAuthor(username, token) {
+    // Use GitHub search API to find open issues authored by the user, sorted by updated
+    const query = `is:issue is:open author:${username}`;
+    return searchIssues(query, token);
+}
+
+/**
+ * Fetch unresolved (open) issues where the user is metnioned, ordered by last updated time.
+ * @param {string} username - GitHub username.
+ * @param {string} token - GitHub personal access token.
+ * @returns {Promise<Array>} - List of unresolved issues.
+ */
+export async function fetchUnresolvedIssuesByMention(username, token) {
+    // Use GitHub search API to find open issues where the user is mentioned, sorted by updated
+    const query = `is:issue is:open mentions:${username}`;
+    return searchIssues(query, token);
+}
+
+/**
+ * fetch both issues authored by the user and issues mentioning the user
+ * @param {string} username - GitHub username.
+ * @param {string} token - GitHub personal access token.
+ * @returns {Promise<Array>} - List of unresolved issues.
+ */
+export async function fetchUnresolvedIssues(username, token) {
+    const unresolvedIssuesByAuthor = await fetchUnresolvedIssuesByAuthor(username, token);
+    const unresolvedIssuesByMention = await fetchUnresolvedIssuesByMention(username, token);
+
+    // Combine both lists and remove duplicates
+    const combinedIssues = [...new Set([...unresolvedIssuesByAuthor, ...unresolvedIssuesByMention])];
+
+    // Map issues to the same structure as pull requests
+    return combinedIssues.map(issue => ({
+        ...issue,
+        pull_request: {
+            url: issue.pull_request ? issue.pull_request.url : null,
+            html_url: issue.html_url,
+            merged_at: null // Issues do not have merged_at, set to null
+        },
+        base: {
+            repo: {
+                full_name: issue.repository_url ? issue.repository_url.split('/').slice(-2).join('/') : null
+            }
+        }
+    }));
+}
+
+//
+//
+//  MAIN FUNCTION TO FETCH AND FILTER PULL REQUESTS
+//
+//
 
 /**
  * Fetch and filter pull requests where the user is a requested reviewer.
