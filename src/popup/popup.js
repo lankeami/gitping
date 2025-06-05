@@ -1,6 +1,6 @@
 import { getAuthToken, getUsername, resetLocalStorage, getLastUpdateTime, getLastError, setLastError, updateExtensionBadge, setLastUpdateTime, getFirstUpdateTime, setLastViewedTime, getLastViewedTime } from '../shared/storageUtils.js';
 import { fetchAndFilterPullRequests } from '../shared/githubApi.js';
-import { displayPullRequests, resetUI, displayItemComments, displayBadgeCount } from '../shared/uiUtils.js';
+import { displayPullRequests, resetUI, displayBadgeCount } from '../shared/uiUtils.js';
 
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -84,12 +84,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 var listElement = document.getElementById(`${element}-pull-requests-list`);
                 if (listElement) {
                     chrome.storage.local.set({ [`${element}PullRequests`]: pullRequests }, function () {
-                        // use displayItemComments on the mentions tab
-                        if (element === "mention") {
-                            displayItemComments(pullRequests, listElement, lastViewedTime);
-                        } else {
-                            displayPullRequests(pullRequests, listElement, lastViewedTime);
-                        }
+                        displayPullRequests(pullRequests, listElement, lastViewedTime);
                         displayBadgeCount(element, pullRequests);
                     });
                 }

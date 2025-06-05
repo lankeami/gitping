@@ -1,15 +1,21 @@
+import { getAvatarUrl, setAvatarUrl } from './storageUtils.js';
+
 //
 //
 // INTERNAL HELPER FUNCTIONS
 //
 //
 
-function cardUser(user) {
+async function cardUser(user) {
     const subtitle = document.createElement('div');
     subtitle.className = 'pr-subtitle';
 
     // Create the avatar image
-    const avatarImg = avatarForUser(user);
+    const avatarImg = await avatarForUser(user);
+
+    if (!avatarImg) {
+        return null;
+    }
 
     // Create the username span
     const usernameSpan = document.createElement('span');
@@ -21,9 +27,24 @@ function cardUser(user) {
     return subtitle;
 }
 
-function avatarForUser(user) {
+async function avatarForUser(user) {
+    // check storageUtils for user avatar url first
+    // iff it doesn't exist, pull from the user object and save it for a day
+    // then build the avatar image element
+
+    let avatarUrl = await getAvatarUrl(user.login);
+    if (!avatarUrl) {
+        // If avatar URL is not found in storage, use the user object
+        avatarUrl = user.avatar_url;
+        if(avatarUrl) {
+            setAvatarUrl(user.login, avatarUrl);
+        } else {
+            return null;
+        }
+    }
+
     const avatarImg = document.createElement('img');
-    avatarImg.src = user.avatar_url;
+    avatarImg.src = avatarUrl;
     avatarImg.alt = user.login;
     avatarImg.style.width = '24px';
     avatarImg.style.height = '24px';
@@ -45,7 +66,7 @@ function avatarForUser(user) {
  * @param {Array} pullRequests - List of pull requests to display.
  * @param {HTMLElement} pullRequestsList - The DOM element to render the pull requests into.
  */
-export function displayPullRequests(pullRequests, pullRequestsList, lastViewedTime=null) {
+export async function displayPullRequests(pullRequests, pullRequestsList, lastViewedTime=null) {
     // Hide all tab content
     const allTabContents = document.querySelectorAll('.tab-content');
     allTabContents.forEach((content) => {
@@ -76,7 +97,7 @@ export function displayPullRequests(pullRequests, pullRequestsList, lastViewedTi
     pullRequests.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
     // Create a card for each pull request
     // and append it to the pull requests list
-    pullRequests.forEach((pr) => {
+    pullRequests.forEach(async (pr) => {
         const card = document.createElement('div');
         card.className = 'pr-card';
         card.onclick = () => {
@@ -87,10 +108,16 @@ export function displayPullRequests(pullRequests, pullRequestsList, lastViewedTi
         highbrow.className = 'pr-highbrow';
         highbrow.textContent = pr.base.repo.full_name;
         if (pr.base.repo.owner) {
-            const ownerAvatar = avatarForUser(pr.base.repo.owner);
-            ownerAvatar.style.float = 'right';
-            ownerAvatar.style.marginLeft = '8px';
-            highbrow.appendChild(ownerAvatar);
+            const ownerAvatar = await avatarForUser(pr.base.repo.owner);
+            if(ownerAvatar) {
+                ownerAvatar.style.float = 'right';
+                ownerAvatar.style.marginLeft = '8px';
+                highbrow.appendChild(ownerAvatar);
+            } else {
+                console.log("No avatar found for owner:", pr.base.repo.owner);
+            }
+        } else {
+            console.log("No owner found for repository:", pr.base.repo);
         }
         card.appendChild(highbrow);
 
@@ -99,7 +126,7 @@ export function displayPullRequests(pullRequests, pullRequestsList, lastViewedTi
         title.textContent = pr.title;
         card.appendChild(title);
 
-        const subtitle = cardUser(pr.user);
+        const subtitle = await cardUser(pr.user);
         card.appendChild(subtitle);
 
         const footnote = document.createElement('div');
@@ -124,78 +151,6 @@ export function displayPullRequests(pullRequests, pullRequestsList, lastViewedTi
 
         card.appendChild(footnote);
         pullRequestsList.appendChild(card);
-    });
-}
-
-/**
- * Display a list of comments as cards in the mentions tab.
- * @param {Array} comments - List of comments to display.
- * @param {HTMLElement} commentsList - The DOM element to render the comments into.
- */
-export function displayItemComments(comments, commentsList, lastViewedTime=null) {
-    // Check for mentions - only show the list if there are mentions
-    if (!Array.isArray(comments) || comments.length === 0) {
-        commentsList.innerHTML = '<div class="no-pull-requests">No mentions found.</div>';
-        return;
-    }
-    // Clear the comments list
-    commentsList.innerHTML = '';
-
-    // sort comments by updated_at date in descending order
-    comments.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
-    // Create a card for each comment
-    // and append it to the comments list
-    comments.forEach((comment) => {
-        const card = document.createElement('div');
-        card.className = 'pr-card';
-        card.onclick = () => {
-            window.open(comment.pull_request.html_url, '_blank'); // Navigate to the pull request
-        };
-
-        // Extract repository name from repository_url
-        const repoUrlParts = comment.repository_url.split('/');
-        const repoName = `${repoUrlParts[repoUrlParts.length - 2]}/${repoUrlParts[repoUrlParts.length - 1]}`;
-
-        // Highbrow: Repository name
-        const highbrow = document.createElement('div');
-        highbrow.className = 'pr-highbrow';
-        highbrow.textContent = repoName;
-        card.appendChild(highbrow);
-
-        // Title: First n characters of the comment body (fallback to empty string if body is null/undefined)
-        const title = document.createElement('div');
-        title.className = 'pr-title';
-        title.textContent = comment.title;
-        card.appendChild(title);
-
-        // Author: Comment author
-        const subtitle = cardUser(comment.user);
-        card.appendChild(subtitle);
-
-        const footnote = document.createElement('div');
-        footnote.className = 'pr-footnote';
-        const updatedAt = new Date(comment.updated_at).toLocaleString();
-        const requestedAt = new Date(comment.created_at).toLocaleString();
-
-        const updatedDiv = document.createElement('div');
-        updatedDiv.className = 'pr-footnote';
-        updatedDiv.textContent = `Updated: ${updatedAt}`;
-        footnote.appendChild(updatedDiv);
-
-        // Highlight the updatedAt text if it is greater than lastViewedTime
-        if (lastViewedTime && new Date(comment.updated_at) > new Date(lastViewedTime)) {
-            updatedDiv.classList.add('highlight-updated');
-        }
-
-        const requestedDiv = document.createElement('div');
-        requestedDiv.className = 'pr-footnote';
-        requestedDiv.textContent = `Created: ${requestedAt}`;
-        footnote.appendChild(requestedDiv);
-        
-        card.appendChild(footnote);
-
-        // Append the card to the comments list
-        commentsList.appendChild(card);
     });
 }
 

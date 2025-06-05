@@ -103,7 +103,7 @@ export async function fetchUserRepositories(token) {
  * Search Issues from Github
  */
 export async function searchIssues(query, token) {
-    const path = `/search/issues?q=${encodeURIComponent(query)}&sort=created&order=desc&per_page=100`;
+    const path = `/search/issues?q=${encodeURIComponent(query)}&sort=created&order=des&per_page=100`;
     const response = await fetchFromGitHub(path, token);
     return response.items || [];
 }
@@ -174,8 +174,6 @@ export async function searchForMentions(username, token) {
     const comments_query = `is:pr is:open commenter:${username}`;
     const comments = await searchIssues(comments_query, token);
 
-console.log("Mentions:", mentions.length, "Comments:", comments.length);
-
     const results = [];
 
     // Combine both results
@@ -199,7 +197,24 @@ console.log("Mentions:", mentions.length, "Comments:", comments.length);
         return true;
     });
 
-    return filteredResults;
+    // Map issues to the same structure as pull requests
+    return filteredResults.map(issue => ({
+        ...issue,
+        pull_request: {
+            url: issue.pull_request ? issue.pull_request.url : null,
+            html_url: issue.html_url,
+            merged_at: null // Issues do not have merged_at, set to null
+        },
+        base: {
+            repo: {
+                full_name: issue.repository_url ? issue.repository_url.split('/').slice(-2).join('/') : null,
+                owner: {
+                    login: issue.repository_url ? issue.repository_url.split('/').slice(-2, -1).join('/') : null,
+                    avatar_url: ''
+                }
+            }
+        }
+    }));
 }
 
 /**
@@ -263,7 +278,11 @@ export async function fetchUnresolvedIssues(username, token) {
         },
         base: {
             repo: {
-                full_name: issue.repository_url ? issue.repository_url.split('/').slice(-2).join('/') : null
+                full_name: issue.repository_url ? issue.repository_url.split('/').slice(-2).join('/') : null,
+                owner: {
+                    login: issue.repository_url ? issue.repository_url.split('/').slice(-2, -1).join('/') : null,
+                    avatar_url: ''
+                }
             }
         }
     }));

@@ -225,12 +225,13 @@ export async function getTeamPullRequests() {
 export async function getStoredPullRequests() {
     return new Promise((resolve) => {
         // TODO: hard coded Tab names / stored pull requests -- make them configurable
-        chrome.storage.local.get(['personalPullRequests', 'teamPullRequests', 'mentionsPullRequests', 'minePullRequests'], (result) => {
+        chrome.storage.local.get(['personalPullRequests', 'teamPullRequests', 'mentionsPullRequests', 'minePullRequests', 'issuesPullRequests'], (result) => {
             resolve({
                 personal: result.personalPullRequests,
-                team: result.teamPullRequests,
+                team:     result.teamPullRequests,
                 mentions: result.mentionsPullRequests,
-                mine: result.minePullRequests
+                mine:     result.minePullRequests,
+                issues:   result.issuesPullRequests
             });
         });
     });
@@ -296,5 +297,71 @@ function triggerPushNotification(msg) {
             // Open the extension popup
             chrome.action.openPopup();
         }
+    });
+}
+
+//
+// AVATAR STORAGE UTILS
+//
+
+function avatarHashKey(username) {
+    if (!username) {
+        console.error('Username must be provided to generate avatar hash key.');
+        return '';
+    }
+
+    // use today's date as part of the key to ensure it expires in 24 hours
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+    // return a unique key for the avatar based on the username and today's date
+    return `Avatar_${username}_${today}`;
+}
+
+
+/**
+ * Retrieve the avatar URL for a given username from chrome.storage.local.
+ * The avatar storage is a hash, so it first will fetch the avatar hash, then look up by avatarHashKey
+ * @param {string} username - The GitHub username.
+ * @returns {Promise<string>} - The avatar URL.
+ */
+export async function getAvatarUrl(username) {
+    if (!username) {
+        console.error('Username must be provided to retrieve avatar URL.');
+        return '';
+    }
+    // Use the avatarHashKey function to generate a unique key for the avatar
+    const avatarKey = avatarHashKey(username);
+
+    // Retrieve the avatar URL from chrome.storage.local using the generated key
+    return new Promise((resolve) => {
+        chrome.storage.local.get([avatarKey], (result) => {
+            const avatarUrl = result[avatarKey];
+            if (avatarUrl) {
+                resolve(avatarUrl);
+            } else {
+                resolve(null);
+            }
+        });
+    });
+}
+
+/**
+ *  Set the avatar URL for a given username in chrome.storage.local. It should expire in 24 hours.
+ * @param {string} username - The GitHub username.
+ * @param {string} avatarUrl - The avatar URL to store.
+ * @returns {Promise<void>} - A promise that resolves when the operation is complete.
+ * @description Stores the avatar URL in local storage with a key based on the username.
+*/
+export async function setAvatarUrl(username, avatarUrl) {
+    if (!username || !avatarUrl) {
+        console.error('Username and avatar URL must be provided.');
+        return;
+    }
+
+    const avatarKey = avatarHashKey(username);
+
+    return new Promise((resolve) => {
+        chrome.storage.local.set({ [avatarKey]: avatarUrl }, () => {
+            resolve();
+        });
     });
 }
