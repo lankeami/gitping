@@ -1,3 +1,45 @@
+//
+//
+// INTERNAL HELPER FUNCTIONS
+//
+//
+
+function cardUser(user) {
+    const subtitle = document.createElement('div');
+    subtitle.className = 'pr-subtitle';
+
+    // Create the avatar image
+    const avatarImg = avatarForUser(user);
+
+    // Create the username span
+    const usernameSpan = document.createElement('span');
+    usernameSpan.textContent = user.login;
+
+    // Append avatar and username to subtitle
+    subtitle.appendChild(avatarImg);
+    subtitle.appendChild(usernameSpan);
+    return subtitle;
+}
+
+function avatarForUser(user) {
+    const avatarImg = document.createElement('img');
+    avatarImg.src = user.avatar_url;
+    avatarImg.alt = user.login;
+    avatarImg.style.width = '24px';
+    avatarImg.style.height = '24px';
+    avatarImg.style.borderRadius = '50%';
+    avatarImg.style.verticalAlign = 'middle';
+    avatarImg.style.marginRight = '8px';
+    return avatarImg;
+}
+
+//
+//
+// EXPORTED UI HELPER FUNCTIONS
+//
+//
+
+
 /**
  * Display the list of pull requests in the popup.
  * @param {Array} pullRequests - List of pull requests to display.
@@ -83,35 +125,6 @@ export function displayPullRequests(pullRequests, pullRequestsList, lastViewedTi
         card.appendChild(footnote);
         pullRequestsList.appendChild(card);
     });
-}
-
-function cardUser(user) {
-    const subtitle = document.createElement('div');
-    subtitle.className = 'pr-subtitle';
-
-    // Create the avatar image
-    const avatarImg = avatarForUser(user);
-
-    // Create the username span
-    const usernameSpan = document.createElement('span');
-    usernameSpan.textContent = user.login;
-
-    // Append avatar and username to subtitle
-    subtitle.appendChild(avatarImg);
-    subtitle.appendChild(usernameSpan);
-    return subtitle;
-}
-
-function avatarForUser(user) {
-    const avatarImg = document.createElement('img');
-    avatarImg.src = user.avatar_url;
-    avatarImg.alt = user.login;
-    avatarImg.style.width = '24px';
-    avatarImg.style.height = '24px';
-    avatarImg.style.borderRadius = '50%';
-    avatarImg.style.verticalAlign = 'middle';
-    avatarImg.style.marginRight = '8px';
-    return avatarImg;
 }
 
 /**
