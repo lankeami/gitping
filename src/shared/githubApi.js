@@ -1,4 +1,4 @@
-import { getGitHubApiBaseUrl, setFirstUpdateTime } from './storageUtils.js';
+import { getGitHubApiBaseUrl, setFirstUpdateTime, getWatchListUrls } from './storageUtils.js';
 
 //
 //
@@ -106,6 +106,42 @@ export async function searchIssues(query, token) {
     const path = `/search/issues?q=${encodeURIComponent(query)}&sort=created&order=des&per_page=100`;
     const response = await fetchFromGitHub(path, token);
     return response.items || [];
+}
+
+/**
+ * Fetch a Pull Request or Issue by its URL
+ * @param {string} url - The URL of the pull request.
+ * @param {string} token - GitHub personal access token.
+ * @returns {Promise<Object>} - The pull request object.
+ */
+export async function fetchPullRequestByUrl(url, token) {
+    // the user passes in WWW (or their hosted url) so we need to remove it
+    // break the URL into it's parts such that the last part of the path is the id, the 
+    // second to last part is the type of request (pull, issue)
+    // and the rest is the repo
+    const urlParts = url.replace(/https?:\/\//, '').split('/');
+
+    // first part of the path should be the organization name
+    // second part of the path should be the repo name
+    // the third part of the path should be the type of request (pull, issue)
+    // the fourth part of the path should be the id of the request
+    if (urlParts.length < 5) {
+        throw new Error('Invalid URL format. \nExpected format: https://github.com/<org>/<repo>/<type>/<id>');
+    }
+
+    // Remove the first part (which is the domain) and get the last four parts
+    const id    = urlParts[4]; // Get the last part as the ID
+    let type    = urlParts[3]; // Get the second to last part as the type (pull, issue)
+    const repo  = urlParts[2]; // Get the third to last part as the repo name
+    const org   = urlParts[1]; // Get the fourth to last part as the organization name
+
+    if (type == 'pull' || type == 'issue') {
+        type = type + 's'; // Ensure type is plural
+    }
+
+    const path = `/repos/${org}/${repo}/${type}/${id}`;
+    
+    return await fetchFromGitHub(path, token);
 }
 
 //
@@ -290,6 +326,38 @@ export async function fetchUnresolvedIssues(username, token) {
 
 //
 //
+//  WATCHED FUNCTIONS
+//
+//
+
+/**
+ * Fetch watched repositories for the authenticated user.
+ * @param {string} token - GitHub personal access token.
+ * @returns {Promise<Array>} - List of watched repositories.
+ */
+export async function fetchWatchedRepositories(token) {
+    const watchListUrls = await getWatchListUrls();
+    if (!watchListUrls || watchListUrls.length === 0) {
+        return [];
+    }
+
+    const watchedRepos = [];
+    for (const url of watchListUrls) {
+        try {
+            let repo = await fetchPullRequestByUrl(url, token);
+            if (repo && repo.base && repo.base.repo && repo.base.repo.full_name) {
+                watchedRepos.push(repo);
+            }
+        } catch (error) {
+            console.error(`Error from Watched URL: ${url}:`, error);
+        }
+    }
+
+    return watchedRepos;
+}
+
+//
+//
 //  MAIN FUNCTION TO FETCH AND FILTER PULL REQUESTS
 //
 //
@@ -351,11 +419,15 @@ export async function fetchAndFilterPullRequests(username, token, since=null) {
     // Fetch unresolved issues authored by the user and issues where the user is mentioned
     const issuesPullRequests = await fetchUnresolvedIssues(username, token);
 
+    // Fetch watched repositories
+    const watchedRepos = await fetchWatchedRepositories(token);
+
     results['personal'] = allPullRequests;
     results['team']     = teamPullRequests;
     results['mentions'] = mentionsPullRequests;
     results['mine']     = myPullRequests;
     results['issues']   = issuesPullRequests;
+    results['watched']  = watchedRepos; 
 
     // ensure we set the first update time -- used for display purposes
     setFirstUpdateTime();

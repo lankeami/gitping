@@ -80,6 +80,10 @@
                 <img src="./images/issues.png" alt="Issues you own or were mentioned on" width="20" height="20">
                 <span id="issues-badge" class="tab-badge hidden">0</span>
             </button>
+            <button id="watched-tab" class="tab" title="Issues and Pull Requests you are watching">
+                <img src="./images/watched.png" alt="Issues and Pull Requests you are watching" width="20" height="20">
+                <span id="watched-badge" class="tab-badge hidden">0</span>
+            </button>
         </div>
         <div id="content">
             <!-- Personal Reviews Tab Content -->
@@ -112,9 +116,21 @@
                 <span class="tab-lowbrow">Issues you've opened, commented on, or was mentioned on</span>
                 <ul class="pull-request-list" id="issues-pull-requests-list"></ul>
             </div>
+            <!-- Watched Tab Content -->
+            <div id="watched-content" class="tab-content">
+                <h2 class="tab-header">Watch List</h2>
+                <span class="tab-lowbrow">Pull Requests and Issues you're actively watching</span>
+                <!-- Inline Add Form -->
+                <form id="add-watched-form" style="display: flex; gap: 8px; margin-top: 10px; margin-bottom: 12px;">
+                    <input type="text" id="add-watched-input" placeholder="Paste PR or Issue URL" style="flex: 1;" />
+                    <button type="button" id="add-watched-btn">Add</button>
+                </form>
+                <ul class="pull-request-list" id="watched-pull-requests-list"></ul>
+            </div>
         </div>
     </div>
 
+    <div id="toast" class="toast hidden"> </div>
     <div id="last-update-time" class="footnote"></div>
     <div id="last-error" class="error hidden"></div>
     <script type="module" src="popup.js"></script>

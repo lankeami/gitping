@@ -163,6 +163,9 @@ export async function setLastError(lastError) {
     }
     return new Promise((resolve) => {
         chrome.storage.local.set({ lastError }, () => {
+            if (lastError !== '') {
+                console.error(lastError);
+            }
             resolve();
         });
     });
@@ -225,13 +228,14 @@ export async function getTeamPullRequests() {
 export async function getStoredPullRequests() {
     return new Promise((resolve) => {
         // TODO: hard coded Tab names / stored pull requests -- make them configurable
-        chrome.storage.local.get(['personalPullRequests', 'teamPullRequests', 'mentionsPullRequests', 'minePullRequests', 'issuesPullRequests'], (result) => {
+        chrome.storage.local.get(['personalPullRequests', 'teamPullRequests', 'mentionsPullRequests', 'minePullRequests', 'issuesPullRequests', 'watchedPullRequests'], (result) => {
             resolve({
                 personal: result.personalPullRequests,
                 team:     result.teamPullRequests,
                 mentions: result.mentionsPullRequests,
                 mine:     result.minePullRequests,
-                issues:   result.issuesPullRequests
+                issues:   result.issuesPullRequests,
+                watched:  result.watchedPullRequests
             });
         });
     });
@@ -271,6 +275,99 @@ export async function resetLocalStorage() {
         });
     });
 }
+
+//
+// WATCH LIST UTILS
+//
+
+/**
+ * Retrieve a list of URLs for the watch list from chrome.storage.local.
+ * @returns {Promise<string[]>} - The list of URLs.
+ */
+export async function getWatchListUrls() {
+    return new Promise((resolve) => {
+        chrome.storage.local.get(['watchListUrls'], (result) => {
+            const watchListUrls = result.watchListUrls || [];
+            if (!Array.isArray(watchListUrls)) {
+                console.error('Watch list URLs are not an array:', watchListUrls);
+                resolve([]);
+            } else {
+                resolve(watchListUrls);
+            }
+        });
+    });
+}
+
+/**
+ * Add a URL to the watch list in chrome.storage.local.
+ * @param {string} url - The URL to add to the watch list.
+ * @returns {Promise<void>} - A promise that resolves when the operation is complete.
+ */
+export async function addToWatchList(url) {
+    if (!url) {
+        console.error('URL must be provided to add to watch list.');
+        return;
+    }
+
+    return new Promise((resolve) => {
+        chrome.storage.local.get(['watchListUrls'], (result) => {
+            const watchListUrls = result.watchListUrls || [];
+            if (!Array.isArray(watchListUrls)) {
+                console.error('Watch list URLs are not an array:', watchListUrls);
+                resolve();
+                return;
+            }
+
+            if (!watchListUrls.includes(url)) {
+                watchListUrls.push(url);
+                chrome.storage.local.set({ watchListUrls }, () => {
+                    resolve();
+                });
+            } else {
+                console.log('URL already exists in watch list:', url);
+                resolve();
+            }
+        });
+    });
+}
+
+/**
+ * Remove a URL from the watch list in chrome.storage.local.
+ * @param {string} url - The URL to remove from the watch list.
+ * @returns {Promise<void>} - A promise that resolves when the operation is complete.   
+ */
+export async function removeFromWatchList(url) {
+    if (!url) {
+        console.error('URL must be provided to remove from watch list.');
+        return;
+    }
+
+    return new Promise((resolve) => {
+        chrome.storage.local.get(['watchListUrls'], (result) => {
+            const watchListUrls = result.watchListUrls || [];
+            if (!Array.isArray(watchListUrls)) {
+                console.error('Watch list URLs are not an array:', watchListUrls);
+                resolve();
+                return;
+            }
+
+            const index = watchListUrls.indexOf(url);
+            if (index > -1) {
+                watchListUrls.splice(index, 1);
+                chrome.storage.local.set({ watchListUrls }, () => {
+                    resolve();
+                });
+            } else {
+                console.log('URL not found in watch list:', url);
+                resolve();
+            }
+        });
+    });
+}
+
+//
+// PUSH NOTIFICATIONS
+//
 
 function triggerPushNotification(msg) {
     const notificationOptions = {

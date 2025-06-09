@@ -1,7 +1,73 @@
-import { getAuthToken, getUsername, resetLocalStorage, getLastUpdateTime, getLastError, setLastError, updateExtensionBadge, setLastUpdateTime, getFirstUpdateTime, setLastViewedTime, getLastViewedTime } from '../shared/storageUtils.js';
+import { getAuthToken, getUsername, resetLocalStorage, getLastUpdateTime, getLastError, setLastError, updateExtensionBadge, setLastUpdateTime, getFirstUpdateTime, setLastViewedTime, getLastViewedTime, addToWatchList, getGitHubApiBaseUrl } from '../shared/storageUtils.js';
 import { fetchAndFilterPullRequests } from '../shared/githubApi.js';
 import { displayPullRequests, resetUI, displayBadgeCount } from '../shared/uiUtils.js';
 
+async function addWatchListUrl() {
+    console.log('Adding watch list URL');
+    const addWatchInput = document.getElementById('add-watched-input');
+
+    if (!addWatchInput) {
+        setLastError('Add watch input element not found');
+        return;
+    }
+
+    const watchInput = addWatchInput.value.trim();
+
+    // validate the input
+    if (!watchInput) {
+        return;
+    }
+
+    const urlParts = watchInput.replace(/https?:\/\//, '').split('/');
+
+    // first part of the path should be the organization name
+    // second part of the path should be the repo name
+    // the third part of the path should be the type of request (pull, issue)
+    // the fourth part of the path should be the id of the request
+    if (urlParts.length < 5) {
+        //throw new Error(`Invalid URL format. \nExpected format like: https://github.com/<org>/<repo>/<type>/<id>`);
+        setLastError(`Invalid URL format. \nExpected format like: https://github.com/<org>/<repo>/<type>/<id>`);
+        return;
+    }
+
+    if (watchInput) {
+        try {
+            const token = await getAuthToken();
+            const username = await getUsername();
+            if (token && username) {
+                // Add the watch to the user's GitHub account
+                // This is a placeholder for the actual implementation
+                console.log(`Adding watch for: ${watchInput}`);
+                addToWatchList(watchInput, token, username);
+                addWatchInput.value = ''; // Clear the input field
+                // NOTE: we can't fetch GitHub APIs in the main thread, it leads to CORS issues
+                // so we use a background script to run in the service worker   
+
+                // add a toast indicating addition was a success
+                const toast = document.getElementById('toast');
+                if (toast) {
+                    console.log('Showing toast for watch addition');
+                    // toast text should be two lines
+                    toast.style.whiteSpace = 'pre-line'; // Allow line breaks in the toast text
+                    toast.textContent = `Added ${watchInput} to watch list.\n It may appear in the next update.`;
+                    toast.classList.remove('hidden');
+                    toast.classList.add('show');
+                    setTimeout(() => {
+                        toast.classList.remove('show');
+                        toast.classList.add('hidden');
+                        chrome.alarms.create('checkForUpdates',{delayInMinutes: 0});
+                    }, 3000);
+                }
+            }
+        } catch (error) {
+            setLastError(error.message);
+        }
+    } else {
+        console.warn('No input provided for watch list');
+    }
+    addWatchInput.value = ''; // Clear the input field
+
+}
 
 document.addEventListener('DOMContentLoaded', function () {
     const loginButton = document.getElementById('login-button');
@@ -18,6 +84,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const appIconContainer = document.getElementById('app-icon-container');
     const popupContainer = document.getElementById('popup-container');
     const settingsButton = document.getElementById('settings-button');
+    const addWatchButton = document.getElementById('add-watched-btn');
 
 
     // Tab elements
@@ -66,16 +133,21 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             } else {
                 lastUpdateTimeElement.textContent = "Fetching latest pull requests.";
-                pullRequests = await fetchAndFilterPullRequests(username, token, lastUpdateTime);
+                
+                // NOTE: we can't fetch GitHub APIs in the main thread, it leads to CORS issues
+                // so we use a background script to run in the service worker
+                chrome.alarms.create('checkForUpdates',{delayInMinutes: 0});
+                return;
             }
 
             // TODO: hard coded Tab names / stored pull requests -- make them configurable
             const config = {
                 personal: pullRequests.personalPullRequests || pullRequests.personal,
+                mine: pullRequests.minePullRequests         || pullRequests.mine,
                 team: pullRequests.teamPullRequests         || pullRequests.team,
                 mention: pullRequests.mentionsPullRequests  || pullRequests.mentions,
-                mine: pullRequests.minePullRequests         || pullRequests.mine,
                 issues: pullRequests.issuesPullRequests     || pullRequests.issues,
+                watched: pullRequests.watchedPullRequests   || pullRequests.watched
             }
 
             // set all displays
@@ -83,8 +155,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 var pullRequests = config[element];
                 var listElement = document.getElementById(`${element}-pull-requests-list`);
                 if (listElement) {
-                    chrome.storage.local.set({ [`${element}PullRequests`]: pullRequests }, function () {
-                        displayPullRequests(pullRequests, listElement, lastViewedTime);
+                    chrome.storage.local.set({ [`${element}PullRequests`]: pullRequests }, async function () {
+                        await displayPullRequests(pullRequests, listElement, lastViewedTime);
                         displayBadgeCount(element, pullRequests);
                     });
                 }
@@ -93,7 +165,6 @@ document.addEventListener('DOMContentLoaded', function () {
             setLastUpdateTime();
             setLastError();
         } else {
-            console.error('Error:', error);
             setLastError(error.message);
         }
     }
@@ -137,7 +208,7 @@ document.addEventListener('DOMContentLoaded', function () {
     function updateDisplaysFromStorage() {
         // Check if username is stored in local storage
         // TODO: hard coded Tab names / stored pull requests -- make them configurable
-        chrome.storage.local.get(['githubUsername', 'lastUpdateTime', 'lastError', 'personalPullRequests', 'teamPullRequests', 'mentionsPullRequests', 'minePullRequests', 'issuesPullRequests'], async function (result) {
+        chrome.storage.local.get(['githubUsername', 'lastUpdateTime', 'lastError', 'minePullRequests', 'personalPullRequests', 'teamPullRequests', 'mentionsPullRequests', 'issuesPullRequests', 'watchedPullRequests'], async function (result) {
             const username = result.githubUsername
             const firstUpdateTime = await getFirstUpdateTime();
 
@@ -198,16 +269,24 @@ document.addEventListener('DOMContentLoaded', function () {
                 });
                 
                 lastUpdateTimeElement.textContent = "Fetching latest pull requests.";
-    
+
                 await updateDisplays();
             } else {
                 alert('Please enter both your username and token.');
             }
         } catch (error) {
-            console.error('Error:', error);
             setLastError(error.message);
         }
     });
+
+    try {
+        addWatchButton.addEventListener('click', async() => {
+            console.log('Add watch button clicked');
+            await addWatchListUrl();
+        });
+    } catch (error) {
+    }
+
 
     resetButton.addEventListener('click', async () => {
         await resetLocalStorage();
