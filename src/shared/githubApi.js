@@ -346,6 +346,10 @@ export async function fetchWatchedRepositories(token) {
         try {
             let repo = await fetchPullRequestByUrl(url, token);
             if (repo && repo.base && repo.base.repo && repo.base.repo.full_name) {
+                repo.meta = {
+                    url: url,
+                    type: 'watched'
+                };
                 watchedRepos.push(repo);
             }
         } catch (error) {

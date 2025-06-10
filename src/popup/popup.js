@@ -25,7 +25,6 @@ async function addWatchListUrl() {
     // the third part of the path should be the type of request (pull, issue)
     // the fourth part of the path should be the id of the request
     if (urlParts.length < 5) {
-        //throw new Error(`Invalid URL format. \nExpected format like: https://github.com/<org>/<repo>/<type>/<id>`);
         setLastError(`Invalid URL format. \nExpected format like: https://github.com/<org>/<repo>/<type>/<id>`);
         return;
     }

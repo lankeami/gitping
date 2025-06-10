@@ -365,6 +365,40 @@ export async function removeFromWatchList(url) {
     });
 }
 
+/**
+ * Remove a PR from the watched list in chrome.storage.local by id
+ * @param {number} id - The ID of the PR to remove from the watched list.
+ * @returns {Promise<void>} - A promise that resolves when the operation is complete.
+ */
+export async function removeWatchedPullRequest(id) {
+    if (!id) {
+        console.error('ID must be provided to remove from watched pull requests.');
+        return;
+    }
+
+    return new Promise((resolve) => {
+        chrome.storage.local.get(['watchedPullRequests'], (result) => {
+            const watchedPullRequests = result.watchedPullRequests || [];
+            if (!Array.isArray(watchedPullRequests)) {
+                console.error('Watched pull requests are not an array:', watchedPullRequests);
+                resolve();
+                return;
+            }
+
+            const index = watchedPullRequests.findIndex(pr => pr.id === id);
+            if (index > -1) {
+                watchedPullRequests.splice(index, 1);
+                chrome.storage.local.set({ watchedPullRequests }, () => {
+                    resolve();
+                });
+            } else {
+                console.log('PR ID not found in watched pull requests:', id);
+                resolve();
+            }
+        });
+    });
+}
+
 //
 // PUSH NOTIFICATIONS
 //

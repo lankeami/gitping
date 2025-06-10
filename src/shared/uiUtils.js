@@ -1,4 +1,4 @@
-import { getAvatarUrl, setAvatarUrl } from './storageUtils.js';
+import { getAvatarUrl, setAvatarUrl, removeFromWatchList, removeWatchedPullRequest, setLastUpdateTime } from './storageUtils.js';
 
 //
 //
@@ -176,6 +176,62 @@ export async function displayPullRequests(pullRequests, pullRequestsList, lastVi
         requestedDiv.className = 'pr-footnote';
         requestedDiv.textContent = `Created: ${requestedAt}`;
         footnote.appendChild(requestedDiv);
+
+
+        // --- Add Remove button if in watched list ---
+        if (pr.meta && pr.meta.type && pr.meta.type === 'watched') {
+            // Create a container for timestamps and remove button
+            const footnoteRow = document.createElement('div');
+            footnoteRow.style.display = 'flex';
+            footnoteRow.style.alignItems = 'center';
+            footnoteRow.style.justifyContent = 'space-between';
+
+            // Left: timestamps
+            const timestampsDiv = document.createElement('div');
+            timestampsDiv.appendChild(updatedDiv);
+            timestampsDiv.appendChild(requestedDiv);
+
+            // Right: remove button
+            const removeBtn = document.createElement('button');
+            removeBtn.className = 'remove-watched-btn';
+            removeBtn.title = 'Remove from watch list';
+            removeBtn.style.display = 'flex';
+            removeBtn.style.alignItems = 'center';
+            removeBtn.style.justifyContent = 'center';
+            removeBtn.style.background = 'none';
+            removeBtn.style.border = 'none';
+            removeBtn.style.cursor = 'pointer';
+            removeBtn.style.padding = '2px 6px';
+            removeBtn.style.marginLeft = '12px';
+
+            const trashIcon = document.createElement('img');
+            trashIcon.src = './images/delete.png';
+            trashIcon.alt = 'Remove';
+            trashIcon.width = 18;
+            trashIcon.height = 18;
+            trashIcon.style.display = 'block';
+
+            removeBtn.appendChild(trashIcon);
+
+            removeBtn.onclick = async (e) => {
+                e.stopPropagation(); // Prevent card click
+                await removeFromWatchList(pr.meta.url);
+                await removeWatchedPullRequest(pr.id);
+                await setLastUpdateTime();
+                card.remove();
+            };
+
+            footnoteRow.appendChild(timestampsDiv);
+            footnoteRow.appendChild(removeBtn);
+
+            // Clear footnote and append the row
+            footnote.innerHTML = '';
+            footnote.appendChild(footnoteRow);
+        } else {
+            footnote.appendChild(updatedDiv);
+            footnote.appendChild(requestedDiv);
+        }
+
 
         card.appendChild(footnote);
         pullRequestsList.appendChild(card);
