@@ -124,6 +124,34 @@ export async function displayPullRequests(pullRequests, pullRequestsList, lastVi
         const title = document.createElement('div');
         title.className = 'pr-title';
         title.textContent = pr.title;
+
+        // --- Add PR status badge ---
+        const statusBadge = document.createElement('span');
+        statusBadge.className = 'pr-status-badge';
+        if (pr.draft) {
+            statusBadge.textContent = 'Draft';
+            statusBadge.style.backgroundColor = '#6c757d';
+        } else if (pr.state === 'open') {
+            statusBadge.textContent = 'Open';
+            statusBadge.style.backgroundColor = '#28a745';
+        } else if (pr.state === 'closed' && pr.merged_at) {
+            statusBadge.textContent = 'Merged';
+            statusBadge.style.backgroundColor = '#6f42c1';
+        } else if (pr.state === 'closed') {
+            statusBadge.textContent = 'Closed';
+            statusBadge.style.backgroundColor = '#d73a49';
+        } else {
+            statusBadge.textContent = pr.state;
+            statusBadge.style.backgroundColor = '#cccccc';
+        }
+        statusBadge.style.color = '#fff';
+        statusBadge.style.padding = '2px 8px';
+        statusBadge.style.borderRadius = '12px';
+        statusBadge.style.fontSize = '12px';
+        statusBadge.style.marginLeft = '8px';
+        statusBadge.style.verticalAlign = 'middle';
+
+        title.appendChild(statusBadge);
         card.appendChild(title);
 
         const subtitle = await cardUser(pr.user);
