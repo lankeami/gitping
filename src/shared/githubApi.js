@@ -140,8 +140,10 @@ export async function fetchPullRequestByUrl(url, token) {
     }
 
     const path = `/repos/${org}/${repo}/${type}/${id}`;
+
+    let result = await fetchFromGitHub(path, token);
     
-    return await fetchFromGitHub(path, token);
+    return result;
 }
 
 //
@@ -234,23 +236,7 @@ export async function searchForMentions(username, token) {
     });
 
     // Map issues to the same structure as pull requests
-    return filteredResults.map(issue => ({
-        ...issue,
-        pull_request: {
-            url: issue.pull_request ? issue.pull_request.url : null,
-            html_url: issue.html_url,
-            merged_at: null // Issues do not have merged_at, set to null
-        },
-        base: {
-            repo: {
-                full_name: issue.repository_url ? issue.repository_url.split('/').slice(-2).join('/') : null,
-                owner: {
-                    login: issue.repository_url ? issue.repository_url.split('/').slice(-2, -1).join('/') : null,
-                    avatar_url: ''
-                }
-            }
-        }
-    }));
+    return filteredResults
 }
 
 /**
@@ -305,14 +291,41 @@ export async function fetchUnresolvedIssues(username, token) {
     const combinedIssues = [...new Set([...unresolvedIssuesByAuthor, ...unresolvedIssuesByMention])];
 
     // Map issues to the same structure as pull requests
-    return combinedIssues.map(issue => ({
-        ...issue,
-        pull_request: {
+    return combinedIssues
+}
+
+/**
+ * Enrich an issue with fields the pull request structure requires.
+ * @param {*} issue 
+ * @returns {Object} - Enriched issue object with pull request and base repository information.
+ */
+function enrichIssue(issue) {
+    const url = issue.pull_request ? issue.pull_request.html_url : issue.html_url;
+    let type = "unknown";
+    if (url && url.includes('/pull/')) {
+        type = "pulls";
+    } else if (url && url.includes('/issues/')) {
+        type = "issues";
+    }
+
+    let result = {
+        ...issue, 
+        meta: {
+            url: url,
+            github_type: type
+        }
+    };
+
+    if (!result.pull_request) {
+        result.pull_request = {
             url: issue.pull_request ? issue.pull_request.url : null,
             html_url: issue.html_url,
             merged_at: null // Issues do not have merged_at, set to null
-        },
-        base: {
+        };
+    }
+
+    if (!result.base) {
+        result.base = {
             repo: {
                 full_name: issue.repository_url ? issue.repository_url.split('/').slice(-2).join('/') : null,
                 owner: {
@@ -320,8 +333,10 @@ export async function fetchUnresolvedIssues(username, token) {
                     avatar_url: ''
                 }
             }
-        }
-    }));
+        };
+    }
+
+    return result;
 }
 
 //
@@ -345,13 +360,7 @@ export async function fetchWatchedRepositories(token) {
     for (const url of watchListUrls) {
         try {
             let repo = await fetchPullRequestByUrl(url, token);
-            if (repo && repo.base && repo.base.repo && repo.base.repo.full_name) {
-                repo.meta = {
-                    url: url,
-                    type: 'watched'
-                };
-                watchedRepos.push(repo);
-            }
+            watchedRepos.push(repo);
         } catch (error) {
             console.error(`Error from Watched URL: ${url}:`, error);
         }
@@ -432,6 +441,11 @@ export async function fetchAndFilterPullRequests(username, token, since=null) {
     results['mine']     = myPullRequests;
     results['issues']   = issuesPullRequests;
     results['watched']  = watchedRepos; 
+
+    // enrich all the results
+    Object.keys(results).forEach((key) => {
+        results[key] = results[key].map(issue => enrichIssue(issue));
+    });
 
     // ensure we set the first update time -- used for display purposes
     setFirstUpdateTime();

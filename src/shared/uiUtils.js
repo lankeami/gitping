@@ -104,26 +104,52 @@ export async function displayPullRequests(pullRequests, pullRequestsList, lastVi
             window.open(pr.html_url, '_blank');
         };
 
-        const highbrow = document.createElement('div');
-        highbrow.className = 'pr-highbrow';
-        highbrow.textContent = pr.base.repo.full_name;
-        if (pr.base.repo.owner) {
-            const ownerAvatar = await avatarForUser(pr.base.repo.owner);
-            if(ownerAvatar) {
-                ownerAvatar.style.float = 'right';
-                ownerAvatar.style.marginLeft = '8px';
-                highbrow.appendChild(ownerAvatar);
-            } else {
-                console.log("No avatar found for owner:", pr.base.repo.owner);
-            }
-        } else {
-            console.log("No owner found for repository:", pr.base.repo);
-        }
-        card.appendChild(highbrow);
+        try {
+            const highbrow = document.createElement('div');
 
+            highbrow.className = 'pr-highbrow';
+            highbrow.textContent = pr.base.repo.full_name;
+            if (pr.base.repo.owner) {
+                const ownerAvatar = await avatarForUser(pr.base.repo.owner);
+                if(ownerAvatar) {
+                    ownerAvatar.style.float = 'right';
+                    ownerAvatar.style.marginLeft = '8px';
+                    highbrow.appendChild(ownerAvatar);
+                } else {
+                    console.log("No avatar found for owner:", pr.base.repo.owner);
+                }
+            } else {
+                console.log("No owner found for repository:", pr.base.repo);
+            }
+            card.appendChild(highbrow);
+        } catch (error) {
+            console.log('Error creating highbrow element:', error);
+            console.log('Pull Request data:', pr);
+        }
+
+        // --- Create the Ttile Element ---
         const title = document.createElement('div');
         title.className = 'pr-title';
-        title.textContent = pr.title;
+
+        // --- Add PR/Issue icon to the left of the title ---
+        if (pr && pr.meta && pr.meta.github_type ) {
+            const typeIcon = document.createElement('img');
+            if (pr.meta.github_type === 'pulls') {
+                // It's a pull request
+                typeIcon.src = '../popup/images/requests.png'; // Make sure this icon exists
+                typeIcon.alt = 'Pull Request';
+            } else if (pr.meta.github_type === 'issues'){
+                // It's an issue
+                typeIcon.src = '../popup/images/issues.png'; // Make sure this icon exists
+                typeIcon.alt = 'Issue';
+            }
+            typeIcon.width = 18;
+            typeIcon.height = 18;
+            typeIcon.style.verticalAlign = 'middle';
+            typeIcon.style.marginRight = '6px';
+            title.appendChild(typeIcon);
+        }
+        title.appendChild(document.createTextNode(pr.title));
 
         // --- Add PR status badge ---
         const statusBadge = document.createElement('span');
