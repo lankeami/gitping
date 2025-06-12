@@ -54,7 +54,7 @@ async function addWatchListUrl() {
                     setTimeout(() => {
                         toast.classList.remove('show');
                         toast.classList.add('hidden');
-                        chrome.alarms.create('checkForUpdates',{delayInMinutes: 0});
+                        chrome.alarms.create('popupCheckForUpdates',{delayInMinutes: 0});
                     }, 3000);
                 }
             }
@@ -135,7 +135,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 
                 // NOTE: we can't fetch GitHub APIs in the main thread, it leads to CORS issues
                 // so we use a background script to run in the service worker
-                chrome.alarms.create('checkForUpdates',{delayInMinutes: 0});
+                chrome.alarms.create('popupCheckForUpdates',{delayInMinutes: 0});
                 return;
             }
 

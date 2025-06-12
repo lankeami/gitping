@@ -370,7 +370,6 @@ export async function fetchWatchedRepositories(token) {
             }
             repo.meta.url = url;
             repo.meta.type = 'watched';
-            console.log('Watched Repo:', repo);
 
             watchedRepos.push(repo);
         } catch (error) {

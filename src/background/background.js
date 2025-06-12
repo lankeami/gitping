@@ -103,7 +103,7 @@ chrome.alarms.create('checkForUpdates', { periodInMinutes: pollingInterval, dela
 
 chrome.alarms.onAlarm.addListener((alarm) => {
     console.log(new Date().toLocaleString(), ': Job scheduled:', alarm.name);
-    if (alarm.name === 'checkForUpdates') {
+    if (alarm.name === 'checkForUpdates' || alarm.name === 'popupCheckForUpdates') {
         checkForUpdates();
     }
 });
