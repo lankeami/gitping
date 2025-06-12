@@ -16,9 +16,7 @@ GitPing does not collect, transmit, or store any personal data on external serve
 GitPing requests the following permissions to function properly:
 1. **`storage`**: To store your GitHub token, username, and pull request data locally on your device.
 2. **`notifications`**: To send you notifications about new pull requests requiring your review.
-3. **`activeTab`**: To open GitHub pages when you interact with the extension.
-4. **`tabs`**: To check for existing GitHub tabs and manage navigation to GitHub pages.
-5. **`alarms`**: To periodically poll GitHub for updates on pull requests.
+3. **`alarms`**: To periodically poll GitHub for updates on pull requests.
 
 ### Content Scripts
 GitPing injects a content script into web pages using the `"<all_urls>"` match pattern. However, the script is designed to only interact with GitHub pages. No data is collected or transmitted from non-GitHub pages.
