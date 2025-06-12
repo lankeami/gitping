@@ -308,13 +308,16 @@ function enrichIssue(issue) {
         type = "issues";
     }
 
-    let result = {
-        ...issue, 
-        meta: {
-            url: url,
-            github_type: type
-        }
-    };
+    // add url and github_type to result.meta. Note - if either exists, don't overwite them
+    let result = issue;
+
+
+    if (!result.meta) {
+        result.meta = {}
+    }
+    result.meta.url = issue.meta && issue.meta.url ? issue.meta.url : url;
+    result.meta.github_type = issue.meta && issue.meta.github_type ? issue.meta.github_type : type;
+
 
     if (!result.pull_request) {
         result.pull_request = {
@@ -360,6 +363,15 @@ export async function fetchWatchedRepositories(token) {
     for (const url of watchListUrls) {
         try {
             let repo = await fetchPullRequestByUrl(url, token);
+
+             // Set the URL in the meta object
+            if (!repo.meta) {
+                repo.meta = {};
+            }
+            repo.meta.url = url;
+            repo.meta.type = 'watched';
+            console.log('Watched Repo:', repo);
+
             watchedRepos.push(repo);
         } catch (error) {
             console.error(`Error from Watched URL: ${url}:`, error);
