@@ -163,6 +163,9 @@ export async function setLastError(lastError) {
     }
     return new Promise((resolve) => {
         chrome.storage.local.set({ lastError }, () => {
+            if (lastError !== '') {
+                console.error(lastError);
+            }
             resolve();
         });
     });
@@ -225,12 +228,14 @@ export async function getTeamPullRequests() {
 export async function getStoredPullRequests() {
     return new Promise((resolve) => {
         // TODO: hard coded Tab names / stored pull requests -- make them configurable
-        chrome.storage.local.get(['personalPullRequests', 'teamPullRequests', 'mentionsPullRequests', 'minePullRequests'], (result) => {
+        chrome.storage.local.get(['personalPullRequests', 'teamPullRequests', 'mentionsPullRequests', 'minePullRequests', 'issuesPullRequests', 'watchedPullRequests'], (result) => {
             resolve({
                 personal: result.personalPullRequests,
-                team: result.teamPullRequests,
+                team:     result.teamPullRequests,
                 mentions: result.mentionsPullRequests,
-                mine: result.minePullRequests
+                mine:     result.minePullRequests,
+                issues:   result.issuesPullRequests,
+                watched:  result.watchedPullRequests
             });
         });
     });
@@ -271,6 +276,133 @@ export async function resetLocalStorage() {
     });
 }
 
+//
+// WATCH LIST UTILS
+//
+
+/**
+ * Retrieve a list of URLs for the watch list from chrome.storage.local.
+ * @returns {Promise<string[]>} - The list of URLs.
+ */
+export async function getWatchListUrls() {
+    return new Promise((resolve) => {
+        chrome.storage.local.get(['watchListUrls'], (result) => {
+            const watchListUrls = result.watchListUrls || [];
+            if (!Array.isArray(watchListUrls)) {
+                console.error('Watch list URLs are not an array:', watchListUrls);
+                resolve([]);
+            } else {
+                resolve(watchListUrls);
+            }
+        });
+    });
+}
+
+/**
+ * Add a URL to the watch list in chrome.storage.local.
+ * @param {string} url - The URL to add to the watch list.
+ * @returns {Promise<void>} - A promise that resolves when the operation is complete.
+ */
+export async function addToWatchList(url) {
+    if (!url) {
+        console.error('URL must be provided to add to watch list.');
+        return;
+    }
+
+    return new Promise((resolve) => {
+        chrome.storage.local.get(['watchListUrls'], (result) => {
+            const watchListUrls = result.watchListUrls || [];
+            if (!Array.isArray(watchListUrls)) {
+                console.error('Watch list URLs are not an array:', watchListUrls);
+                resolve();
+                return;
+            }
+
+            if (!watchListUrls.includes(url)) {
+                watchListUrls.push(url);
+                chrome.storage.local.set({ watchListUrls }, () => {
+                    resolve();
+                });
+            } else {
+                console.log('URL already exists in watch list:', url);
+                resolve();
+            }
+        });
+    });
+}
+
+/**
+ * Remove a URL from the watch list in chrome.storage.local.
+ * @param {string} url - The URL to remove from the watch list.
+ * @returns {Promise<void>} - A promise that resolves when the operation is complete.   
+ */
+export async function removeFromWatchList(url) {
+    if (!url) {
+        console.error('URL must be provided to remove from watch list.');
+        return;
+    }
+
+    return new Promise((resolve) => {
+        chrome.storage.local.get(['watchListUrls'], (result) => {
+            const watchListUrls = result.watchListUrls || [];
+            if (!Array.isArray(watchListUrls)) {
+                console.error('Watch list URLs are not an array:', watchListUrls);
+                resolve();
+                return;
+            }
+
+            const index = watchListUrls.indexOf(url);
+            if (index > -1) {
+                watchListUrls.splice(index, 1);
+                chrome.storage.local.set({ watchListUrls }, () => {
+                    resolve();
+                });
+            } else {
+                console.log('URL not found in watch list:', url);
+                resolve();
+            }
+        });
+    });
+}
+
+/**
+ * Remove a PR from the watched list in chrome.storage.local by id
+ * @param {number} id - The ID of the PR to remove from the watched list.
+ * @returns {Promise<void>} - A promise that resolves when the operation is complete.
+ */
+export async function removeWatchedPullRequest(id) {
+    if (!id) {
+        console.error('ID must be provided to remove from watched pull requests.');
+        return;
+    }
+
+    return new Promise((resolve) => {
+        chrome.storage.local.get(['watchedPullRequests'], (result) => {
+            const watchedPullRequests = result.watchedPullRequests || [];
+            if (!Array.isArray(watchedPullRequests)) {
+                console.error('Watched pull requests are not an array:', watchedPullRequests);
+                resolve();
+                return;
+            }
+
+            const index = watchedPullRequests.findIndex(pr => pr.id === id);
+            if (index > -1) {
+                watchedPullRequests.splice(index, 1);
+                chrome.storage.local.set({ watchedPullRequests }, () => {
+                    resolve();
+                });
+            } else {
+                console.log('PR ID not found in watched pull requests:', id);
+                resolve();
+            }
+        });
+    });
+}
+
+//
+// PUSH NOTIFICATIONS
+//
+
 function triggerPushNotification(msg) {
     const notificationOptions = {
         type: 'basic',
@@ -296,5 +428,71 @@ function triggerPushNotification(msg) {
             // Open the extension popup
             chrome.action.openPopup();
         }
+    });
+}
+
+//
+// AVATAR STORAGE UTILS
+//
+
+function avatarHashKey(username) {
+    if (!username) {
+        console.error('Username must be provided to generate avatar hash key.');
+        return '';
+    }
+
+    // use today's date as part of the key to ensure it expires in 24 hours
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+    // return a unique key for the avatar based on the username and today's date
+    return `Avatar_${username}_${today}`;
+}
+
+
+/**
+ * Retrieve the avatar URL for a given username from chrome.storage.local.
+ * The avatar storage is a hash, so it first will fetch the avatar hash, then look up by avatarHashKey
+ * @param {string} username - The GitHub username.
+ * @returns {Promise<string>} - The avatar URL.
+ */
+export async function getAvatarUrl(username) {
+    if (!username) {
+        console.error('Username must be provided to retrieve avatar URL.');
+        return '';
+    }
+    // Use the avatarHashKey function to generate a unique key for the avatar
+    const avatarKey = avatarHashKey(username);
+
+    // Retrieve the avatar URL from chrome.storage.local using the generated key
+    return new Promise((resolve) => {
+        chrome.storage.local.get([avatarKey], (result) => {
+            const avatarUrl = result[avatarKey];
+            if (avatarUrl) {
+                resolve(avatarUrl);
+            } else {
+                resolve(null);
+            }
+        });
+    });
+}
+
+/**
+ *  Set the avatar URL for a given username in chrome.storage.local. It should expire in 24 hours.
+ * @param {string} username - The GitHub username.
+ * @param {string} avatarUrl - The avatar URL to store.
+ * @returns {Promise<void>} - A promise that resolves when the operation is complete.
+ * @description Stores the avatar URL in local storage with a key based on the username.
+*/
+export async function setAvatarUrl(username, avatarUrl) {
+    if (!username || !avatarUrl) {
+        console.error('Username and avatar URL must be provided.');
+        return;
+    }
+
+    const avatarKey = avatarHashKey(username);
+
+    return new Promise((resolve) => {
+        chrome.storage.local.set({ [avatarKey]: avatarUrl }, () => {
+            resolve();
+        });
     });
 }

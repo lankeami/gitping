@@ -1,9 +1,72 @@
+import { getAvatarUrl, setAvatarUrl, removeFromWatchList, removeWatchedPullRequest, setLastUpdateTime } from './storageUtils.js';
+
+//
+//
+// INTERNAL HELPER FUNCTIONS
+//
+//
+
+async function cardUser(user) {
+    const subtitle = document.createElement('div');
+    subtitle.className = 'pr-subtitle';
+
+    // Create the avatar image
+    const avatarImg = await avatarForUser(user);
+
+    if (!avatarImg) {
+        return null;
+    }
+
+    // Create the username span
+    const usernameSpan = document.createElement('span');
+    usernameSpan.textContent = user.login;
+
+    // Append avatar and username to subtitle
+    subtitle.appendChild(avatarImg);
+    subtitle.appendChild(usernameSpan);
+    return subtitle;
+}
+
+async function avatarForUser(user) {
+    // check storageUtils for user avatar url first
+    // iff it doesn't exist, pull from the user object and save it for a day
+    // then build the avatar image element
+
+    let avatarUrl = await getAvatarUrl(user.login);
+    if (!avatarUrl) {
+        // If avatar URL is not found in storage, use the user object
+        avatarUrl = user.avatar_url;
+        if(avatarUrl) {
+            setAvatarUrl(user.login, avatarUrl);
+        } else {
+            return null;
+        }
+    }
+
+    const avatarImg = document.createElement('img');
+    avatarImg.src = avatarUrl;
+    avatarImg.alt = user.login;
+    avatarImg.style.width = '24px';
+    avatarImg.style.height = '24px';
+    avatarImg.style.borderRadius = '50%';
+    avatarImg.style.verticalAlign = 'middle';
+    avatarImg.style.marginRight = '8px';
+    return avatarImg;
+}
+
+//
+//
+// EXPORTED UI HELPER FUNCTIONS
+//
+//
+
+
 /**
  * Display the list of pull requests in the popup.
  * @param {Array} pullRequests - List of pull requests to display.
  * @param {HTMLElement} pullRequestsList - The DOM element to render the pull requests into.
  */
-export function displayPullRequests(pullRequests, pullRequestsList, lastViewedTime=null) {
+export async function displayPullRequests(pullRequests, pullRequestsList, lastViewedTime=null) {
     // Hide all tab content
     const allTabContents = document.querySelectorAll('.tab-content');
     allTabContents.forEach((content) => {
@@ -34,24 +97,90 @@ export function displayPullRequests(pullRequests, pullRequestsList, lastViewedTi
     pullRequests.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
     // Create a card for each pull request
     // and append it to the pull requests list
-    pullRequests.forEach((pr) => {
+    pullRequests.forEach(async (pr) => {
         const card = document.createElement('div');
         card.className = 'pr-card';
         card.onclick = () => {
             window.open(pr.html_url, '_blank');
         };
 
-        const highbrow = document.createElement('div');
-        highbrow.className = 'pr-highbrow';
-        highbrow.textContent = pr.base.repo.full_name;
-        card.appendChild(highbrow);
+        try {
+            const highbrow = document.createElement('div');
 
+            highbrow.className = 'pr-highbrow';
+            highbrow.textContent = pr.base.repo.full_name;
+            if (pr.base.repo.owner) {
+                const ownerAvatar = await avatarForUser(pr.base.repo.owner);
+                if(ownerAvatar) {
+                    ownerAvatar.style.float = 'right';
+                    ownerAvatar.style.marginLeft = '8px';
+                    highbrow.appendChild(ownerAvatar);
+                } else {
+                    console.log("No avatar found for owner:", pr.base.repo.owner);
+                }
+            } else {
+                console.log("No owner found for repository:", pr.base.repo);
+            }
+            card.appendChild(highbrow);
+        } catch (error) {
+            console.log('Error creating highbrow element:', error);
+            console.log('Pull Request data:', pr);
+        }
+
+        // --- Create the Ttile Element ---
         const title = document.createElement('div');
         title.className = 'pr-title';
-        title.textContent = pr.title;
+
+        // --- Add PR/Issue icon to the left of the title ---
+        if (pr && pr.meta && pr.meta.github_type ) {
+            const typeIcon = document.createElement('img');
+            if (pr.meta.github_type === 'pulls') {
+                // It's a pull request
+                typeIcon.src = '../popup/images/requests.png'; // Make sure this icon exists
+                typeIcon.alt = 'Pull Request';
+            } else if (pr.meta.github_type === 'issues'){
+                // It's an issue
+                typeIcon.src = '../popup/images/issues.png'; // Make sure this icon exists
+                typeIcon.alt = 'Issue';
+            }
+            typeIcon.width = 18;
+            typeIcon.height = 18;
+            typeIcon.style.verticalAlign = 'middle';
+            typeIcon.style.marginRight = '6px';
+            title.appendChild(typeIcon);
+        }
+        title.appendChild(document.createTextNode(pr.title));
+
+        // --- Add PR status badge ---
+        const statusBadge = document.createElement('span');
+        statusBadge.className = 'pr-status-badge';
+        if (pr.draft) {
+            statusBadge.textContent = 'Draft';
+            statusBadge.style.backgroundColor = '#6c757d';
+        } else if (pr.state === 'open') {
+            statusBadge.textContent = 'Open';
+            statusBadge.style.backgroundColor = '#28a745';
+        } else if (pr.state === 'closed' && pr.merged_at) {
+            statusBadge.textContent = 'Merged';
+            statusBadge.style.backgroundColor = '#6f42c1';
+        } else if (pr.state === 'closed') {
+            statusBadge.textContent = 'Closed';
+            statusBadge.style.backgroundColor = '#d73a49';
+        } else {
+            statusBadge.textContent = pr.state;
+            statusBadge.style.backgroundColor = '#cccccc';
+        }
+        statusBadge.style.color = '#fff';
+        statusBadge.style.padding = '2px 8px';
+        statusBadge.style.borderRadius = '12px';
+        statusBadge.style.fontSize = '12px';
+        statusBadge.style.marginLeft = '8px';
+        statusBadge.style.verticalAlign = 'middle';
+
+        title.appendChild(statusBadge);
         card.appendChild(title);
 
-        const subtitle = cardUser(pr.user);
+        const subtitle = await cardUser(pr.user);
         card.appendChild(subtitle);
 
         const footnote = document.createElement('div');
@@ -74,109 +203,64 @@ export function displayPullRequests(pullRequests, pullRequestsList, lastViewedTi
         requestedDiv.textContent = `Created: ${requestedAt}`;
         footnote.appendChild(requestedDiv);
 
-        card.appendChild(footnote);
-        pullRequestsList.appendChild(card);
-    });
-}
 
-function cardUser(user) {
-    const subtitle = document.createElement('div');
-    subtitle.className = 'pr-subtitle';
+        // --- Add Remove button if in watched list ---
+        if (pr.meta && pr.meta.type && pr.meta.type === 'watched') {
+            // Create a container for timestamps and remove button
+            const footnoteRow = document.createElement('div');
+            footnoteRow.style.display = 'flex';
+            footnoteRow.style.alignItems = 'center';
+            footnoteRow.style.justifyContent = 'space-between';
 
-    // Create the avatar image
-    const avatarImg = avatarForUser(user);
+            // Left: timestamps
+            const timestampsDiv = document.createElement('div');
+            timestampsDiv.appendChild(updatedDiv);
+            timestampsDiv.appendChild(requestedDiv);
 
-    // Create the username span
-    const usernameSpan = document.createElement('span');
-    usernameSpan.textContent = user.login;
+            // Right: remove button
+            const removeBtn = document.createElement('button');
+            removeBtn.className = 'remove-watched-btn';
+            removeBtn.title = 'Remove from watch list';
+            removeBtn.style.display = 'flex';
+            removeBtn.style.alignItems = 'center';
+            removeBtn.style.justifyContent = 'center';
+            removeBtn.style.background = 'none';
+            removeBtn.style.border = 'none';
+            removeBtn.style.cursor = 'pointer';
+            removeBtn.style.padding = '2px 6px';
+            removeBtn.style.marginLeft = '12px';
 
-    // Append avatar and username to subtitle
-    subtitle.appendChild(avatarImg);
-    subtitle.appendChild(usernameSpan);
-    return subtitle;
-}
+            const trashIcon = document.createElement('img');
+            trashIcon.src = './images/delete.png';
+            trashIcon.alt = 'Remove';
+            trashIcon.width = 18;
+            trashIcon.height = 18;
+            trashIcon.style.display = 'block';
 
-function avatarForUser(user) {
-    const avatarImg = document.createElement('img');
-    avatarImg.src = user.avatar_url;
-    avatarImg.alt = user.login;
-    avatarImg.style.width = '24px';
-    avatarImg.style.height = '24px';
-    avatarImg.style.borderRadius = '50%';
-    avatarImg.style.verticalAlign = 'middle';
-    avatarImg.style.marginRight = '8px';
-    return avatarImg;
-}
+            removeBtn.appendChild(trashIcon);
 
-/**
- * Display a list of comments as cards in the mentions tab.
- * @param {Array} comments - List of comments to display.
- * @param {HTMLElement} commentsList - The DOM element to render the comments into.
- */
-export function displayItemComments(comments, commentsList, lastViewedTime=null) {
-    // Check for mentions - only show the list if there are mentions
-    if (!Array.isArray(comments) || comments.length === 0) {
-        commentsList.innerHTML = '<div class="no-pull-requests">No mentions found.</div>';
-        return;
-    }
-    // Clear the comments list
-    commentsList.innerHTML = '';
+            removeBtn.onclick = async (e) => {
+                e.stopPropagation(); // Prevent card click
+                await removeFromWatchList(pr.meta.url);
+                await removeWatchedPullRequest(pr.id);
+                await setLastUpdateTime();
+                card.remove();
+            };
 
-    // sort comments by updated_at date in descending order
-    comments.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
-    // Create a card for each comment
-    // and append it to the comments list
-    comments.forEach((comment) => {
-        const card = document.createElement('div');
-        card.className = 'pr-card';
-        card.onclick = () => {
-            window.open(comment.pull_request.html_url, '_blank'); // Navigate to the pull request
-        };
+            footnoteRow.appendChild(timestampsDiv);
+            footnoteRow.appendChild(removeBtn);
 
-        // Extract repository name from repository_url
-        const repoUrlParts = comment.repository_url.split('/');
-        const repoName = `${repoUrlParts[repoUrlParts.length - 2]}/${repoUrlParts[repoUrlParts.length - 1]}`;
-
-        // Highbrow: Repository name
-        const highbrow = document.createElement('div');
-        highbrow.className = 'pr-highbrow';
-        highbrow.textContent = repoName;
-        card.appendChild(highbrow);
-
-        // Title: First n characters of the comment body (fallback to empty string if body is null/undefined)
-        const title = document.createElement('div');
-        title.className = 'pr-title';
-        title.textContent = comment.title;
-        card.appendChild(title);
-
-        // Author: Comment author
-        const subtitle = cardUser(comment.user);
-        card.appendChild(subtitle);
-
-        const footnote = document.createElement('div');
-        footnote.className = 'pr-footnote';
-        const updatedAt = new Date(comment.updated_at).toLocaleString();
-        const requestedAt = new Date(comment.created_at).toLocaleString();
-
-        const updatedDiv = document.createElement('div');
-        updatedDiv.className = 'pr-footnote';
-        updatedDiv.textContent = `Updated: ${updatedAt}`;
-        footnote.appendChild(updatedDiv);
-
-        // Highlight the updatedAt text if it is greater than lastViewedTime
-        if (lastViewedTime && new Date(comment.updated_at) > new Date(lastViewedTime)) {
-            updatedDiv.classList.add('highlight-updated');
+            // Clear footnote and append the row
+            footnote.innerHTML = '';
+            footnote.appendChild(footnoteRow);
+        } else {
+            footnote.appendChild(updatedDiv);
+            footnote.appendChild(requestedDiv);
         }
 
-        const requestedDiv = document.createElement('div');
-        requestedDiv.className = 'pr-footnote';
-        requestedDiv.textContent = `Created: ${requestedAt}`;
-        footnote.appendChild(requestedDiv);
-        
-        card.appendChild(footnote);
 
-        // Append the card to the comments list
-        commentsList.appendChild(card);
+        card.appendChild(footnote);
+        pullRequestsList.appendChild(card);
     });
 }
 
