@@ -78,3 +78,6 @@ We'll notify user's of issues on our [security policy page](SECURITY.md).
 ## Privacy Policy
 
 We don't collect and/or sell your information. All your information is stored locally on your browser's local storage. You can read more in our [Privacy Policy Page](PRIVACY_POLICY.md).
+
+## Contact
+For any questions or support, please open an issue on the GitHub repository
