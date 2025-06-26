@@ -155,7 +155,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 var listElement = document.getElementById(`${element}-pull-requests-list`);
                 if (listElement) {
                     chrome.storage.local.set({ [`${element}PullRequests`]: pullRequests }, async function () {
-                        await displayPullRequests(pullRequests, listElement, lastViewedTime);
+                        await displayPullRequests(pullRequests, listElement, lastViewedTime, element);
                         displayBadgeCount(element, pullRequests);
                     });
                 }
