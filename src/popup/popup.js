@@ -1,6 +1,6 @@
 import { getAuthToken, getUsername, resetLocalStorage, getLastUpdateTime, getLastError, setLastError, updateExtensionBadge, setLastUpdateTime, getFirstUpdateTime, setLastViewedTime, getLastViewedTime, addToWatchList, getGitHubApiBaseUrl } from '../shared/storageUtils.js';
 import { fetchAndFilterPullRequests } from '../shared/githubApi.js';
-import { displayPullRequests, resetUI, displayBadgeCount } from '../shared/uiUtils.js';
+import { displayPullRequestsCards, displayPullRequests, resetUI, displayBadgeCount } from '../shared/uiUtils.js';
 
 async function addWatchListUrl() {
     console.log('Adding watch list URL');
@@ -155,7 +155,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 var listElement = document.getElementById(`${element}-pull-requests-list`);
                 if (listElement) {
                     chrome.storage.local.set({ [`${element}PullRequests`]: pullRequests }, async function () {
-                        await displayPullRequests(pullRequests, listElement, lastViewedTime, element);
+                        // if pulrequests have the .card object, use the displayPullRequestsCards function
+                        if (pullRequests && pullRequests.length > 0 && pullRequests[0].card) {
+                            await displayPullRequestsCards(pullRequests, listElement, lastViewedTime, element);
+                        } else {
+                            await displayPullRequests(pullRequests, listElement, lastViewedTime, element);
+                        }
                         displayBadgeCount(element, pullRequests);
                     });
                 }

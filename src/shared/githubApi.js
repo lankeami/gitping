@@ -277,8 +277,6 @@ export async function fetchUnresolvedPullRequestsByReviewer(username, token) {
     const query = `is:pr is:open review-requested:${username}`;
     const pullRequests = await GQLSearchPullRequests(query, token);
 
-    console.log('Pull Requests:', pullRequests); // TODO Remove Me
-
     // This returns all PRs where the user is requested for a review and where the user is a member of a team that is requested for review
     // Filter the pull requests to only include those where the user is a requested reviewer
 
@@ -439,6 +437,27 @@ function enrichIssueGQL(issue) {
         };
     }
 
+    // New Card function in UI Utils
+    result.card = {
+        type: type,
+        id: issue.id,
+        title: issue.title,
+        html_url: url,
+        user: {
+            login: issue.author.login,
+            avatar_url: issue.author.avatarUrl
+        },
+        state: issue.state,
+        draft: issue.isDraft || false,
+        created_at: issue.createdAt,
+        updated_at: issue.updatedAt,
+        repo_name: issue.repository.owner.login + '/' + issue.repository.name,
+        owner: {
+            login: issue.repository.owner.login,
+            avatar_url: issue.repository.owner.avatarUrl
+        }
+    }
+
     return result;
 }
 
@@ -526,6 +545,5 @@ export async function fetchAndFilterPullRequests(username, token) {
     // ensure we set the first update time -- used for display purposes
     setFirstUpdateTime();
 
-console.log("Fetched All from GitHub:", results); // TODO Remove Me
     return results;
 }

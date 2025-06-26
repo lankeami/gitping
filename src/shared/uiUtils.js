@@ -24,6 +24,7 @@ async function cardUser(user) {
     // Append avatar and username to subtitle
     subtitle.appendChild(avatarImg);
     subtitle.appendChild(usernameSpan);
+
     return subtitle;
 }
 
@@ -95,7 +96,7 @@ export async function displayPullRequestsCards(pullRequests, pullRequestsList, l
     // Create a card for each pull request
     // and append it to the pull requests list
     pullRequests.forEach(async (pr) => {
-        let card = createPullRequestCard(pr, elementId, lastViewedTime);
+        let card = await createPullRequestCard(pr.card, elementId, lastViewedTime);
         if (card) {
             pullRequestsList.appendChild(card);
         }
@@ -130,7 +131,7 @@ export async function displayPullRequestsCards(pullRequests, pullRequestsList, l
  *  repo_name: string
  * }
  */
-function createPullRequestCard(pr, section_name = null, lastViewedTime = null) {
+async function createPullRequestCard(pr, section_name = null, lastViewedTime = null) {
     const card = document.createElement('div');
     card.className = 'pr-card';
     card.onclick = () => {
@@ -138,17 +139,20 @@ function createPullRequestCard(pr, section_name = null, lastViewedTime = null) {
     };
 
     try {
-        const highbrow = cardHighbrow(pr);
+        const highbrow = await cardHighbrow(pr);
         card.appendChild(highbrow);
+
         const title = cardTitle(pr);
         card.appendChild(title);
-        const subtitle = cardUser(pr.user);
+
+        const subtitle = await cardUser(pr.user);
         card.appendChild(subtitle);
+
         const footnote = cardFootnote(pr, section_name, lastViewedTime);
         card.appendChild(footnote);
+
     } catch (error) {
-        console.error('Error creating pull request card:', error);
-        console.error('Pull Request data:', pr);
+        console.error('Error creating pull request card:', error, pr);
         // If there's an error, we can still return the card with partial data
         card.innerHTML = `<div class="pr-error">Error creating card for PR: ${pr.title}</div>`;
     }
@@ -224,6 +228,7 @@ function cardTitle(pr) {
     statusBadge.style.verticalAlign = 'middle';
 
     title.appendChild(statusBadge);
+    return title;
 }
 
 function cardFootnote(pr, section_name = null, lastViewedTime = null) {
@@ -323,13 +328,13 @@ export async function displayPullRequests(pullRequests, pullRequestsList, lastVi
     }
 
     if (!Array.isArray(pullRequests)) {
-        console.log('Invalid pull requests data:', pullRequests);
+        console.log(`Invalid pull requests data [${elementId}]:`, pullRequests);
         pullRequestsList.innerHTML = '<div class="no-pull-requests">No pull requests found.</div>';
         return;
     }
 
     if (pullRequests.length === 0) {
-        console.log('No pull requests found.');
+        console.log(`No pull requests [${elementId}]`);
         pullRequestsList.innerHTML = '<div class="no-pull-requests">No pull requests found.</div>';
         return;
     }
@@ -341,7 +346,6 @@ export async function displayPullRequests(pullRequests, pullRequestsList, lastVi
     // Create a card for each pull request
     // and append it to the pull requests list
     pullRequests.forEach(async (pr) => {
-        console.log('Processing pull request:', pr);
         const card = document.createElement('div');
         card.className = 'pr-card';
         card.onclick = () => {

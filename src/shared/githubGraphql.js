@@ -88,9 +88,7 @@ async function fetchGraphQL(query, schema, token, after = null) {
 
     const graphql = JSON.stringify({
         query: getPaginatedQuery(query, schema, after)
-    })
-
-console.log('GraphQL Query:', getPaginatedQuery(query, schema, after));
+    });
 
     const response = await fetch(url, {
         method: 'POST',
