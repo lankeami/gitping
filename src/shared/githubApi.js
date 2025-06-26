@@ -1,4 +1,6 @@
 import { getGitHubApiBaseUrl, setFirstUpdateTime, getWatchListUrls } from './storageUtils.js';
+import { GQLSearchPullRequests } from './githubGraphql.js';
+
 
 //
 //
@@ -13,7 +15,7 @@ import { getGitHubApiBaseUrl, setFirstUpdateTime, getWatchListUrls } from './sto
  * @returns {Promise<any[]>} - The combined JSON response from all pages.
  * @throws {Error} - If the response is not OK.
  */
-async function fetchFromGitHub(path, token) {
+async function fetchFromGitHub(path, token, method = 'GET') {
     const GITHUB_API_BASE_URL = await getGitHubApiBaseUrl();
 
     if (!GITHUB_API_BASE_URL) {
@@ -22,13 +24,14 @@ async function fetchFromGitHub(path, token) {
 
     const url = `${GITHUB_API_BASE_URL}${path}`;
     const response = await fetch(url, {
+        method,
         headers: {
             Authorization: `token ${token}`,
         },
     });
 
     if (!response.ok) {
-        throw new Error(`GitHub API request failed: ${response.statusText}`);
+        throw new Error(`GitHub API request failed: ${path} : ${response.statusText}`);
     }
 
     const data = await response.json();
@@ -171,10 +174,21 @@ export async function fetchPullRequests(org, repo, token) {
  * @param {string} username - GitHub username.
  * @returns {Array} - Filtered pull requests.
  */
-export function filterPullRequestsByReviewer(pullRequests, username) {
-    return pullRequests.filter((pr) =>
-        pr.requested_reviewers.some((reviewer) => reviewer.login === username)
-    );
+export function filterPullRequestsByReviewer(pullRequests, username, isGraphQL = false) {
+    if (isGraphQL) {
+        return pullRequests.filter((pr) =>
+            pr?.reviewRequests?.nodes?.some(
+                (node) =>
+                    node.requestedReviewer &&
+                    node.requestedReviewer.__typename === "User" &&
+                    node.requestedReviewer.login === username
+            )
+        );
+    } else {
+        return pullRequests.filter((pr) =>
+            pr?.requested_reviewers?.some((reviewer) => reviewer.login === username)
+        );
+    }
 }
 
 /**
@@ -208,9 +222,9 @@ export function filterPullRequestsByAuthor(pullRequests, username) {
  */
 export async function searchForMentions(username, token) {
     const mentions_query = `is:pr is:open mentions:${username}`;
-    const mentions = await searchIssues(mentions_query, token);
+    const mentions = await GQLSearchPullRequests(mentions_query, token);
     const comments_query = `is:pr is:open commenter:${username}`;
-    const comments = await searchIssues(comments_query, token);
+    const comments = await GQLSearchPullRequests(comments_query, token);
 
     const results = [];
 
@@ -240,16 +254,47 @@ export async function searchForMentions(username, token) {
 }
 
 /**
- * Search for comments by the user in pull requests
+ * Fetch unresolved (open) pull requests created by the user, ordered by last updated time.
  * @param {string} username - GitHub username.
  * @param {string} token - GitHub personal access token.
- * @param {string} since - Optional parameter to filter comments since a specific date
- * @returns {Promise<Array>} - List of comments made by the user.
+ * @returns {Promise<Array>} - List of unresolved pull requests.
  */
+export async function fetchUnresolvedPullRequestsByAuthor(username, token) {
+    // Use GitHub search API to find open pull requests authored by the user, sorted by updated
+    const query = `is:pr is:open author:${username}`;
+    const pullRequests = await GQLSearchPullRequests(query, token);
+    return pullRequests
+}
+
+/**
+ * Fetch unresolved (open) pull requests where the user is requested for review, ordered by last updated time.
+ * @param {string} username - GitHub username.
+ * @param {string} token - GitHub personal access token.
+ * @returns {Promise<Array>} - List of unresolved pull requests.
+ */
+export async function fetchUnresolvedPullRequestsByReviewer(username, token) {
+    // Use GitHub search API to find open pull requests where the user is requested for review
+    const query = `is:pr is:open review-requested:${username}`;
+    const pullRequests = await GQLSearchPullRequests(query, token);
+
+    console.log('Pull Requests:', pullRequests); // TODO Remove Me
+
+    // This returns all PRs where the user is requested for a review and where the user is a member of a team that is requested for review
+    // Filter the pull requests to only include those where the user is a requested reviewer
+
+    const userPullRequests = filterPullRequestsByReviewer(pullRequests, username, true);
+
+    const teamPullRequests = pullRequests.filter(pr => !userPullRequests.some(userPr => userPr.id === pr.id));
+
+    return {
+        userPullRequests,
+        teamPullRequests
+    };
+}
 
 //
 //
-//  ISSUES FUNCTIONS
+// ISSUES FUNCTIONS
 //
 //
 
@@ -300,6 +345,12 @@ export async function fetchUnresolvedIssues(username, token) {
  * @returns {Object} - Enriched issue object with pull request and base repository information.
  */
 function enrichIssue(issue) {
+
+    if(issue.__typename) {
+        // If the issue is a GraphQL object, enrich it accordingly
+        return enrichIssueGQL(issue);
+    }
+
     const url = issue.pull_request ? issue.pull_request.html_url : issue.html_url;
     let type = "unknown";
     if (url && url.includes('/pull/')) {
@@ -336,6 +387,55 @@ function enrichIssue(issue) {
                     avatar_url: ''
                 }
             }
+        };
+    }
+
+    return result;
+}
+
+function enrichIssueGQL(issue) {
+    const url = issue.url;
+    const type = issue.__typename === 'PullRequest' ? 'pulls' : 'issues';
+    let result = { ...issue };
+
+    if (!result.meta) {
+        result.meta = {}
+    }
+    result.meta.url = issue.meta && issue.meta.url ? issue.meta.url : url;
+    result.meta.github_type = issue.meta && issue.meta.github_type ? issue.meta.github_type : type;
+
+    if (!result.pull_request) {
+        result.pull_request = {
+            url: url,
+            html_url: url,
+            merged_at: null // Issues do not have merged_at, set to null
+        };
+    }
+
+    if (!result.base) {
+        result.base = {
+            repo: {
+                full_name: issue.repository.owner.login + '/' + issue.repository.name,
+                owner: {
+                    login: issue.repository.owner.login || '',
+                    avatar_url: issue.repository.owner.avatarUrl || ''
+                }
+            }
+        };
+    }
+
+    if (!result.html_url ) {
+        result.html_url = url;
+    }
+
+    if (result.draft === undefined ) {
+        result.draft = issue.isDraft; // Default to false if not present
+    }
+
+    if (result.user === undefined) {
+        result.user = {
+            login: issue.author.login || '',
+            avatar_url: issue.author.avatarUrl || ''
         };
     }
 
@@ -391,51 +491,16 @@ export async function fetchWatchedRepositories(token) {
  * Includes repositories from both organizations and the user's personal repositories.
  * @param {string} username - GitHub username.
  * @param {string} token - GitHub personal access token.
- * @param {string} since - Optional parameter to filter comments since a specific date
  * @returns {Promise<Array>} - List of filtered pull requests.
  */
-export async function fetchAndFilterPullRequests(username, token, since=null) {
-    const allPullRequests = [];
-    const teamPullRequests = [];
-    const myPullRequests = [];
-
+export async function fetchAndFilterPullRequests(username, token) {
     const results = {};
-    const teams = await fetchTeams(token);
 
-    // Fetch repositories from organizations
-    const organizations = await fetchOrganizations(token);
-    for (const org of organizations) {
-        const repositories = await fetchRepositories(org.login, token);
-        for (const repo of repositories) {
-            const pullRequests = await fetchPullRequests(org.login, repo.name, token);
+    // Fetch my Pull Requests (personal and team specific)
+    const myPullRequests = await fetchUnresolvedPullRequestsByAuthor(username, token);
 
-            // Filter pull requests where the user is a requested reviewer
-            const userRequestedPRs = filterPullRequestsByReviewer(pullRequests, username);
-            allPullRequests.push(...userRequestedPRs);
-
-            // Filter pull requests where the user is a member of the team requested for review
-            const teamRequestedPRs = filterPullRequestsByTeams(pullRequests, teams);
-            teamPullRequests.push(...teamRequestedPRs);
-
-            // Filter pull requests where the user is the author
-            const authorPRs = filterPullRequestsByAuthor(pullRequests, username);
-            myPullRequests.push(...authorPRs);
-        }
-    }
-
-    // Fetch user's personal repositories
-    const userRepositories = await fetchUserRepositories(token);
-    for (const repo of userRepositories) {
-        const pullRequests = await fetchPullRequests(repo.owner.login, repo.name, token);
-        const userRequestedPRs = filterPullRequestsByReviewer(pullRequests, username);
-        allPullRequests.push(...userRequestedPRs);
-
-        const teamRequestedPRs = filterPullRequestsByTeams(pullRequests, teams);
-        teamPullRequests.push(...teamRequestedPRs);
-
-        const authorPRs = filterPullRequestsByAuthor(pullRequests, username);
-        myPullRequests.push(...authorPRs);
-    }
+    // Fetch pull requests where the user is requested for review
+    const { userPullRequests, teamPullRequests } = await fetchUnresolvedPullRequestsByReviewer(username, token);
 
     // Check for mentions in the pull requests
     const mentionsPullRequests = await searchForMentions(username, token);
@@ -446,10 +511,10 @@ export async function fetchAndFilterPullRequests(username, token, since=null) {
     // Fetch watched repositories
     const watchedRepos = await fetchWatchedRepositories(token);
 
-    results['personal'] = allPullRequests;
+    results['personal'] = userPullRequests;
     results['team']     = teamPullRequests;
-    results['mentions'] = mentionsPullRequests;
     results['mine']     = myPullRequests;
+    results['mentions'] = mentionsPullRequests;
     results['issues']   = issuesPullRequests;
     results['watched']  = watchedRepos; 
 
@@ -461,5 +526,6 @@ export async function fetchAndFilterPullRequests(username, token, since=null) {
     // ensure we set the first update time -- used for display purposes
     setFirstUpdateTime();
 
+console.log("Fetched All from GitHub:", results); // TODO Remove Me
     return results;
 }

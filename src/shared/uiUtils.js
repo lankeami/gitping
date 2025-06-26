@@ -60,7 +60,6 @@ async function avatarForUser(user) {
 //
 //
 
-
 /**
  * Display the list of pull requests in the popup.
  * @param {Array} pullRequests - List of pull requests to display.
@@ -98,6 +97,7 @@ export async function displayPullRequests(pullRequests, pullRequestsList, lastVi
     // Create a card for each pull request
     // and append it to the pull requests list
     pullRequests.forEach(async (pr) => {
+        console.log('Processing pull request:', pr);
         const card = document.createElement('div');
         card.className = 'pr-card';
         card.onclick = () => {
@@ -116,7 +116,7 @@ export async function displayPullRequests(pullRequests, pullRequestsList, lastVi
                     ownerAvatar.style.marginLeft = '8px';
                     highbrow.appendChild(ownerAvatar);
                 } else {
-                    console.log("No avatar found for owner:", pr.base.repo.owner);
+                    console.log("No avatar found for pr.base.repo.owner:", pr);
                 }
             } else {
                 console.log("No owner found for repository:", pr.base.repo);
@@ -157,13 +157,13 @@ export async function displayPullRequests(pullRequests, pullRequestsList, lastVi
         if (pr.draft) {
             statusBadge.textContent = 'Draft';
             statusBadge.style.backgroundColor = '#6c757d';
-        } else if (pr.state === 'open') {
+        } else if (pr.state.toLowerCase() === 'open') {
             statusBadge.textContent = 'Open';
             statusBadge.style.backgroundColor = '#28a745';
-        } else if (pr.state === 'closed' && pr.merged_at) {
+        } else if (pr.state.toLowerCase() === 'closed' && pr.merged_at) {
             statusBadge.textContent = 'Merged';
             statusBadge.style.backgroundColor = '#6f42c1';
-        } else if (pr.state === 'closed') {
+        } else if (pr.state.toLowerCase() === 'closed') {
             statusBadge.textContent = 'Closed';
             statusBadge.style.backgroundColor = '#d73a49';
         } else {
