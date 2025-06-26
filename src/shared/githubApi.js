@@ -1,5 +1,5 @@
 import { getGitHubApiBaseUrl, setFirstUpdateTime, getWatchListUrls } from './storageUtils.js';
-import { GQLSearchPullRequests } from './githubGraphql.js';
+import { GQLSearchPullRequests, GQLSearchIssues } from './githubGraphql.js';
 
 
 //
@@ -305,7 +305,7 @@ export async function fetchUnresolvedPullRequestsByReviewer(username, token) {
 export async function fetchUnresolvedIssuesByAuthor(username, token) {
     // Use GitHub search API to find open issues authored by the user, sorted by updated
     const query = `is:issue is:open author:${username}`;
-    return searchIssues(query, token);
+    return GQLSearchIssues(query, token);
 }
 
 /**
@@ -317,7 +317,7 @@ export async function fetchUnresolvedIssuesByAuthor(username, token) {
 export async function fetchUnresolvedIssuesByMention(username, token) {
     // Use GitHub search API to find open issues where the user is mentioned, sorted by updated
     const query = `is:issue is:open mentions:${username}`;
-    return searchIssues(query, token);
+    return GQLSearchIssues(query, token);
 }
 
 /**

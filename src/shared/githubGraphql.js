@@ -13,8 +13,8 @@ import { getGitHubApiBaseUrl } from './storageUtils.js';
 function getPrSchema() {
     return `
         pageInfo { 
-        endCursor
-        hasNextPage
+            endCursor
+            hasNextPage
         } 
         nodes { 
         __typename
@@ -52,6 +52,42 @@ function getPrSchema() {
                         }
                     }
                 }
+            }
+        }
+    }
+}`;
+}
+
+/**
+ * Helper function to define Issue schema for the GraphQL query.
+ * @returns {string} - The schema string for PRs.
+ */
+function getIssueSchema() {
+    return `
+        pageInfo { 
+            endCursor
+            hasNextPage
+        } 
+        nodes { 
+        __typename
+        ... on Issue { 
+            id
+            title
+            url
+            number
+            state
+            createdAt
+            updatedAt
+            repository {
+                name
+                owner {
+                    login
+                    avatarUrl
+                }
+            }
+            author {
+                login
+                avatarUrl
             }
         }
     }
@@ -133,5 +169,21 @@ export async function GQLSearchPullRequests(query, token) {
         return await fetchGraphQL(query, schema, token);
     } catch (error) {
         throw new Error(`Failed to fetch pull requests: ${error.message}`);
+    }
+}
+
+/**
+ * Fetch all issues from a specific search query
+ * @param {string} query - The search query string.
+ * @param {string} token - GitHub personal access token.
+ * @returns {Promise<Array>} - An array of issues.
+ * @throws {Error} - If the fetchGraphQL request fails.
+ */
+export async function GQLSearchIssues(query, token) {
+    const schema = getIssueSchema();
+    try {
+        return await fetchGraphQL(query, schema, token);
+    } catch (error) {
+        throw new Error(`Failed to fetch issues: ${error.message}`);
     }
 }
