@@ -60,13 +60,14 @@ async function checkForUpdates() {
                     if (lastViewedTime === null || lastViewedTime === undefined) {
                         return true;
                     }
+                    let updatedAt = pr.updatedAt || pr.updated_at || null;
                     // if the pr's updated_at is not set, include it into diffs
-                    if (pr.updatedAt === null || pr.updatedAt === undefined) {
+                    if (updatedAt === null) {
                         return true;
                     }
                     // if the pr's updated_at is greater than the lastViewedTime, include it into diffs
                     // make sure they are both unix timestamps
-                    var prUpdatedAt = Date.parse(`${pr.updatedAt}`);
+                    var prUpdatedAt = Date.parse(`${updatedAt}`);
                     var viewedTime = Date.parse(lastViewedTime);
                     if (prUpdatedAt > viewedTime) {
                         return true;

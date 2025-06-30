@@ -425,10 +425,6 @@ function enrichIssueGQL(issue) {
         github_type: type
     };
 
-    if (!issue?.repository?.name) {
-        console.log('ISSUE:', issue);
-    }
-
     // New Card function in UI Utils
     result.card = {
         type: type,
