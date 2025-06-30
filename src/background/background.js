@@ -61,12 +61,12 @@ async function checkForUpdates() {
                         return true;
                     }
                     // if the pr's updated_at is not set, include it into diffs
-                    if (pr.updated_at === null || pr.updated_at === undefined) {
+                    if (pr.updatedAt === null || pr.updatedAt === undefined) {
                         return true;
                     }
                     // if the pr's updated_at is greater than the lastViewedTime, include it into diffs
                     // make sure they are both unix timestamps
-                    var prUpdatedAt = Date.parse(`${pr.updated_at}`);
+                    var prUpdatedAt = Date.parse(`${pr.updatedAt}`);
                     var viewedTime = Date.parse(lastViewedTime);
                     if (prUpdatedAt > viewedTime) {
                         return true;
@@ -93,7 +93,9 @@ async function checkForUpdates() {
             setLastError();
         }
     } catch (error) {
-        setLastError(error.message);
+        setLastError("Error checkForUpdates: " + error.message);
+        // console log the stack trace for debugging
+        console.error("Error in checkForUpdates:", error);
     }
 }
 

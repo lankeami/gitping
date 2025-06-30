@@ -388,55 +388,6 @@ function enrichIssue(issue) {
         };
     }
 
-    return result;
-}
-
-function enrichIssueGQL(issue) {
-    const url = issue.url;
-    const type = issue.__typename === 'PullRequest' ? 'pulls' : 'issues';
-    let result = { ...issue };
-
-    if (!result.meta) {
-        result.meta = {}
-    }
-    result.meta.url = issue.meta && issue.meta.url ? issue.meta.url : url;
-    result.meta.github_type = issue.meta && issue.meta.github_type ? issue.meta.github_type : type;
-
-    if (!result.pull_request) {
-        result.pull_request = {
-            url: url,
-            html_url: url,
-            merged_at: null // Issues do not have merged_at, set to null
-        };
-    }
-
-    if (!result.base) {
-        result.base = {
-            repo: {
-                full_name: issue.repository.owner.login + '/' + issue.repository.name,
-                owner: {
-                    login: issue.repository.owner.login || '',
-                    avatar_url: issue.repository.owner.avatarUrl || ''
-                }
-            }
-        };
-    }
-
-    if (!result.html_url ) {
-        result.html_url = url;
-    }
-
-    if (result.draft === undefined ) {
-        result.draft = issue.isDraft; // Default to false if not present
-    }
-
-    if (result.user === undefined) {
-        result.user = {
-            login: issue.author.login || '',
-            avatar_url: issue.author.avatarUrl || ''
-        };
-    }
-
     // New Card function in UI Utils
     result.card = {
         type: type,
@@ -456,6 +407,48 @@ function enrichIssueGQL(issue) {
             login: issue.repository.owner.login,
             avatar_url: issue.repository.owner.avatarUrl
         }
+    }
+
+    return result;
+}
+
+function enrichIssueGQL(issue) {
+    const url = issue.url;
+    const type = issue.__typename === 'PullRequest' ? 'pulls' : 'issues';
+    let result = { ...issue };
+
+    const user = issue.author || issue.user || {};
+    const repository = issue.repository || issue.base?.repo || {};
+    const owner = repository.owner || {};
+    const meta = {
+        url: url,
+        github_type: type
+    };
+
+    if (!issue?.repository?.name) {
+        console.log('ISSUE:', issue);
+    }
+
+    // New Card function in UI Utils
+    result.card = {
+        type: type,
+        id: issue.id,
+        title: issue.title,
+        html_url: url,
+        user: {
+            login: user.login || '',
+            avatar_url: user.avatarUrl || ''
+        },
+        state: issue.state,
+        draft: issue.isDraft || false,
+        created_at: issue.createdAt || issue.created_at,
+        updated_at: issue.updatedAt || issue.updated_at,
+        repo_name: owner.login + '/' + repository.name,
+        owner: {
+            login: owner.login || '',
+            avatar_url: owner.avatarUrl || ''
+        },
+        meta: meta
     }
 
     return result;
@@ -539,7 +532,7 @@ export async function fetchAndFilterPullRequests(username, token) {
 
     // enrich all the results
     Object.keys(results).forEach((key) => {
-        results[key] = results[key].map(issue => enrichIssue(issue));
+        results[key] = results[key].map(issue => enrichIssueGQL(issue));
     });
 
     // ensure we set the first update time -- used for display purposes
