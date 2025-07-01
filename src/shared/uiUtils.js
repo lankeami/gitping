@@ -24,6 +24,7 @@ async function cardUser(user) {
     // Append avatar and username to subtitle
     subtitle.appendChild(avatarImg);
     subtitle.appendChild(usernameSpan);
+
     return subtitle;
 }
 
@@ -54,20 +55,224 @@ async function avatarForUser(user) {
     return avatarImg;
 }
 
+
+/**
+ * Creates a card element for a pull request
+ * @param {Object} pr - The pull request object.
+ * @returns {HTMLElement} - The card element.
+ * 
+ * Required Payload:
+ * {
+ *  type: string,
+ *  id: string,
+ *  title: string,
+ *  html_url: string,
+ *  user: {
+ *     login: string,
+ *    avatar_url: string
+ * },
+ *  owner: {
+ *     login: string,
+ *     avatar_url: string
+ *  },
+ *  updated_at: string,
+ *  created_at: string,
+ *  state: string,
+ *  draft: boolean,
+ *  repo_name: string
+ * }
+ */
+async function createPullRequestCard(pr, section_name = null, lastViewedTime = null) {
+    const card = document.createElement('div');
+    card.className = 'pr-card';
+    card.onclick = () => {
+        window.open(pr.html_url, '_blank');
+    };
+
+    try {
+        const highbrow = await cardHighbrow(pr);
+        card.appendChild(highbrow);
+
+        const title = cardTitle(pr);
+        card.appendChild(title);
+
+        const subtitle = await cardUser(pr.user);
+        card.appendChild(subtitle);
+
+        const footnote = cardFootnote(pr, section_name, lastViewedTime);
+        card.appendChild(footnote);
+
+    } catch (error) {
+        console.error('Error creating pull request card:', error, pr);
+        // If there's an error, we can still return the card with partial data
+        card.innerHTML = `<div class="pr-error">Error creating card for PR: ${pr.title}</div>`;
+    }
+
+    return card;
+}
+
+async function cardHighbrow(pr) {
+    // HIGHBROW
+    const highbrow = document.createElement('div');
+    highbrow.className = 'pr-highbrow';
+    highbrow.textContent = pr.repo_name;
+    const ownerAvatar = await avatarForUser(pr.owner);
+    if(ownerAvatar) {
+        ownerAvatar.style.float = 'right';
+        ownerAvatar.style.marginLeft = '8px';
+        highbrow.appendChild(ownerAvatar);
+    } else {
+        console.log("No avatar found for pr.base.repo.owner:", pr);
+    }
+    return highbrow;
+}
+
+function cardTitle(pr) {
+    // --- Create the Ttile Element ---
+    const title = document.createElement('div');
+    title.className = 'pr-title';
+
+    // --- Add PR/Issue icon to the left of the title ---
+    if (pr && pr.type ) {
+        const typeIcon = document.createElement('img');
+        if (pr.type === 'pulls') {
+            // It's a pull request
+            typeIcon.src = '../popup/images/requests.png'; // Make sure this icon exists
+            typeIcon.alt = 'Pull Request';
+        } else if (pr.type === 'issues'){
+            // It's an issue
+            typeIcon.src = '../popup/images/issues.png'; // Make sure this icon exists
+            typeIcon.alt = 'Issue';
+        }
+        typeIcon.width = 18;
+        typeIcon.height = 18;
+        typeIcon.style.verticalAlign = 'middle';
+        typeIcon.style.marginRight = '6px';
+        title.appendChild(typeIcon);
+    }
+    title.appendChild(document.createTextNode(pr.title));
+
+    // --- Add PR status badge ---
+    const statusBadge = document.createElement('span');
+    statusBadge.className = 'pr-status-badge';
+    if (pr.draft) {
+        statusBadge.textContent = 'Draft';
+        statusBadge.style.backgroundColor = '#6c757d';
+    } else if (pr.state.toLowerCase() === 'open') {
+        statusBadge.textContent = 'Open';
+        statusBadge.style.backgroundColor = '#28a745';
+    } else if (pr.state.toLowerCase() === 'closed' && pr.merged_at) {
+        statusBadge.textContent = 'Merged';
+        statusBadge.style.backgroundColor = '#6f42c1';
+    } else if (pr.state.toLowerCase() === 'closed') {
+        statusBadge.textContent = 'Closed';
+        statusBadge.style.backgroundColor = '#d73a49';
+    } else {
+        statusBadge.textContent = pr.state;
+        statusBadge.style.backgroundColor = '#cccccc';
+    }
+    statusBadge.style.color = '#fff';
+    statusBadge.style.padding = '2px 8px';
+    statusBadge.style.borderRadius = '12px';
+    statusBadge.style.fontSize = '12px';
+    statusBadge.style.marginLeft = '8px';
+    statusBadge.style.verticalAlign = 'middle';
+
+    title.appendChild(statusBadge);
+    return title;
+}
+
+function cardFootnote(pr, section_name = null, lastViewedTime = null) {
+    const footnote = document.createElement('div');
+    footnote.className = 'pr-footnote';
+    const updatedAt = new Date(pr.updated_at).toLocaleString();
+    const requestedAt = new Date(pr.created_at).toLocaleString();
+
+    const updatedDiv = document.createElement('div');
+    updatedDiv.className = 'pr-footnote';
+    updatedDiv.textContent = `Updated: ${updatedAt}`;
+    footnote.appendChild(updatedDiv);
+
+    // Highlight the updatedAt text if it is greater than lastViewedTime
+    if (lastViewedTime && new Date(pr.updated_at) > new Date(lastViewedTime)) {
+        updatedDiv.classList.add('highlight-updated');
+    }
+
+    const requestedDiv = document.createElement('div');
+    requestedDiv.className = 'pr-footnote';
+    requestedDiv.textContent = `Created: ${requestedAt}`;
+    footnote.appendChild(requestedDiv);
+
+    // --- Add Remove button if in watched list ---
+    if (section_name === 'watched') {
+        // Create a container for timestamps and remove button
+        const footnoteRow = document.createElement('div');
+        footnoteRow.style.display = 'flex';
+        footnoteRow.style.alignItems = 'center';
+        footnoteRow.style.justifyContent = 'space-between';
+
+        // Left: timestamps
+        const timestampsDiv = document.createElement('div');
+        timestampsDiv.appendChild(updatedDiv);
+        timestampsDiv.appendChild(requestedDiv);
+
+        // Right: remove button
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'remove-watched-btn';
+        removeBtn.title = 'Remove from watch list';
+        removeBtn.style.display = 'flex';
+        removeBtn.style.alignItems = 'center';
+        removeBtn.style.justifyContent = 'center';
+        removeBtn.style.background = 'none';
+        removeBtn.style.border = 'none';
+        removeBtn.style.cursor = 'pointer';
+        removeBtn.style.padding = '2px 6px';
+        removeBtn.style.marginLeft = '12px';
+
+        const trashIcon = document.createElement('img');
+        trashIcon.src = './images/delete.png';
+        trashIcon.alt = 'Remove';
+        trashIcon.width = 18;
+        trashIcon.height = 18;
+        trashIcon.style.display = 'block';
+
+        removeBtn.appendChild(trashIcon);
+
+        removeBtn.onclick = async (e) => {
+            e.stopPropagation(); // Prevent card click
+            await removeFromWatchList(pr.meta.url);
+            await removeWatchedPullRequest(pr.id);
+            await setLastUpdateTime();
+            card.remove();
+        };
+
+        footnoteRow.appendChild(timestampsDiv);
+        footnoteRow.appendChild(removeBtn);
+
+        // Clear footnote and append the row
+        footnote.innerHTML = '';
+        footnote.appendChild(footnoteRow);
+    } else {
+        footnote.appendChild(updatedDiv);
+        footnote.appendChild(requestedDiv);
+    }
+
+    return footnote;
+}
+
 //
 //
 // EXPORTED UI HELPER FUNCTIONS
 //
 //
 
-
 /**
- * Display the list of pull requests in the popup.
+ * Simplified method to display the list of pull requests in the popup.
  * @param {Array} pullRequests - List of pull requests to display.
  * @param {HTMLElement} pullRequestsList - The DOM element to render the pull requests into.
  */
-export async function displayPullRequests(pullRequests, pullRequestsList, lastViewedTime=null) {
-    // Hide all tab content
+export async function displayPullRequestsCards(pullRequests, pullRequestsList, lastViewedTime=null, elementId = null) {
+        // Hide all tab content
     const allTabContents = document.querySelectorAll('.tab-content');
     allTabContents.forEach((content) => {
         content.classList.add('hidden');
@@ -86,181 +291,20 @@ export async function displayPullRequests(pullRequests, pullRequestsList, lastVi
     }
 
     if (pullRequests.length === 0) {
-        console.log('No pull requests found.');
+        console.log(`No pull requests found [${elementId}].`);
         pullRequestsList.innerHTML = '<div class="no-pull-requests">No pull requests found.</div>';
         return;
     }
 
     pullRequestsList.innerHTML = '';
-
-    // sort pull requests by updated_at date in descending order
     pullRequests.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
     // Create a card for each pull request
     // and append it to the pull requests list
     pullRequests.forEach(async (pr) => {
-        const card = document.createElement('div');
-        card.className = 'pr-card';
-        card.onclick = () => {
-            window.open(pr.html_url, '_blank');
-        };
-
-        try {
-            const highbrow = document.createElement('div');
-
-            highbrow.className = 'pr-highbrow';
-            highbrow.textContent = pr.base.repo.full_name;
-            if (pr.base.repo.owner) {
-                const ownerAvatar = await avatarForUser(pr.base.repo.owner);
-                if(ownerAvatar) {
-                    ownerAvatar.style.float = 'right';
-                    ownerAvatar.style.marginLeft = '8px';
-                    highbrow.appendChild(ownerAvatar);
-                } else {
-                    console.log("No avatar found for owner:", pr.base.repo.owner);
-                }
-            } else {
-                console.log("No owner found for repository:", pr.base.repo);
-            }
-            card.appendChild(highbrow);
-        } catch (error) {
-            console.log('Error creating highbrow element:', error);
-            console.log('Pull Request data:', pr);
+        let card = await createPullRequestCard(pr.card, elementId, lastViewedTime);
+        if (card) {
+            pullRequestsList.appendChild(card);
         }
-
-        // --- Create the Ttile Element ---
-        const title = document.createElement('div');
-        title.className = 'pr-title';
-
-        // --- Add PR/Issue icon to the left of the title ---
-        if (pr && pr.meta && pr.meta.github_type ) {
-            const typeIcon = document.createElement('img');
-            if (pr.meta.github_type === 'pulls') {
-                // It's a pull request
-                typeIcon.src = '../popup/images/requests.png'; // Make sure this icon exists
-                typeIcon.alt = 'Pull Request';
-            } else if (pr.meta.github_type === 'issues'){
-                // It's an issue
-                typeIcon.src = '../popup/images/issues.png'; // Make sure this icon exists
-                typeIcon.alt = 'Issue';
-            }
-            typeIcon.width = 18;
-            typeIcon.height = 18;
-            typeIcon.style.verticalAlign = 'middle';
-            typeIcon.style.marginRight = '6px';
-            title.appendChild(typeIcon);
-        }
-        title.appendChild(document.createTextNode(pr.title));
-
-        // --- Add PR status badge ---
-        const statusBadge = document.createElement('span');
-        statusBadge.className = 'pr-status-badge';
-        if (pr.draft) {
-            statusBadge.textContent = 'Draft';
-            statusBadge.style.backgroundColor = '#6c757d';
-        } else if (pr.state === 'open') {
-            statusBadge.textContent = 'Open';
-            statusBadge.style.backgroundColor = '#28a745';
-        } else if (pr.state === 'closed' && pr.merged_at) {
-            statusBadge.textContent = 'Merged';
-            statusBadge.style.backgroundColor = '#6f42c1';
-        } else if (pr.state === 'closed') {
-            statusBadge.textContent = 'Closed';
-            statusBadge.style.backgroundColor = '#d73a49';
-        } else {
-            statusBadge.textContent = pr.state;
-            statusBadge.style.backgroundColor = '#cccccc';
-        }
-        statusBadge.style.color = '#fff';
-        statusBadge.style.padding = '2px 8px';
-        statusBadge.style.borderRadius = '12px';
-        statusBadge.style.fontSize = '12px';
-        statusBadge.style.marginLeft = '8px';
-        statusBadge.style.verticalAlign = 'middle';
-
-        title.appendChild(statusBadge);
-        card.appendChild(title);
-
-        const subtitle = await cardUser(pr.user);
-        card.appendChild(subtitle);
-
-        const footnote = document.createElement('div');
-        footnote.className = 'pr-footnote';
-        const updatedAt = new Date(pr.updated_at).toLocaleString();
-        const requestedAt = new Date(pr.created_at).toLocaleString();
-
-        const updatedDiv = document.createElement('div');
-        updatedDiv.className = 'pr-footnote';
-        updatedDiv.textContent = `Updated: ${updatedAt}`;
-        footnote.appendChild(updatedDiv);
-
-        // Highlight the updatedAt text if it is greater than lastViewedTime
-        if (lastViewedTime && new Date(pr.updated_at) > new Date(lastViewedTime)) {
-            updatedDiv.classList.add('highlight-updated');
-        }
-
-        const requestedDiv = document.createElement('div');
-        requestedDiv.className = 'pr-footnote';
-        requestedDiv.textContent = `Created: ${requestedAt}`;
-        footnote.appendChild(requestedDiv);
-
-
-        // --- Add Remove button if in watched list ---
-        if (pr.meta && pr.meta.type && pr.meta.type === 'watched') {
-            // Create a container for timestamps and remove button
-            const footnoteRow = document.createElement('div');
-            footnoteRow.style.display = 'flex';
-            footnoteRow.style.alignItems = 'center';
-            footnoteRow.style.justifyContent = 'space-between';
-
-            // Left: timestamps
-            const timestampsDiv = document.createElement('div');
-            timestampsDiv.appendChild(updatedDiv);
-            timestampsDiv.appendChild(requestedDiv);
-
-            // Right: remove button
-            const removeBtn = document.createElement('button');
-            removeBtn.className = 'remove-watched-btn';
-            removeBtn.title = 'Remove from watch list';
-            removeBtn.style.display = 'flex';
-            removeBtn.style.alignItems = 'center';
-            removeBtn.style.justifyContent = 'center';
-            removeBtn.style.background = 'none';
-            removeBtn.style.border = 'none';
-            removeBtn.style.cursor = 'pointer';
-            removeBtn.style.padding = '2px 6px';
-            removeBtn.style.marginLeft = '12px';
-
-            const trashIcon = document.createElement('img');
-            trashIcon.src = './images/delete.png';
-            trashIcon.alt = 'Remove';
-            trashIcon.width = 18;
-            trashIcon.height = 18;
-            trashIcon.style.display = 'block';
-
-            removeBtn.appendChild(trashIcon);
-
-            removeBtn.onclick = async (e) => {
-                e.stopPropagation(); // Prevent card click
-                await removeFromWatchList(pr.meta.url);
-                await removeWatchedPullRequest(pr.id);
-                await setLastUpdateTime();
-                card.remove();
-            };
-
-            footnoteRow.appendChild(timestampsDiv);
-            footnoteRow.appendChild(removeBtn);
-
-            // Clear footnote and append the row
-            footnote.innerHTML = '';
-            footnote.appendChild(footnoteRow);
-        } else {
-            footnote.appendChild(updatedDiv);
-            footnote.appendChild(requestedDiv);
-        }
-
-
-        card.appendChild(footnote);
-        pullRequestsList.appendChild(card);
     });
 }
 
