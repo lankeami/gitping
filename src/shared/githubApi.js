@@ -426,7 +426,6 @@ export async function fetchWatchedRepositories(token) {
             repo.meta.type = 'watched';
 
             watchedRepos.push(repo);
-            console.log("Watched URL:", url, "Repo:", repo);
         } catch (error) {
             console.error(`Error from Watched URL: ${url}:`, error);
         }
