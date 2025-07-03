@@ -1,6 +1,8 @@
 import { getAuthToken, getUsername, resetLocalStorage, getLastUpdateTime, getLastError, setLastError, updateExtensionBadge, setLastUpdateTime, getFirstUpdateTime, setLastViewedTime, getLastViewedTime, addToWatchList } from '../shared/storageUtils.js';
 import { displayPullRequestsCards, resetUI, displayBadgeCount } from '../shared/uiUtils.js';
 
+document.getElementById('manifest-version').textContent = `v${chrome.runtime.getManifest().version}`;
+
 async function addWatchListUrl() {
     console.log('Adding watch list URL');
     const addWatchInput = document.getElementById('add-watched-input');

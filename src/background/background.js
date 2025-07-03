@@ -1,4 +1,4 @@
-import { getAuthToken, getUsername, updateExtensionBadge, getPersonalReviewRequests, getLastUpdateTime, getMentions, getMinePullRequests, getStoredPullRequests, setLastUpdateTime, setLastError, getPollingInterval, getLastViewedTime } from '../shared/storageUtils.js';
+import { getAppVersion, setAppVersion, getAuthToken, getUsername, updateExtensionBadge, getPersonalReviewRequests, getLastUpdateTime, getMentions, getMinePullRequests, getStoredPullRequests, setLastUpdateTime, setLastError, getPollingInterval, getLastViewedTime } from '../shared/storageUtils.js';
 import { fetchAndFilterPullRequests } from '../shared/githubApi.js';
 
 /**
@@ -44,18 +44,23 @@ async function checkForUpdates() {
     try {
         const token = await getAuthToken();
         const username = await getUsername();
-        const lastUpdateTime = await getLastUpdateTime();
 
         if (token && username) {
             // do the new modular way
             const currentPullRequests = await getStoredPullRequests();
-            const pullRequests = await fetchAndFilterPullRequests(username, token, lastUpdateTime);
+            const pullRequests = await fetchAndFilterPullRequests(username, token);
             const lastViewedTime = await getLastViewedTime();
+            const appVersion = chrome.runtime.getManifest().version;
+            const lastAppVersion = await getAppVersion();
+            if (appVersion && appVersion !== lastAppVersion) {
+                console.log("App version has changed from ", lastAppVersion, "to", appVersion);
+            }
+
             var diffs = {}
 
             Object.keys(currentPullRequests).forEach(element => {
-                // see the difference between the current and the new pull requests                
-                const newPullRequests = pullRequests[element].filter((pr) =>  {
+                // see the difference between the current and the new pull requests
+                const newPullRequests = pullRequests[element].filter((pr) => {
                     // if lastViewedTime is not set or null, include all pull requests
                     if (lastViewedTime === null || lastViewedTime === undefined) {
                         return true;
@@ -92,6 +97,9 @@ async function checkForUpdates() {
 
             // reset the last error
             setLastError();
+
+            // set current app version
+            setAppVersion();
         }
     } catch (error) {
         setLastError("Error checkForUpdates: " + error.message);

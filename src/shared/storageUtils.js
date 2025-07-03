@@ -496,3 +496,44 @@ export async function setAvatarUrl(username, avatarUrl) {
         });
     });
 }
+
+//
+// APP VERSION UTILS
+//
+
+/**
+ * Set the app version in chrome.storage.local.
+ * @returns {Promise<void>} - A promise that resolves when the operation is complete.
+ * @description Stores the app version in local storage.
+ * This is useful for tracking the version of the extension.
+ * Function pulls the current version from the manifest and stores it
+ */
+export async function setAppVersion() {
+    const manifest = chrome.runtime.getManifest();
+    const appVersion = manifest.version;
+
+    return new Promise((resolve) => {
+        chrome.storage.local.set({ appVersion }, () => {
+            resolve();
+        });
+    });
+}
+
+/**
+ * Retrieve the app version from chrome.storage.local.
+ * @returns {Promise<string>} - The app version.
+ * @description Retrieves the app version from local storage.
+ * This is useful for tracking the version of the extension.
+ */
+export async function getAppVersion() {
+    return new Promise((resolve) => {
+        chrome.storage.local.get(['appVersion'], (result) => {
+            const appVersion = result.appVersion;
+            if (appVersion) {
+                resolve(appVersion);
+            } else {
+                resolve(null);
+            }
+        });
+    });
+}
