@@ -96,6 +96,11 @@ async function createPullRequestCard(pr, section_name = null, lastViewedTime = n
         const title = cardTitle(pr);
         card.appendChild(title);
 
+        const labels = cardLabels(pr);
+        if (labels && labels.children.length > 0) {
+            card.appendChild(labels);
+        }
+
         const subtitle = await cardUser(pr.user);
         card.appendChild(subtitle);
 
@@ -109,6 +114,47 @@ async function createPullRequestCard(pr, section_name = null, lastViewedTime = n
     }
 
     return card;
+}
+
+function cardLabels(pr) {
+    // --- Create the Labels Element ---
+    const labels = document.createElement('div');
+    labels.className = 'pr-labels';
+
+    // --- Add Labels to the Element ---
+    pr.labels.forEach(label => {
+        const labelElement = document.createElement('span');
+        labelElement.className = 'pr-label';
+        labelElement.textContent = label.name;
+        labelElement.style.backgroundColor = `#${label.color}`;
+        // convert the background color to an RGB
+        const color = label.color.toLowerCase();
+        const luminance = hexToLuminance(color);
+        if (luminance > 128) {
+            labelElement.style.color = 'black';
+        }
+        labels.appendChild(labelElement);
+    });
+
+    return labels;
+}
+
+/**
+ * converts a hex color to a luminance score
+ * @param {string} hex - The hex color code (e.g., '#ff0000' or 'ff0000').
+ * @returns {number} - The luminance score (0-255).
+ */
+function hexToLuminance(hex) {
+    // Remove the '#' if present
+    hex = hex.replace(/^#/, '');
+
+    // Parse the r, g, b values
+    const r = parseInt(hex.substr(0, 2), 16);
+    const g = parseInt(hex.substr(2, 2), 16);
+    const b = parseInt(hex.substr(4, 2), 16);
+
+    // Calculate the luminance using the formula
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }
 
 async function cardHighbrow(pr) {
