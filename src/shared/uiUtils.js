@@ -286,10 +286,14 @@ function cardFootnote(pr, section_name = null, lastViewedTime = null) {
 
         removeBtn.onclick = async (e) => {
             e.stopPropagation(); // Prevent card click
-            await removeFromWatchList(pr.meta.url);
+            await removeFromWatchList(pr.meta.requested_url);
             await removeWatchedPullRequest(pr.id);
             await setLastUpdateTime();
-            card.remove();
+            // delete the card from the UI using e as a reference
+            const card = e.target.closest('.pr-card');
+            if (card) {
+                card.remove();
+            }
         };
 
         footnoteRow.appendChild(timestampsDiv);

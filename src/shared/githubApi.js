@@ -338,7 +338,7 @@ export async function fetchUnresolvedIssues(username, token) {
 }
 
 function enrichIssue(issue, gitpingType="") {
-    const url = issue.url;
+    const url = issue.html_url || issue.url;
     let type = "unknown";
     let labels = [];
     if (issue.__typename) {
@@ -355,11 +355,19 @@ function enrichIssue(issue, gitpingType="") {
     const user = issue.author || issue.user || {};
     const repository = issue.repository || issue.base?.repo || {};
     const owner = repository.owner || {};
-    const meta = {
-        url: url,
-        github_type: type,
-        gitping_type: gitpingType
-    };
+    const meta = issue.meta || {};
+    meta.url = issue.meta?.url || url;
+    meta.github_type = issue.meta?.github_type || type;
+    meta.gitping_type = issue.meta?.gitping_type || gitpingType;
+
+    // owner and repo name from url
+    const urlParts = url.split('/');
+    const repo_name = urlParts[3] + '/' + urlParts[4];
+    if (!owner.login && repo_name) {
+        const [ownerLogin, repoName] = repo_name.split('/');
+        owner.login = ownerLogin;
+        repository.name = repoName;
+    }
 
     // New Card function in UI Utils
     result.card = {
@@ -413,6 +421,7 @@ export async function fetchWatchedRepositories(token) {
             if (!repo.meta) {
                 repo.meta = {};
             }
+            repo.meta.requested_url = url;
             repo.meta.url = url;
             repo.meta.type = 'watched';
 
