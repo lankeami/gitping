@@ -337,6 +337,7 @@ export async function addToWatchList(url) {
  * @returns {Promise<void>} - A promise that resolves when the operation is complete.   
  */
 export async function removeFromWatchList(url) {
+    console.log('Removing URL from watch list:', url);
     if (!url) {
         console.error('URL must be provided to remove from watch list.');
         return;
