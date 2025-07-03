@@ -53,6 +53,13 @@ function getPrSchema() {
                     }
                 }
             }
+            labels(first: 20) {
+                nodes {
+                    name
+                    color
+                    description
+                }
+            }
         }
     }
 }`;
@@ -89,6 +96,13 @@ function getIssueSchema() {
                 login
                 avatarUrl
             }
+            labels(first: 20) {
+                nodes {
+                    name
+                    color
+                    description
+                }
+            } 
         }
     }
 }`;
@@ -166,7 +180,8 @@ async function fetchGraphQL(query, schema, token, after = null) {
 export async function GQLSearchPullRequests(query, token) {
     const schema = getPrSchema();
     try {
-        return await fetchGraphQL(query, schema, token);
+        const results = await fetchGraphQL(query, schema, token);
+        return results;
     } catch (error) {
         throw new Error(`Failed to fetch pull requests: ${error.message}`);
     }

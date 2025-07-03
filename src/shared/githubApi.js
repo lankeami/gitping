@@ -340,10 +340,13 @@ export async function fetchUnresolvedIssues(username, token) {
 function enrichIssue(issue, gitpingType="") {
     const url = issue.url;
     let type = "unknown";
+    let labels = [];
     if (issue.__typename) {
         type = issue.__typename === 'PullRequest' ? 'pulls' : 'issues';
+        labels = issue.labels?.nodes || [];
     } else if (url && (url.includes('/pull/') || url.includes('/pulls/'))) {
         type = "pulls";
+        labels = issue.labels || [];
     } else if (url && url.includes('/issues/')) {
         type = "issues";
     }
@@ -377,6 +380,7 @@ function enrichIssue(issue, gitpingType="") {
             login: owner.login || '',
             avatar_url: owner.avatarUrl || ''
         },
+        labels: labels,
         meta: meta
     }
 
