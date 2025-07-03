@@ -435,6 +435,16 @@ export function displayBadgeCount(prefix, pullRequests, lastViewedTime=null) {
     const pullRequestCount = pullRequests.length;
     const badgeText = pullRequestCount > 0 ? pullRequestCount : '';
 
+    // create a boolean if pullRequests have updated after lastViewedTime
+    // Highlight the updatedAt text if it is greater than lastViewedTime
+    let hasUpdatedAfterLastViewed = false;
+
+    // pullRequests has updated_at > lastViewedTime?
+    hasUpdatedAfterLastViewed = pullRequests.some(pr => {
+        let updatedAt = pr.updated_at ? new Date(pr.updated_at) : (pr.updatedAt ? new Date(pr.updatedAt) : null);
+        return new Date(updatedAt) > new Date(lastViewedTime);
+    });
+
     // Find the badge element and update the text
     const badgeElement = document.getElementById(`${prefix}-badge`);
     if (badgeElement) {
@@ -444,9 +454,13 @@ export function displayBadgeCount(prefix, pullRequests, lastViewedTime=null) {
     if (badgeText === '') {
         badgeElement.classList.add('hidden');
     } else {
+        if (hasUpdatedAfterLastViewed) {
+            badgeElement.classList.add('tab-badge-new');
+            badgeElement.classList.remove('tab-badge');
+        } else {
+            badgeElement.classList.add('tab-badge');
+            badgeElement.classList.remove('tab-badge-new');
+        }
         badgeElement.classList.remove('hidden');
     }
-
-    // TODO: Compare the count of pullRequests that occurred after lastViewedTime
-    // and update the badge accordingly
 }

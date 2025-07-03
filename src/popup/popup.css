@@ -265,14 +265,31 @@ ul {
     position: absolute;
     bottom: 5px; /* Position the badge at the bottom */
     right: 5px; /* Position the badge at the right */
-    color: #FF8469;
+    color: #007bff;
+    background-color: white;
     font-size: 12px;
     font-weight: bold;
     border-radius: 50%;
     padding-top: 2px;
     display: inline-block;
     min-width: 20px;
-    text-align: right;
+    text-align: center;
+}
+
+.tab-badge-new {
+    position: absolute;
+    bottom: 5px; /* Position the badge at the bottom */
+    right: 5px; /* Position the badge at the right */
+    
+    color: #FF8469;
+    background-color: white;
+    font-size: 12px;
+    font-weight: bold;
+    border-radius: 50%;
+    padding-top: 2px;
+    display: inline-block;
+    min-width: 20px;
+    text-align: center;
 }
 
 .tab-badge.hidden {

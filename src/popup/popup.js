@@ -37,7 +37,6 @@ async function addWatchListUrl() {
             if (token && username) {
                 // Add the watch to the user's GitHub account
                 // This is a placeholder for the actual implementation
-                console.log(`Adding watch for: ${watchInput}`);
                 addToWatchList(watchInput, token, username);
                 addWatchInput.value = ''; // Clear the input field
                 // NOTE: we can't fetch GitHub APIs in the main thread, it leads to CORS issues
@@ -46,7 +45,6 @@ async function addWatchListUrl() {
                 // add a toast indicating addition was a success
                 const toast = document.getElementById('toast');
                 if (toast) {
-                    console.log('Showing toast for watch addition');
                     // toast text should be two lines
                     toast.style.whiteSpace = 'pre-line'; // Allow line breaks in the toast text
                     toast.textContent = `Added ${watchInput} to watch list.\n It may appear in the next update.`;
@@ -159,7 +157,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         // if pulrequests have the .card object, use the displayPullRequestsCards function
                         await displayPullRequestsCards(pullRequests, listElement, lastViewedTime, element);
 
-                        displayBadgeCount(element, pullRequests);
+                        displayBadgeCount(element, pullRequests, lastViewedTime);
                     });
                 }
             });
@@ -283,7 +281,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     try {
         addWatchButton.addEventListener('click', async() => {
-            console.log('Add watch button clicked');
             await addWatchListUrl();
         });
     } catch (error) {
