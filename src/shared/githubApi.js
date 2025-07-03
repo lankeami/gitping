@@ -354,7 +354,7 @@ function enrichIssue(issue, gitpingType="") {
 
     const user = issue.author || issue.user || {};
     const repository = issue.repository || issue.base?.repo || {};
-    const owner = repository.owner || {};
+    const owner = repository.owner || issue.base?.repo?.owner || {};
     const meta = issue.meta || {};
     meta.url = issue.meta?.url || url;
     meta.github_type = issue.meta?.github_type || type;
@@ -363,9 +363,8 @@ function enrichIssue(issue, gitpingType="") {
     // owner and repo name from url
     const urlParts = url.split('/');
     const repo_name = urlParts[3] + '/' + urlParts[4];
-    if (!owner.login && repo_name) {
+    if (!repository?.name && repo_name) {
         const [ownerLogin, repoName] = repo_name.split('/');
-        owner.login = ownerLogin;
         repository.name = repoName;
     }
 
@@ -377,7 +376,7 @@ function enrichIssue(issue, gitpingType="") {
         html_url: issue.html_url || url,
         user: {
             login: user.login || '',
-            avatar_url: user.avatarUrl || ''
+            avatar_url: user.avatarUrl || user.avatar_url || '',
         },
         state: issue.state,
         draft: issue.isDraft || false,
@@ -386,7 +385,7 @@ function enrichIssue(issue, gitpingType="") {
         repo_name: owner.login + '/' + repository.name,
         owner: {
             login: owner.login || '',
-            avatar_url: owner.avatarUrl || ''
+            avatar_url: owner.avatarUrl || owner.avatar_url || ''
         },
         labels: labels,
         meta: meta
