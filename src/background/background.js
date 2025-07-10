@@ -1,4 +1,4 @@
-import { getAppVersion, setAppVersion, getAuthToken, getUsername, updateExtensionBadge, getPersonalReviewRequests, getLastUpdateTime, getMentions, getMinePullRequests, getStoredPullRequests, setLastUpdateTime, setLastError, getPollingInterval, getLastViewedTime } from '../shared/storageUtils.js';
+import { getAppVersion, setAppVersion, getAuthToken, getUsername, updateExtensionBadge, getPersonalReviewRequests, getLastUpdateTime, getMentions, getMinePullRequests, getStoredPullRequests, setLastUpdateTime, setLastError, getPollingInterval, getLastViewedTime, pruneLocalStorage } from '../shared/storageUtils.js';
 import { fetchAndFilterPullRequests } from '../shared/githubApi.js';
 
 /**
@@ -110,11 +110,17 @@ async function checkForUpdates() {
 
 // Create an alarm to trigger periodic updates
 const pollingInterval = 5;
+const purgeLocalStorageInterval = (60 * 24); // set to 1 day
 chrome.alarms.create('checkForUpdates', { periodInMinutes: pollingInterval, delayInMinutes: 0 });
+chrome.alarms.create('pruneLocalStorage', {periodInMinutes: purgeLocalStorageInterval, delayInMinutes: 0})
 
 chrome.alarms.onAlarm.addListener((alarm) => {
     console.log(new Date().toLocaleString(), ': Job scheduled:', alarm.name);
     if (alarm.name === 'checkForUpdates' || alarm.name === 'popupCheckForUpdates') {
         checkForUpdates();
+    };
+
+    if (alarm.name === 'pruneLocalStorage') {
+        pruneLocalStorage();
     }
 });
