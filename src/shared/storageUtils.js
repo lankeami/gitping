@@ -276,6 +276,36 @@ export async function resetLocalStorage() {
     });
 }
 
+/**
+ * Prune unneeded stored data from local storage
+ * @returns {Promise<void>}
+ */
+export async function pruneLocalStorage() {
+    // create an array of prefixes to purge
+    const prefix = ["Avatar_"];
+    return new Promise((resolve) => {
+        chrome.storage.local.get(null, (items) => {
+            const keysToRemove = [];
+            Object.keys(items).forEach((key) => {
+                for (const p of prefix) {
+                    if (key.startsWith(p)) {
+                        keysToRemove.push(key);
+                        break;
+                    }
+                }
+            });
+            if (keysToRemove.length > 0) {
+                chrome.storage.local.remove(keysToRemove, () => {
+                    resolve();
+                });
+            } else {
+            resolve();
+            }
+        });
+    });
+}
+
+
 //
 // WATCH LIST UTILS
 //
