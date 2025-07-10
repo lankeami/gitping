@@ -153,7 +153,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 var pullRequests = config[element];
                 var listElement = document.getElementById(`${element}-pull-requests-list`);
                 if (listElement) {
-                    chrome.storage.local.set({ [`${element}PullRequests`]: pullRequests }, async function () {
+                    let key = element == 'mention' ? 'mentions' : element;
+                    chrome.storage.local.set({ [`${key}PullRequests`]: pullRequests }, async function () {
                         // if pulrequests have the .card object, use the displayPullRequestsCards function
                         await displayPullRequestsCards(pullRequests, listElement, lastViewedTime, element);
 
