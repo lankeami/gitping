@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "GitPing: GitHub Notifications for Issues & PRs",
   "version": "1.3.3",
-  "description": "tl/dr: Never miss a GitHub update! Get real-time notifications for Issues, Pull Requests, and review requests. 🚀",
+  "description": "Never miss a GitHub update! Get real-time notifications for Issues, Pull Requests, and review requests. 🚀",
   "permissions": [
     "storage",
     "notifications",
