@@ -473,6 +473,11 @@ export async function fetchAndFilterPullRequests(username, token) {
 
     // enrich all the results
     Object.keys(results).forEach((key) => {
+        results[key].sort((a, b) => {
+            const aTime = new Date(a.updated_at || a.updatedAt || 0).getTime();
+            const bTime = new Date(b.updated_at || b.updatedAt || 0).getTime();
+            return bTime - aTime;
+        });
         results[key] = results[key].map(issue => enrichIssue(issue, key));
     });
 
