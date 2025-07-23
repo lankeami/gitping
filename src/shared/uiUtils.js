@@ -143,7 +143,7 @@ async function quoteCard(pr) {
     quote.style.wordWrap = 'break-word'; // Ensure long words break to fit the container
     // Ensure the quote is right aligned
     quote.style.textAlign = 'right';
-    quote.style.fontSize = '14px';
+    quote.style.fontSize = '12px';
     quote.style.color = '#555';
     quote.style.borderLeft = '2px solid #ccc';
     quote.style.paddingLeft = '16px';

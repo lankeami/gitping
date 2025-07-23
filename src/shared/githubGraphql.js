@@ -128,7 +128,18 @@ function getIssueSchema() {
                     color
                     description
                 }
-            } 
+            }
+            comments(last: 1) {
+                nodes {
+                    body
+                    author {
+                        login
+                        avatarUrl
+                    }
+                    createdAt
+                    url
+                }
+            }
         }
     }
 }`;
