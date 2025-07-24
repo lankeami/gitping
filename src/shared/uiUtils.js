@@ -36,7 +36,7 @@ async function avatarForUser(user) {
     let avatarUrl = await getAvatarUrl(user.login);
     if (!avatarUrl) {
         // If avatar URL is not found in storage, use the user object
-        avatarUrl = user.avatar_url;
+        avatarUrl = user.avatar_url || user.avatarUrl;
         if(avatarUrl) {
             setAvatarUrl(user.login, avatarUrl);
         } else {
@@ -60,27 +60,6 @@ async function avatarForUser(user) {
  * Creates a card element for a pull request
  * @param {Object} pr - The pull request object.
  * @returns {HTMLElement} - The card element.
- * 
- * Required Payload:
- * {
- *  type: string,
- *  id: string,
- *  title: string,
- *  html_url: string,
- *  user: {
- *     login: string,
- *    avatar_url: string
- * },
- *  owner: {
- *     login: string,
- *     avatar_url: string
- *  },
- *  updated_at: string,
- *  created_at: string,
- *  state: string,
- *  draft: boolean,
- *  repo_name: string
- * }
  */
 async function createPullRequestCard(pr, section_name = null, lastViewedTime = null) {
     const card = document.createElement('div');
@@ -104,6 +83,11 @@ async function createPullRequestCard(pr, section_name = null, lastViewedTime = n
         const subtitle = await cardUser(pr.user);
         card.appendChild(subtitle);
 
+        const quote = await quoteCard(pr);
+        if (quote && quote.textContent.trim() !== '') {
+            card.appendChild(quote);
+        }
+
         const footnote = cardFootnote(pr, section_name, lastViewedTime);
         card.appendChild(footnote);
 
@@ -114,6 +98,60 @@ async function createPullRequestCard(pr, section_name = null, lastViewedTime = n
     }
 
     return card;
+}
+
+async function quoteCard(pr) {
+    // --- Create the Quote Element ---
+    const quote = document.createElement('blockquote');
+    quote.className = 'pr-quote';
+    // render the markdwown text of the latest message
+    // Set the text content of the quote   
+    quote.textContent = pr.meta?.latest_message?.message || '';
+    // TODO: convert quote.textContent markdown to HTML
+
+    // ensure quote is vertically scrollable if too long
+    quote.style.maxHeight = '50px';
+    quote.style.overflowY = 'auto';
+    quote.style.margin = '8px 0';
+    quote.style.padding = '8px';
+    quote.style.backgroundColor = '#f9f9f9';
+    quote.style.borderLeft = '4px solid #ccc';
+    quote.style.borderRadius = '4px';
+    quote.style.fontStyle = 'italic';
+    quote.style.whiteSpace = 'pre-wrap'; // Preserve whitespace and line breaks
+    quote.style.wordWrap = 'break-word'; // Ensure long words break to fit the container
+    // Ensure the quote is left aligned
+    quote.style.textAlign = 'left';
+    quote.style.fontSize = '12px';
+    quote.style.color = '#555';
+    quote.style.borderLeft = '2px solid #ccc';
+    quote.style.paddingLeft = '16px';
+    quote.style.margin = '8px 0';
+    quote.style.fontStyle = 'italic';
+    quote.style.margin = '0 0 8px 0';
+    // --- Add the author of the quote ---
+    if (pr.meta?.latest_message?.author?.login) {
+        const author = document.createElement('span');
+        author.className = 'pr-quote-author';
+        author.textContent = ` - ${pr.meta.latest_message.author.login} `;
+        // author.style.fontWeight = 'bold';
+        author.style.display = 'block';
+        author.style.marginTop = '4px';
+
+        // Add the avatar of the author
+        const authorAvatar = await avatarForUser(pr.meta.latest_message.author);
+        if (authorAvatar) {
+            authorAvatar.style.width = '16px';
+            authorAvatar.style.height = '16px';
+            authorAvatar.style.borderRadius = '50%';
+            authorAvatar.style.marginRight = '4px';
+            author.append(authorAvatar);
+        }
+
+        quote.appendChild(author);
+    }
+
+    return quote;
 }
 
 function cardLabels(pr) {
@@ -310,8 +348,37 @@ function cardFootnote(pr, section_name = null, lastViewedTime = null) {
     return footnote;
 }
 
-//
-//
+/**
+ * Displays the list of users requested to review a pull request.
+ * @param {*} pr - The pull request object.
+ */
+export async function displayReviewers(pr) {
+    const reviewersList = document.getElementById('reviewers-list');
+    if (!reviewersList) return;
+
+    // Clear the existing list
+    reviewersList.innerHTML = '';
+
+    // Get the list of reviewers from the pull request object
+    const reviewers = pr.requested_reviewers || [];
+    if (reviewers.length === 0) {
+        reviewersList.innerHTML = '<div class="no-reviewers"></div>';
+        return;
+    }
+
+    // Create a list item for each reviewer
+    // display a pill or avatar per reviewer
+    reviewersList.className = 'reviewers-list';
+    reviewersList.innerHTML = ''; // Clear existing content
+
+    reviewers.forEach((reviewer) => {
+        const listItem = document.createElement('div');
+        listItem.className = 'reviewer-item';
+        listItem.title = reviewer.login;
+
+        reviewersList.appendChild(listItem);
+    });
+}
 // EXPORTED UI HELPER FUNCTIONS
 //
 //
@@ -348,12 +415,18 @@ export async function displayPullRequestsCards(pullRequests, pullRequestsList, l
 
     pullRequestsList.innerHTML = '';
     pullRequests.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
-    // Create a card for each pull request
-    // and append it to the pull requests list
-    pullRequests.forEach(async (pr) => {
-        let card = await createPullRequestCard(pr.card, elementId, lastViewedTime);
-        if (card) {
-            pullRequestsList.appendChild(card);
+
+    const cardPromises = pullRequests.map(async pr => {
+        const card = await createPullRequestCard(pr.card, elementId, lastViewedTime);
+        return [pr.id.toString(), card];
+    });
+    const cardEntries = await Promise.all(cardPromises);
+    const cardMap = Object.fromEntries(cardEntries);
+
+    pullRequests.forEach((pr) => {
+        const cardElement = cardMap[pr.id.toString()];
+        if (cardElement) {
+            pullRequestsList.appendChild(cardElement);
         }
     });
 }

@@ -60,6 +60,32 @@ function getPrSchema() {
                     description
                 }
             }
+
+            commits(last: 1) {
+                nodes {
+                    commit {
+                        message
+                        committedDate
+                        author {
+                            user {
+                                login
+                                avatarUrl
+                            }
+                        }
+                    }
+                }
+            }
+            comments(last: 1) {
+                nodes {
+                    body
+                    author {
+                        login
+                        avatarUrl
+                    }
+                    createdAt
+                    url
+                }
+            }
         }
     }
 }`;
@@ -102,7 +128,18 @@ function getIssueSchema() {
                     color
                     description
                 }
-            } 
+            }
+            comments(last: 1) {
+                nodes {
+                    body
+                    author {
+                        login
+                        avatarUrl
+                    }
+                    createdAt
+                    url
+                }
+            }
         }
     }
 }`;

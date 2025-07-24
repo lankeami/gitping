@@ -337,6 +337,64 @@ export async function fetchUnresolvedIssues(username, token) {
     return combinedIssues
 }
 
+/**
+ * Given a GraphQL Pull Request object, find and return the latest commit object.
+ * @param {Object} pullRequest - The GraphQL Pull Request object.
+ * @returns {Object|null} - The latest commit object or null if not found.
+ */
+function getLatestCommit(pullRequest) {
+    if (!pullRequest || !pullRequest.commits || !pullRequest.commits.nodes) {
+        return null;
+    }
+
+    // Find the latest commit by comparing commit dates
+    return pullRequest.commits.nodes.reduce((latest, commit) => {
+        if (!latest || new Date(commit.committedDate) > new Date(latest.committedDate)) {
+            return commit;
+        }
+        return latest;
+    }, null);
+}
+
+/**
+ * Given a GraphQL Issue object, find and return the latest comment object.
+ * @param {Object} issue - The GraphQL Issue object.
+ * @returns {Object|null} - The latest comment object or null if not found.
+ */
+function getLatestComment(issue) {
+    if (!issue || !issue.comments || !issue.comments.nodes) {
+        return null;
+    }
+    // Find the latest comment by comparing created dates
+    return issue.comments.nodes.reduce((latest, comment) => {
+        if (!latest || new Date(comment.createdAt) > new Date(latest.createdAt)) {
+            return comment;
+        }
+        return latest;
+    }, null);
+}
+
+/**
+ * Given a Commit object and a Comment object, return the object with latest date
+ * @param {Object} commit - The Commit object.
+ * @param {Object} comment - The Comment object.
+ * @returns {Object} - The object with the latest date.
+ */
+function getLatestObject(commit, comment) {
+    if (!commit && !comment) {
+        return null;
+    }
+    if (!commit) {
+        return comment;
+    }
+    if (!comment) {
+        return commit;
+    }
+    const commitDate = new Date(commit.committedDate);
+    const commentDate = new Date(comment.createdAt);
+    return commitDate > commentDate ? commit : comment;
+}
+
 function enrichIssue(issue, gitpingType="") {
     const url = issue.html_url || issue.url;
     let type = "unknown";
@@ -359,6 +417,16 @@ function enrichIssue(issue, gitpingType="") {
     meta.url = issue.meta?.url || url;
     meta.github_type = issue.meta?.github_type || type;
     meta.gitping_type = issue.meta?.gitping_type || gitpingType;
+
+    // build "latest" object from commits and comments objects by choosing the most recent created_at date
+    const latestCommit = getLatestCommit(issue);
+    const latestComment = getLatestComment(issue);
+    const latestObject = getLatestObject(latestCommit, latestComment);
+    meta.latest_message = {
+        message: latestObject?.commit?.message || latestObject?.body || '',
+        committedDate: latestObject?.committedDate || latestObject?.createdAt || '',
+        author: latestObject?.commit?.author?.user || latestObject?.author || {},
+    };
 
     // owner and repo name from url
     const urlParts = url.split('/');
