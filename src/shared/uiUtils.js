@@ -60,27 +60,6 @@ async function avatarForUser(user) {
  * Creates a card element for a pull request
  * @param {Object} pr - The pull request object.
  * @returns {HTMLElement} - The card element.
- * 
- * Required Payload:
- * {
- *  type: string,
- *  id: string,
- *  title: string,
- *  html_url: string,
- *  user: {
- *     login: string,
- *    avatar_url: string
- * },
- *  owner: {
- *     login: string,
- *     avatar_url: string
- *  },
- *  updated_at: string,
- *  created_at: string,
- *  state: string,
- *  draft: boolean,
- *  repo_name: string
- * }
  */
 async function createPullRequestCard(pr, section_name = null, lastViewedTime = null) {
     const card = document.createElement('div');
@@ -437,12 +416,17 @@ export async function displayPullRequestsCards(pullRequests, pullRequestsList, l
     pullRequestsList.innerHTML = '';
     pullRequests.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
 
-    // Create a card for each pull request
-    // and append it to the pull requests list
-    pullRequests.forEach(async (pr) => {
-        let card = await createPullRequestCard(pr.card, elementId, lastViewedTime);
-        if (card) {
-            pullRequestsList.appendChild(card);
+    const cardPromises = pullRequests.map(async pr => {
+        const card = await createPullRequestCard(pr.card, elementId, lastViewedTime);
+        return [pr.id.toString(), card];
+    });
+    const cardEntries = await Promise.all(cardPromises);
+    const cardMap = Object.fromEntries(cardEntries);
+
+    pullRequests.forEach((pr) => {
+        const cardElement = cardMap[pr.id.toString()];
+        if (cardElement) {
+            pullRequestsList.appendChild(cardElement);
         }
     });
 }
