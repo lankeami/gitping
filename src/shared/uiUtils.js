@@ -141,8 +141,8 @@ async function quoteCard(pr) {
     quote.style.fontStyle = 'italic';
     quote.style.whiteSpace = 'pre-wrap'; // Preserve whitespace and line breaks
     quote.style.wordWrap = 'break-word'; // Ensure long words break to fit the container
-    // Ensure the quote is right aligned
-    quote.style.textAlign = 'right';
+    // Ensure the quote is left aligned
+    quote.style.textAlign = 'left';
     quote.style.fontSize = '12px';
     quote.style.color = '#555';
     quote.style.borderLeft = '2px solid #ccc';
@@ -436,6 +436,7 @@ export async function displayPullRequestsCards(pullRequests, pullRequestsList, l
 
     pullRequestsList.innerHTML = '';
     pullRequests.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
+
     // Create a card for each pull request
     // and append it to the pull requests list
     pullRequests.forEach(async (pr) => {
