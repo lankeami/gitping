@@ -417,8 +417,13 @@ export async function displayPullRequestsCards(pullRequests, pullRequestsList, l
     pullRequests.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
 
     const cardPromises = pullRequests.map(async pr => {
-        const card = await createPullRequestCard(pr.card, elementId, lastViewedTime);
-        return [pr.id.toString(), card];
+        try {
+            const card = await createPullRequestCard(pr.card, elementId, lastViewedTime);
+            return [pr.id.toString(), card];
+        } catch (error) {
+            console.error('Error creating card for PR:', pr, error);
+            return [pr.id.toString(), document.createElement('div')]; // Return an empty div if there's an error 
+        }
     });
     const cardEntries = await Promise.all(cardPromises);
     const cardMap = Object.fromEntries(cardEntries);
