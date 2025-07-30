@@ -160,6 +160,103 @@ function getPaginatedQuery(query, schema, after=null) {
 }
 
 /**
+ * Helper function to get the GraphQL query for fetching pull request details.
+ * @returns {string} - The GraphQL query string for fetching pull request details.
+ */
+function getPullRequestQuery() {
+    return `
+query GetPullRequestDetails($owner: String!, $repo: String!, $pullNumber: Int!) {
+  repository(owner: $owner, name: $repo) {
+    pullRequest(number: $pullNumber) {
+      # --- Basic PR Details ---
+      id
+      __typename
+      title
+      url
+      number
+      isDraft
+      state
+      createdAt
+      updatedAt
+
+      # --- Author Details ---
+      author {
+        login
+        avatarUrl
+      }
+
+      # --- Repository Details ---
+      repository {
+        name
+        owner {
+          login
+          avatarUrl
+        }
+      }
+
+      # --- Review Requests (first 10) ---
+      reviewRequests(first: 10) {
+        nodes {
+          requestedReviewer {
+            __typename
+            ... on User {
+              login
+              avatarUrl
+            }
+            ... on Team {
+              name
+              slug
+            }
+          }
+        }
+      }
+
+      # --- Labels (first 20) ---
+      labels(first: 20) {
+        nodes {
+          name
+          color
+          description
+        }
+      }
+
+      # --- Last Commit Details ---
+      commits(last: 1) {
+        nodes {
+          commit {
+            message
+            committedDate
+            author {
+              user {
+                login
+                avatarUrl
+              }
+            }
+          }
+        }
+      }
+
+      # --- Last Comment Details ---
+      comments(last: 1) {
+        nodes {
+          body
+          createdAt
+          url
+          author {
+            login
+            avatarUrl
+          }
+        }
+      }
+    }
+  }
+}
+`;
+
+}
+
+
+/**
  * Helper method to perform a fetch request to the GitHub GraphQL API.
  * @param {string} query - The GraphQL query string.
  * @param {string} token - GitHub personal access token.
@@ -238,4 +335,66 @@ export async function GQLSearchIssues(query, token) {
     } catch (error) {
         throw new Error(`Failed to fetch issues: ${error.message}`);
     }
+}
+
+//
+//
+// CUSTOM GRAPHQL QUERIES
+//
+//
+
+/**
+ * Fetch all pull requests from a specific search query
+ * @param {string} query - The search query string.
+ * @param {string} token - GitHub personal access token.
+ * @returns {Promise<Array>} - An array of pull requests.
+ * @throws {Error} - If the fetchGraphQL request fails.
+ */
+async function fetchCustomGraphQL(query, variables, token) {
+    const GITHUB_API_BASE_URL = await getGitHubApiBaseUrl();
+    if (!GITHUB_API_BASE_URL) {
+        throw new Error('Error: GitHub API URL is not set.');
+    }
+    const url = `${GITHUB_API_BASE_URL}/graphql`;
+
+    const graphql = JSON.stringify({
+        query: query,
+        variables: variables,
+    });
+
+    const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+        },
+        body: graphql,
+    });
+
+    if (!response.ok) {
+        throw new Error(`GitHub API request failed: ${response.statusText}`);
+    }
+
+    return response.json();
+}
+
+/**
+ * Helper function to get the GraphQL query for fetching pull request details.
+ * @param {*} owner 
+ * @param {*} repo 
+ * @param {*} pullNumber 
+ * @param {*} token 
+ * @returns {Promise<any>} - The JSON response of the Pull Request details.
+ */
+export async function GQLFetchPullRequest(owner, repo, pullNumber, token) {
+    const query = getPullRequestQuery();
+
+    // need to convert pullNumber to an integer
+    pullNumber = parseInt(pullNumber, 10);
+    let result = await fetchCustomGraphQL(query, {owner, repo, pullNumber}, token);
+
+    if (!result || !result.data || !result.data.repository || !result.data.repository.pullRequest) {
+        throw new Error(`Failed to fetch pull request details for ${owner}/${repo}#${pullNumber}`);
+    }
+    return result.data.repository.pullRequest;
 }

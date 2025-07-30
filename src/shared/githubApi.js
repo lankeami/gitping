@@ -1,5 +1,5 @@
 import { getGitHubApiBaseUrl, setFirstUpdateTime, getWatchListUrls } from './storageUtils.js';
-import { GQLSearchPullRequests, GQLSearchIssues } from './githubGraphql.js';
+import { GQLSearchPullRequests, GQLSearchIssues, GQLFetchPullRequest } from './githubGraphql.js';
 
 
 //
@@ -144,7 +144,8 @@ export async function fetchPullRequestByUrl(url, token) {
 
     const path = `/repos/${org}/${repo}/${type}/${id}`;
 
-    let result = await fetchFromGitHub(path, token);
+    // let result = await fetchFromGitHub(path, token);
+    let result = await GQLFetchPullRequest(org, repo, id, token);
     
     return result;
 }
