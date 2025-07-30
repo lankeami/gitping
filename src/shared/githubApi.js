@@ -432,13 +432,11 @@ function enrichIssue(issue, gitpingType="") {
     };
 
     // owner and repo name from url
-    let urlParts = [];
-    try {
-        urlParts = url.split('/');
-    } catch (error) {
-        console.error(`Error parsing URL: ${url}`, issue);
+    if (!url || typeof url !== 'string') {
+        console.error(`Invalid URL: ${url}`, issue);
         throw new Error(`Invalid URL format: ${url}`);
     }
+    const urlParts = url.split('/');
 
     const repo_name = urlParts[3] + '/' + urlParts[4];
     if (!repository?.name && repo_name) {

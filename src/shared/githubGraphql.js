@@ -285,10 +285,6 @@ function getIssueQuery() {
                             avatarUrl
                         }
                     }
-                    author {
-                        login
-                        avatarUrl
-                    }
                     labels(first: 20) {
                         nodes {
                             name
