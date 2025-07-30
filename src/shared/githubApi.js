@@ -1,5 +1,5 @@
 import { getGitHubApiBaseUrl, setFirstUpdateTime, getWatchListUrls } from './storageUtils.js';
-import { GQLSearchPullRequests, GQLSearchIssues, GQLFetchPullRequest } from './githubGraphql.js';
+import { GQLSearchPullRequests, GQLSearchIssues, GQLFetchPullRequest, GQLFetchIssue } from './githubGraphql.js';
 
 
 //
@@ -138,15 +138,17 @@ export async function fetchPullRequestByUrl(url, token) {
     const repo  = urlParts[2]; // Get the third to last part as the repo name
     const org   = urlParts[1]; // Get the fourth to last part as the organization name
 
-    if (type == 'pull' || type == 'issue') {
-        type = type + 's'; // Ensure type is plural
+    let result = {};
+    if (type == 'pull' || type == 'pulls') {
+        // let result = await fetchFromGitHub(path, token);
+        result = await GQLFetchPullRequest(org, repo, id, token);
+    } else if (type == 'issue' || type == 'issues') {
+        result = await GQLFetchIssue(org, repo, id, token);
+    }
+    else {
+        throw new Error(`Unsupported type: ${type}. Only 'pull' and 'issue' are supported.`);
     }
 
-    const path = `/repos/${org}/${repo}/${type}/${id}`;
-
-    // let result = await fetchFromGitHub(path, token);
-    let result = await GQLFetchPullRequest(org, repo, id, token);
-    
     return result;
 }
 
@@ -430,7 +432,14 @@ function enrichIssue(issue, gitpingType="") {
     };
 
     // owner and repo name from url
-    const urlParts = url.split('/');
+    let urlParts = [];
+    try {
+        urlParts = url.split('/');
+    } catch (error) {
+        console.error(`Error parsing URL: ${url}`, issue);
+        throw new Error(`Invalid URL format: ${url}`);
+    }
+
     const repo_name = urlParts[3] + '/' + urlParts[4];
     if (!repository?.name && repo_name) {
         const [ownerLogin, repoName] = repo_name.split('/');
