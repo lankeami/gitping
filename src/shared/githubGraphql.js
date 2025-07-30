@@ -376,7 +376,7 @@ async function fetchCustomGraphQL(query, variables, token) {
     }
 
     return response.json();
-};
+}
 
 /**
  * Helper function to get the GraphQL query for fetching pull request details.
@@ -391,7 +391,7 @@ export async function GQLFetchPullRequest(owner, repo, pullNumber, token) {
 
     // need to convert pullNumber to an integer
     pullNumber = parseInt(pullNumber, 10);
-    let result = await fetchCustomGraphQL(query, {owner: owner, repo: repo, pullNumber: pullNumber}, token);
+    let result = await fetchCustomGraphQL(query, {owner, repo, pullNumber}, token);
 
     if (!result || !result.data || !result.data.repository || !result.data.repository.pullRequest) {
         throw new Error(`Failed to fetch pull request details for ${owner}/${repo}#${pullNumber}`);
