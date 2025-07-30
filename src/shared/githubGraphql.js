@@ -78,6 +78,7 @@ function getPrSchema() {
             comments(last: 1) {
                 nodes {
                     body
+                    bodyHTML
                     author {
                         login
                         avatarUrl
@@ -132,6 +133,7 @@ function getIssueSchema() {
             comments(last: 1) {
                 nodes {
                     body
+                    bodyHTML
                     author {
                         login
                         avatarUrl
@@ -240,6 +242,7 @@ query GetPullRequestDetails($owner: String!, $repo: String!, $pullNumber: Int!) 
       comments(last: 1) {
         nodes {
           body
+          bodyHTML
           createdAt
           url
           author {
@@ -255,6 +258,59 @@ query GetPullRequestDetails($owner: String!, $repo: String!, $pullNumber: Int!) 
 
 }
 
+/**
+ * Helper function to get the GraphQL query for fetching issue details.
+ * @returns {string} - The GraphQL query string for fetching issue details.
+ */
+function getIssueQuery() {
+    return `
+        query GetIssueDetails($owner: String!, $repo: String!, $issueNumber: Int!) {
+            repository(owner: $owner, name: $repo) {
+                issue(number: $issueNumber) {
+                    __typename
+                    id
+                    number
+                    title
+                    bodyHTML
+                    state
+                    url
+                    author {
+                        login
+                        avatarUrl
+                    }
+                    repository {
+                        name
+                        owner {
+                            login
+                            avatarUrl
+                        }
+                    }
+                    labels(first: 20) {
+                        nodes {
+                            name
+                            color
+                            description
+                        }
+                    }
+                    comments(last: 1) {
+                        nodes {
+                            body
+                            bodyHTML
+                            author {
+                                login
+                                avatarUrl
+                            }
+                            createdAt
+                            url
+                        }
+                    }
+                    updatedAt
+                    createdAt
+                }
+            }
+        }
+    `;
+}
 
 /**
  * Helper method to perform a fetch request to the GitHub GraphQL API.
@@ -397,4 +453,25 @@ export async function GQLFetchPullRequest(owner, repo, pullNumber, token) {
         throw new Error(`Failed to fetch pull request details for ${owner}/${repo}#${pullNumber}`);
     }
     return result.data.repository.pullRequest;
+}
+
+/**
+ * Helper function to get the GraphQL query for fetching issue details.
+ * @param {*} owner 
+ * @param {*} repo 
+ * @param {*} issueNumber 
+ * @param {*} token 
+ * @returns {Promise<any>} - The JSON response of the Issue details.
+ */
+export async function GQLFetchIssue(owner, repo, issueNumber, token) {
+    const query = getIssueQuery();
+
+    // need to convert issueNumber to an integer
+    issueNumber = parseInt(issueNumber, 10);
+    let result = await fetchCustomGraphQL(query, {owner, repo, issueNumber}, token);
+
+    if (!result || !result.data || !result.data.repository || !result.data.repository.issue) {
+        throw new Error(`Failed to fetch issue details for ${owner}/${repo}#${issueNumber}`);
+    }
+    return result.data.repository.issue;
 }
