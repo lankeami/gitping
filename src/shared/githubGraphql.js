@@ -141,7 +141,7 @@ function getIssueSchema() {
                 }
             }
         }
-    }e
+    }
 }`;
 }
 
