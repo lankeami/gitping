@@ -567,3 +567,34 @@ export async function getAppVersion() {
         });
     });
 }
+
+//
+// CHROME EXTENSION REVIEW UTILS
+//
+
+/**
+ * Check if the extension has prompted for a review.
+ * @returns {Promise<string>} - The last prompted time.
+ * @description This function checks if the user has been prompted for a review for the extension.
+ */
+export async function getUserReviewedExtension() {
+    return new Promise((resolve) => {
+        chrome.storage.local.get(['userReviewedExtension'], (result) => {
+            resolve(result.userReviewedExtension);
+        });
+    });
+}
+/**
+ * Set the timestamp of when a user was last prompted to review the extension.
+ * @returns {Promise<void>} - A promise that resolves when the operation is complete.
+ * @description This function sets the review status for the extension in local storage.
+ */
+export async function setUserReviewedExtension() {
+    return new Promise((resolve) => {
+        const lastPromptedTime = new Date().toLocaleString();
+
+        chrome.storage.local.set({ userReviewedExtension: lastPromptedTime }, () => {
+            resolve();
+        });
+    });
+}

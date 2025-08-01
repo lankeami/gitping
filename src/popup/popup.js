@@ -1,4 +1,4 @@
-import { getAuthToken, getUsername, resetLocalStorage, getLastUpdateTime, getLastError, setLastError, updateExtensionBadge, setLastUpdateTime, getFirstUpdateTime, setLastViewedTime, getLastViewedTime, addToWatchList } from '../shared/storageUtils.js';
+import { getAuthToken, getUsername, resetLocalStorage, getLastUpdateTime, getLastError, setLastError, updateExtensionBadge, setLastUpdateTime, getFirstUpdateTime, setLastViewedTime, getLastViewedTime, addToWatchList, getUserReviewedExtension, setUserReviewedExtension } from '../shared/storageUtils.js';
 import { displayPullRequestsCards, resetUI, displayBadgeCount } from '../shared/uiUtils.js';
 
 document.getElementById('manifest-version').textContent = `v${chrome.runtime.getManifest().version}`;
@@ -163,6 +163,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             });
 
+            if(lastViewedTime) {
+                await showReviewToast();
+            }
+
             setLastUpdateTime();
             setLastError();
         } else {
@@ -316,6 +320,25 @@ document.addEventListener('DOMContentLoaded', function () {
         if (document.visibilityState === 'hidden') {
             setLastViewedTime();
         }
+    });
+
+    async function showReviewToast() {
+        if (await getUserReviewedExtension()) {
+            return; // User has already reviewed the extension
+        }
+
+        const firstUpdateTime = await getFirstUpdateTime();
+        if (!firstUpdateTime || (Date.now() - new Date(firstUpdateTime).getTime()) < 5 * 24 * 60 * 60 * 1000) {
+            return; // Don't show the toast if it's been less than 5 days since the first update
+        }
+
+        const toast = document.getElementById('review-toast');
+        if (toast) toast.classList.remove('hidden');
+        setUserReviewedExtension();
+    }
+
+    document.getElementById('close-review-toast')?.addEventListener('click', () => {
+        document.getElementById('review-toast').classList.add('hidden');
     });
 
     updateDisplaysFromStorage();

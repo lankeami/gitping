@@ -435,12 +435,14 @@ async function fetchCustomGraphQL(query, variables, token) {
 }
 
 /**
- * Helper function to get the GraphQL query for fetching pull request details.
- * @param {*} owner 
- * @param {*} repo 
- * @param {*} pullNumber 
- * @param {*} token 
- * @returns {Promise<any>} - The JSON response of the Pull Request details.
+ * Fetches pull request details from GitHub's GraphQL API.
+ * Executes a GraphQL query to retrieve details of a specific pull request in a repository.
+ * @param {string} owner - The owner of the repository.
+ * @param {string} repo - The name of the repository.
+ * @param {number} pullNumber - The pull request number to fetch details for.
+ * @param {string} token - GitHub personal access token for authentication.
+ * @returns {Promise<any>} - A promise that resolves to the JSON response containing the issue details.
+ * @throws {Error} - If the fetch operation fails or the issue details are not found.
  */
 export async function GQLFetchPullRequest(owner, repo, pullNumber, token) {
     const query = getPullRequestQuery();
@@ -456,12 +458,14 @@ export async function GQLFetchPullRequest(owner, repo, pullNumber, token) {
 }
 
 /**
- * Helper function to get the GraphQL query for fetching issue details.
- * @param {*} owner 
- * @param {*} repo 
- * @param {*} issueNumber 
- * @param {*} token 
- * @returns {Promise<any>} - The JSON response of the Issue details.
+ * Fetches issue details from GitHub's GraphQL API.
+ * Executes a GraphQL query to retrieve details of a specific issue in a repository.
+ * @param {string} owner - The owner of the repository.
+ * @param {string} repo - The name of the repository.
+ * @param {number} issueNumber - The issue number to fetch details for.
+ * @param {string} token - GitHub personal access token for authentication.
+ * @returns {Promise<any>} - A promise that resolves to the JSON response containing the issue details.
+ * @throws {Error} - If the fetch operation fails or the issue details are not found.
  */
 export async function GQLFetchIssue(owner, repo, issueNumber, token) {
     const query = getIssueQuery();

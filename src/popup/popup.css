@@ -360,3 +360,36 @@ h2 {
     margin-bottom: 6px;
     margin-top: 3px;
 }
+
+.review-toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: #91f5a8;
+    color: #222;
+    border-radius: 8px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.18);
+    padding: 16px 24px 16px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    z-index: 9999;
+    font-size: 15px;
+    transition: opacity 0.2s;
+}
+.review-toast a {
+    color: #1976d2;
+    font-weight: 500;
+    text-decoration: underline;
+}
+.review-toast .close-toast-btn {
+    background: none;
+    border: none;
+    font-size: 20px;
+    color: #888;
+    cursor: pointer;
+    margin-left: 8px;
+}
+.review-toast.hidden {
+    display: none;
+}
