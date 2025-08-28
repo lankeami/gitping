@@ -1,3 +1,31 @@
+// Google Analytics (GA4) Measurement Protocol integration
+const GA_MEASUREMENT_ID = 'G-X10S7EJKZM'; // TODO: Replace with your own Measurement ID
+const GA_API_SECRET = 'ouBEFThLSeme6xwAoXt_pQ'; // TODO: Replace with your Measurement Protocol API Secret
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.type === 'GA_PAGE_VIEW') {
+        const payload = {
+            client_id: message.clientId,
+            events: [
+                {
+                    name: 'page_view',
+                    params: {
+                        page_title: `Popup Tab: ${message.tabId}`,
+                        page_location: message.page_location,
+                        page_path: `/popup/${message.tabId}`
+                    }
+                }
+            ]
+        };
+        fetch(`https://www.google-analytics.com/mp/collect?measurement_id=${GA_MEASUREMENT_ID}&api_secret=${GA_API_SECRET}`, {
+            method: 'POST',
+            body: JSON.stringify(payload),
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+    }
+});
 import { getAppVersion, setAppVersion, getAuthToken, getUsername, updateExtensionBadge, getPersonalReviewRequests, getLastUpdateTime, getMentions, getMinePullRequests, getStoredPullRequests, setLastUpdateTime, setLastError, getPollingInterval, getLastViewedTime, pruneLocalStorage } from '../shared/storageUtils.js';
 import { fetchAndFilterPullRequests } from '../shared/githubApi.js';
 

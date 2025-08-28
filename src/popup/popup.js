@@ -1,3 +1,30 @@
+
+// Google Analytics (GA4) integration
+
+// GA4 Measurement Protocol page view sender
+const GA_MEASUREMENT_ID = 'G-X10S7EJKZM'; // TODO: Replace with your own Measurement ID
+const GA_API_SECRET = 'ouBEFThLSeme6xwAoXt_pQ'; // TODO: Replace with your Measurement Protocol API Secret
+const GA_CLIENT_ID_KEY = 'ga_client_id';
+
+function getOrCreateClientId() {
+    let clientId = localStorage.getItem(GA_CLIENT_ID_KEY);
+    if (!clientId) {
+        clientId = `${Math.random().toString(36).substring(2)}.${Date.now()}`;
+        localStorage.setItem(GA_CLIENT_ID_KEY, clientId);
+    }
+    return clientId;
+}
+
+function sendPageView(tabId) {
+    const clientId = getOrCreateClientId();
+    chrome.runtime.sendMessage({
+        type: 'GA_PAGE_VIEW',
+        tabId,
+        clientId,
+        page_location: window.location.href
+    });
+}
+
 import { getAuthToken, getUsername, resetLocalStorage, getLastUpdateTime, getLastError, setLastError, updateExtensionBadge, setLastUpdateTime, getFirstUpdateTime, setLastViewedTime, getLastViewedTime, addToWatchList, getUserReviewedExtension, setUserReviewedExtension } from '../shared/storageUtils.js';
 import { displayPullRequestsCards, resetUI, displayBadgeCount } from '../shared/uiUtils.js';
 
@@ -312,6 +339,8 @@ document.addEventListener('DOMContentLoaded', function () {
         tab.addEventListener('click', () => {
             const tabId = tab.id.replace('-tab', ''); // Extract the tab ID (e.g., "personal", "team", "mentions")
             switchTab(tabId);
+            // Send page view to GA4 Measurement Protocol
+            sendPageView(tabId);
         });
     });
 
