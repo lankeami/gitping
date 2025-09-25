@@ -29,6 +29,9 @@ async function cardUser(user) {
 }
 
 async function avatarForUser(user) {
+    if (!user || !user.login) {
+        return null;
+    }
     // check storageUtils for user avatar url first
     // iff it doesn't exist, pull from the user object and save it for a day
     // then build the avatar image element
@@ -61,7 +64,7 @@ async function avatarForUser(user) {
  * @param {Object} pr - The pull request object.
  * @returns {HTMLElement} - The card element.
  */
-async function createPullRequestCard(pr, section_name = null, lastViewedTime = null) {
+export async function createPullRequestCard(pr, section_name = null, lastViewedTime = null) {
     const card = document.createElement('div');
     card.className = 'pr-card';
     card.onclick = () => {
@@ -81,7 +84,9 @@ async function createPullRequestCard(pr, section_name = null, lastViewedTime = n
         }
 
         const subtitle = await cardUser(pr.user);
-        card.appendChild(subtitle);
+        if (subtitle instanceof Node) {
+            card.appendChild(subtitle);
+        }
 
         const quote = await quoteCard(pr);
         if (quote && quote.textContent.trim() !== '') {
@@ -156,25 +161,34 @@ async function quoteCard(pr) {
 
 function cardLabels(pr) {
     // --- Create the Labels Element ---
-    const labels = document.createElement('div');
-    labels.className = 'pr-labels';
+    const labelsDiv = document.createElement('div');
+    labelsDiv.className = 'pr-labels';
 
-    // --- Add Labels to the Element ---
-    pr.labels.forEach(label => {
+    let labelArr = [];
+    if (Array.isArray(pr.labels)) {
+        labelArr = pr.labels;
+    } else if (pr.labels && Array.isArray(pr.labels.nodes)) {
+        labelArr = pr.labels.nodes;
+    }
+
+    labelArr.forEach(label => {
+        if (!label || !label.name) return;
         const labelElement = document.createElement('span');
         labelElement.className = 'pr-label';
         labelElement.textContent = label.name;
-        labelElement.style.backgroundColor = `#${label.color}`;
-        // convert the background color to an RGB
-        const color = label.color.toLowerCase();
-        const luminance = hexToLuminance(color);
-        if (luminance > 128) {
-            labelElement.style.color = 'black';
+        if (label.color) {
+            labelElement.style.backgroundColor = `#${label.color}`;
+            // convert the background color to an RGB
+            const color = label.color.toLowerCase();
+            const luminance = hexToLuminance(color);
+            if (luminance > 128) {
+                labelElement.style.color = 'black';
+            }
         }
-        labels.appendChild(labelElement);
+        labelsDiv.appendChild(labelElement);
     });
 
-    return labels;
+    return labelsDiv;
 }
 
 /**
@@ -199,14 +213,16 @@ async function cardHighbrow(pr) {
     // HIGHBROW
     const highbrow = document.createElement('div');
     highbrow.className = 'pr-highbrow';
-    highbrow.textContent = pr.repo_name;
-    const ownerAvatar = await avatarForUser(pr.owner);
+    highbrow.textContent = pr.repo_name || '';
+    let owner = pr.owner;
+    if (!owner && pr.base && pr.base.repo && pr.base.repo.owner) {
+        owner = pr.base.repo.owner;
+    }
+    const ownerAvatar = await avatarForUser(owner);
     if(ownerAvatar) {
         ownerAvatar.style.float = 'right';
         ownerAvatar.style.marginLeft = '8px';
         highbrow.appendChild(ownerAvatar);
-    } else {
-        console.log("No avatar found for pr.base.repo.owner:", pr);
     }
     return highbrow;
 }

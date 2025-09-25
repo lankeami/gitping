@@ -1,5 +1,140 @@
+// --- DYNAMIC HEIGHT LOGIC (moved from inline script for CSP) ---
+function setPopupContainerHeight() {
+    const iconContainer = document.getElementById('icon-container');
+    const popupContainer = document.getElementById('popup-container');
+    const footer = document.querySelector('div[style*="display: flex;"][style*="justify-content: space-between;"]');
+    if (!popupContainer || !iconContainer || !footer) return;
+    const winHeight = window.innerHeight;
+    const iconHeight = iconContainer.offsetHeight;
+    const footerHeight = footer.offsetHeight;
+    // Subtract the footer height twice
+    const newHeight = winHeight - iconHeight - (2 * footerHeight + 15);
+    popupContainer.style.height = newHeight > 0 ? newHeight + 'px' : 'auto';
+    popupContainer.style.overflowY = 'auto';
+}
+window.addEventListener('resize', setPopupContainerHeight);
+window.addEventListener('DOMContentLoaded', setPopupContainerHeight);
 import { getAuthToken, getUsername, resetLocalStorage, getLastUpdateTime, getLastError, setLastError, updateExtensionBadge, setLastUpdateTime, getFirstUpdateTime, setLastViewedTime, getLastViewedTime, addToWatchList, getUserReviewedExtension, setUserReviewedExtension } from '../shared/storageUtils.js';
 import { displayPullRequestsCards, resetUI, displayBadgeCount } from '../shared/uiUtils.js';
+
+// Helper: get card element by PR id
+function getCardElementById(listElem, prId) {
+    return listElem.querySelector(`.pr-card[data-pr-id="${prId}"]`);
+}
+
+// --- FILTER LOGIC ---
+const TAB_KEYS = ['personal', 'mine', 'team', 'mention', 'issues'];
+
+function extractUniqueAuthors(pullRequests) {
+    const authors = new Set();
+    pullRequests.forEach(pr => {
+        const login = pr.author?.login || pr.user?.login;
+        if (login) authors.add(login);
+    });
+    return Array.from(authors).sort();
+}
+
+function extractUniqueLabels(pullRequests) {
+    const labels = new Set();
+    pullRequests.forEach(pr => {
+        let labelArr = [];
+        if (Array.isArray(pr.labels)) {
+            labelArr = pr.labels;
+        } else if (pr.labels && Array.isArray(pr.labels.nodes)) {
+            labelArr = pr.labels.nodes;
+        }
+        labelArr.forEach(label => {
+            if (label && label.name) labels.add(label.name);
+        });
+    });
+    return Array.from(labels).sort();
+}
+
+function populateFilterSelect(selectElem, options) {
+    selectElem.innerHTML = '';
+    options.forEach(opt => {
+        const option = document.createElement('option');
+        option.value = opt;
+        option.textContent = opt;
+        option.selected = false; // default unselected
+        selectElem.appendChild(option);
+    });
+}
+
+function getSelectedOptions(selectElem) {
+    return Array.from(selectElem.selectedOptions).map(opt => opt.value);
+}
+
+function filterPRsByAuthorAndLabel(prs, selectedAuthors, selectedLabels) {
+    // If nothing is selected, show all
+    if ((!selectedAuthors || selectedAuthors.length === 0) && (!selectedLabels || selectedLabels.length === 0)) {
+        return prs;
+    }
+    return prs.filter(pr => {
+        const author = pr.author?.login || pr.user?.login;
+        let prLabels = [];
+        if (Array.isArray(pr.labels)) {
+            prLabels = pr.labels.map(l => l.name);
+        } else if (pr.labels && Array.isArray(pr.labels.nodes)) {
+            prLabels = pr.labels.nodes.map(l => l.name);
+        }
+        // If author is selected, REMOVE it from the list
+        if (selectedAuthors.includes(author)) return false;
+        // If any label is selected and matches, REMOVE it from the list
+        if (prLabels.some(label => selectedLabels.includes(label))) return false;
+        return true;
+    });
+}
+
+async function setupTabFilters(tabKey, pullRequests, lastViewedTime) {
+    const authorSelect = document.getElementById(`${tabKey}-author-filter`);
+    const labelSelect = document.getElementById(`${tabKey}-label-filter`);
+    const listElem = document.getElementById(`${tabKey}-pull-requests-list`);
+    if (!authorSelect || !labelSelect || !listElem) return;
+
+    const authors = extractUniqueAuthors(pullRequests);
+    const labels = extractUniqueLabels(pullRequests);
+    populateFilterSelect(authorSelect, authors);
+    populateFilterSelect(labelSelect, labels);
+
+    // Render all cards at once using displayPullRequestsCards (ensures all data is present)
+    await displayPullRequestsCards(pullRequests, listElem, lastViewedTime, tabKey);
+
+    // Add data-pr-id to each card for filtering (match order)
+    const cardElems = listElem.querySelectorAll('.pr-card');
+    pullRequests.forEach((pr, idx) => {
+        const cardElem = cardElems[idx];
+        if (cardElem) {
+            cardElem.setAttribute('data-pr-id', pr.id);
+        }
+    });
+
+    function updateCardVisibility() {
+        const selectedAuthors = authorSelect.options.length === 0 ? [] : getSelectedOptions(authorSelect);
+        const selectedLabels = labelSelect.options.length === 0 ? [] : getSelectedOptions(labelSelect);
+        pullRequests.forEach(pr => {
+            const cardElem = listElem.querySelector(`.pr-card[data-pr-id="${pr.id}"]`);
+            if (!cardElem) return;
+            const author = pr.author?.login || pr.user?.login;
+            let prLabels = [];
+            if (Array.isArray(pr.labels)) {
+                prLabels = pr.labels.map(l => l.name);
+            } else if (pr.labels && Array.isArray(pr.labels.nodes)) {
+                prLabels = pr.labels.nodes.map(l => l.name);
+            }
+            let hide = false;
+            if (selectedAuthors.length > 0 && selectedAuthors.includes(author)) hide = true;
+            if (selectedLabels.length > 0 && prLabels.some(label => selectedLabels.includes(label))) hide = true;
+            cardElem.classList.toggle('hidden', hide);
+        });
+    }
+
+    authorSelect.addEventListener('change', updateCardVisibility);
+    labelSelect.addEventListener('change', updateCardVisibility);
+
+    // Initial visibility
+    updateCardVisibility();
+}
 
 document.getElementById('manifest-version').textContent = `v${chrome.runtime.getManifest().version}`;
 
@@ -68,6 +203,23 @@ async function addWatchListUrl() {
 }
 
 document.addEventListener('DOMContentLoaded', function () {
+    // Accordion logic for filter forms
+    document.querySelectorAll('.filter-accordion').forEach(acc => {
+        const toggle = acc.querySelector('.accordion-toggle');
+        const container = acc.querySelector('.filter-form-container');
+        if (toggle && container) {
+            toggle.addEventListener('click', () => {
+                const expanded = toggle.getAttribute('aria-expanded') === 'true';
+                toggle.setAttribute('aria-expanded', !expanded);
+                container.style.display = expanded ? 'none' : 'block';
+                toggle.textContent = expanded ? 'Show Exclusions' : 'Hide Exclusions';
+            });
+            // Default: hidden
+            toggle.setAttribute('aria-expanded', false);
+            container.style.display = 'none';
+            toggle.textContent = 'Show Exclusions';
+        }
+    });
     const loginButton = document.getElementById('login-button');
     const refreshButton = document.getElementById('refresh-button');
     const resetButton = document.getElementById('reset-button');
@@ -152,15 +304,17 @@ document.addEventListener('DOMContentLoaded', function () {
             Object.keys(config).forEach(element => {
                 var pullRequests = config[element];
                 var listElement = document.getElementById(`${element}-pull-requests-list`);
-                if (listElement) {
-                    let key = element == 'mention' ? 'mentions' : element;
-                    chrome.storage.local.set({ [`${key}PullRequests`]: pullRequests }, async function () {
-                        // if pulrequests have the .card object, use the displayPullRequestsCards function
+                let key = element == 'mention' ? 'mentions' : element;
+                chrome.storage.local.set({ [`${key}PullRequests`]: pullRequests }, async function () {
+                    // Setup filters for tabs with filter forms
+                    if (TAB_KEYS.includes(element)) {
+                        setupTabFilters(element, pullRequests, lastViewedTime);
+                    } else if (listElement) {
+                        // Fallback: just display cards
                         await displayPullRequestsCards(pullRequests, listElement, lastViewedTime, element);
-
-                        displayBadgeCount(element, pullRequests, lastViewedTime);
-                    });
-                }
+                    }
+                    displayBadgeCount(element, pullRequests, lastViewedTime);
+                });
             });
 
             if(lastViewedTime) {
