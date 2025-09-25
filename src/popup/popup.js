@@ -97,6 +97,27 @@ async function setupTabFilters(tabKey, pullRequests, lastViewedTime) {
     populateFilterSelect(authorSelect, authors);
     populateFilterSelect(labelSelect, labels);
 
+    // Restore filter selections from storage
+    const filterKey = `filterSelections_${tabKey}`;
+    let restoredAuthors = [];
+    let restoredLabels = [];
+    await new Promise(resolve => {
+        chrome.storage.local.get([filterKey], result => {
+            if (result[filterKey]) {
+                restoredAuthors = result[filterKey].authors || [];
+                restoredLabels = result[filterKey].labels || [];
+            }
+            resolve();
+        });
+    });
+    // Set restored selections
+    Array.from(authorSelect.options).forEach(opt => {
+        opt.selected = restoredAuthors.includes(opt.value);
+    });
+    Array.from(labelSelect.options).forEach(opt => {
+        opt.selected = restoredLabels.includes(opt.value);
+    });
+
     // Render all cards at once using displayPullRequestsCards (ensures all data is present)
     await displayPullRequestsCards(pullRequests, listElem, lastViewedTime, tabKey);
 
@@ -109,9 +130,12 @@ async function setupTabFilters(tabKey, pullRequests, lastViewedTime) {
         }
     });
 
-    function updateCardVisibility() {
+    function updateCardVisibilityAndPersist() {
         const selectedAuthors = authorSelect.options.length === 0 ? [] : getSelectedOptions(authorSelect);
         const selectedLabels = labelSelect.options.length === 0 ? [] : getSelectedOptions(labelSelect);
+        // Persist selections
+        chrome.storage.local.set({ [filterKey]: { authors: selectedAuthors, labels: selectedLabels } });
+        // Update card visibility
         pullRequests.forEach(pr => {
             const cardElem = listElem.querySelector(`.pr-card[data-pr-id="${pr.id}"]`);
             if (!cardElem) return;
@@ -129,11 +153,11 @@ async function setupTabFilters(tabKey, pullRequests, lastViewedTime) {
         });
     }
 
-    authorSelect.addEventListener('change', updateCardVisibility);
-    labelSelect.addEventListener('change', updateCardVisibility);
+    authorSelect.addEventListener('change', updateCardVisibilityAndPersist);
+    labelSelect.addEventListener('change', updateCardVisibilityAndPersist);
 
-    // Initial visibility
-    updateCardVisibility();
+    // Initial visibility (after restoring selections)
+    updateCardVisibilityAndPersist();
 }
 
 document.getElementById('manifest-version').textContent = `v${chrome.runtime.getManifest().version}`;
