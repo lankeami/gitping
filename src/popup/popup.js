@@ -316,6 +316,17 @@ document.addEventListener('DOMContentLoaded', function () {
             content.classList.add('hidden');
         });
 
+        // Collapse all filter accordions
+        document.querySelectorAll('.filter-accordion').forEach(acc => {
+            const toggle = acc.querySelector('.accordion-toggle');
+            const container = acc.querySelector('.filter-form-container');
+            if (toggle && container) {
+                toggle.setAttribute('aria-expanded', false);
+                container.style.display = 'none';
+                toggle.textContent = 'Show Exclusions';
+            }
+        });
+
         // Activate the selected tab and its corresponding content
         const selectedTab = document.getElementById(`${tabId}-tab`);
         const selectedContent = document.getElementById(`${tabId}-content`);
