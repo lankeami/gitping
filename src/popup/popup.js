@@ -1,3 +1,18 @@
+function extractUniqueStates(pullRequests) {
+    const states = new Set();
+    pullRequests.forEach(pr => {
+        if (pr.state) states.add(pr.state);
+    });
+    return Array.from(states).sort();
+}
+
+function extractUniqueRepos(pullRequests) {
+    const repos = new Set();
+    pullRequests.forEach(pr => {
+        if (pr.repository && pr.repository.name) repos.add(pr.repository.name);
+    });
+    return Array.from(repos).sort();
+}
 // --- DYNAMIC HEIGHT LOGIC (moved from inline script for CSP) ---
 function setPopupContainerHeight() {
     const iconContainer = document.getElementById('icon-container');
@@ -89,23 +104,33 @@ function filterPRsByAuthorAndLabel(prs, selectedAuthors, selectedLabels) {
 async function setupTabFilters(tabKey, pullRequests, lastViewedTime) {
     const authorSelect = document.getElementById(`${tabKey}-author-filter`);
     const labelSelect = document.getElementById(`${tabKey}-label-filter`);
+    const stateSelect = document.getElementById(`${tabKey}-state-filter`);
+    const repoSelect = document.getElementById(`${tabKey}-repo-filter`);
     const listElem = document.getElementById(`${tabKey}-pull-requests-list`);
-    if (!authorSelect || !labelSelect || !listElem) return;
+    if (!authorSelect || !labelSelect || !stateSelect || !repoSelect || !listElem) return;
 
     const authors = extractUniqueAuthors(pullRequests);
     const labels = extractUniqueLabels(pullRequests);
+    const states = extractUniqueStates(pullRequests);
+    const repos = extractUniqueRepos(pullRequests);
     populateFilterSelect(authorSelect, authors);
     populateFilterSelect(labelSelect, labels);
+    populateFilterSelect(stateSelect, states);
+    populateFilterSelect(repoSelect, repos);
 
     // Restore filter selections from storage
     const filterKey = `filterSelections_${tabKey}`;
     let restoredAuthors = [];
     let restoredLabels = [];
+    let restoredStates = [];
+    let restoredRepos = [];
     await new Promise(resolve => {
         chrome.storage.local.get([filterKey], result => {
             if (result[filterKey]) {
                 restoredAuthors = result[filterKey].authors || [];
                 restoredLabels = result[filterKey].labels || [];
+                restoredStates = result[filterKey].states || [];
+                restoredRepos = result[filterKey].repos || [];
             }
             resolve();
         });
@@ -116,6 +141,12 @@ async function setupTabFilters(tabKey, pullRequests, lastViewedTime) {
     });
     Array.from(labelSelect.options).forEach(opt => {
         opt.selected = restoredLabels.includes(opt.value);
+    });
+    Array.from(stateSelect.options).forEach(opt => {
+        opt.selected = restoredStates.includes(opt.value);
+    });
+    Array.from(repoSelect.options).forEach(opt => {
+        opt.selected = restoredRepos.includes(opt.value);
     });
 
     // Render all cards at once using displayPullRequestsCards (ensures all data is present)
@@ -133,8 +164,10 @@ async function setupTabFilters(tabKey, pullRequests, lastViewedTime) {
     function updateCardVisibilityAndPersist() {
         const selectedAuthors = authorSelect.options.length === 0 ? [] : getSelectedOptions(authorSelect);
         const selectedLabels = labelSelect.options.length === 0 ? [] : getSelectedOptions(labelSelect);
+        const selectedStates = stateSelect.options.length === 0 ? [] : getSelectedOptions(stateSelect);
+        const selectedRepos = repoSelect.options.length === 0 ? [] : getSelectedOptions(repoSelect);
         // Persist selections
-        chrome.storage.local.set({ [filterKey]: { authors: selectedAuthors, labels: selectedLabels } });
+        chrome.storage.local.set({ [filterKey]: { authors: selectedAuthors, labels: selectedLabels, states: selectedStates, repos: selectedRepos } });
         // Update card visibility
         pullRequests.forEach(pr => {
             const cardElem = listElem.querySelector(`.pr-card[data-pr-id="${pr.id}"]`);
@@ -146,15 +179,21 @@ async function setupTabFilters(tabKey, pullRequests, lastViewedTime) {
             } else if (pr.labels && Array.isArray(pr.labels.nodes)) {
                 prLabels = pr.labels.nodes.map(l => l.name);
             }
+            const state = pr.state;
+            const repo = pr.repository && pr.repository.name;
             let hide = false;
             if (selectedAuthors.length > 0 && selectedAuthors.includes(author)) hide = true;
             if (selectedLabels.length > 0 && prLabels.some(label => selectedLabels.includes(label))) hide = true;
+            if (selectedStates.length > 0 && selectedStates.includes(state)) hide = true;
+            if (selectedRepos.length > 0 && selectedRepos.includes(repo)) hide = true;
             cardElem.classList.toggle('hidden', hide);
         });
     }
 
     authorSelect.addEventListener('change', updateCardVisibilityAndPersist);
     labelSelect.addEventListener('change', updateCardVisibilityAndPersist);
+    stateSelect.addEventListener('change', updateCardVisibilityAndPersist);
+    repoSelect.addEventListener('change', updateCardVisibilityAndPersist);
 
     // Initial visibility (after restoring selections)
     updateCardVisibilityAndPersist();
