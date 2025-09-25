@@ -1,3 +1,23 @@
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitPing</title>
+    <link rel="stylesheet" href="popup.css">
+    <style>
+        .pr-card.hidden {
+            display: none !important;
+        }
+        #popup-container {
+            max-width: 420px;
+            min-width: 340px;
+            margin: 0 auto;
+        }
+        body {
+            min-width: 340px;
+            max-width: 440px;
+        }
+    </style>
+</head>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -90,30 +110,199 @@
             <div id="personal-content" class="tab-content active">
                 <h2 class="tab-header">Needs Your Approval</h2>
                 <span class="tab-lowbrow">The author of these Pull Requests requires your review</span>
+                <div class="filter-accordion">
+                    <button type="button" class="accordion-toggle" aria-expanded="false">
+                        <img src="./images/filter.png" alt="Filter" width="16" height="16" style="vertical-align:middle;">
+                        Filters
+                    </button>
+                    <div class="filter-form-container" style="display:none;">
+                        <span class="tab-lowbrow">Exclude selected filters</span>
+                        <form class="filter-form" id="personal-filter-form">
+                            <div class="filter-group">
+                                <label for="personal-author-filter" class="filter-label">Authors</label>
+                                <select id="personal-author-filter" multiple class="filter-select"></select>
+                            </div>
+                            <div class="filter-group">
+                                <label for="personal-label-filter" class="filter-label">Labels</label>
+                                <select id="personal-label-filter" multiple class="filter-select"></select>
+                            </div>
+                            <div class="filter-group">
+                                <label for="personal-repo-filter" class="filter-label">Repository</label>
+                                <select id="personal-repo-filter" multiple class="filter-select"></select>
+                            </div>
+                        </form>
+                    </div>
+                </div>
                 <ul class="pull-request-list" id="personal-pull-requests-list"></ul>
             </div>
             <!-- Mine Tab Content -->
             <div id="mine-content" class="tab-content">
                 <h2 class="tab-header">Your Open Pull Requests</h2>
                 <span class="tab-lowbrow">Your open Pull Requests pending review</span>
+                <div class="filter-accordion">
+                    <button type="button" class="accordion-toggle" aria-expanded="false">
+                        <img src="./images/filter.png" alt="Filter" width="16" height="16" style="vertical-align:middle;">
+                        Filters
+                    </button>
+                    <div class="filter-form-container" style="display:none;">
+                        <span class="tab-lowbrow">Exclude selected filters</span>
+                        <form class="filter-form" id="mine-filter-form">
+                            <div class="filter-group">
+                                <label for="mine-author-filter" class="filter-label">Authors</label>
+                                <select id="mine-author-filter" multiple class="filter-select"></select>
+                            </div>
+                            <div class="filter-group">
+                                <label for="mine-label-filter" class="filter-label">Labels</label>
+                                <select id="mine-label-filter" multiple class="filter-select"></select>
+                            </div>
+                            <div class="filter-group">
+                                <label for="mine-repo-filter" class="filter-label">Repository</label>
+                                <select id="mine-repo-filter" multiple class="filter-select"></select>
+                            </div>
+                        </form>
+                    </div>
+                </div>
                 <ul class="pull-request-list" id="mine-pull-requests-list"></ul>
             </div>
             <!-- Team Reviews Tab Content -->
             <div id="team-content" class="tab-content">
                 <h2 class="tab-header">Needs Your Team's Approval</h2>
                 <span class="tab-lowbrow">Open Pull Requests requiring a team member to review</span>
+                <div class="filter-accordion">
+                    <button type="button" class="accordion-toggle" aria-expanded="false">
+                        <img src="./images/filter.png" alt="Filter" width="16" height="16" style="vertical-align:middle;">
+                        Filters
+                    </button>
+                    <div class="filter-form-container" style="display:none;">
+                        <span class="tab-lowbrow">Exclude selected filters</span>
+                        <form class="filter-form" id="team-filter-form">
+                            <div class="filter-group">
+                                <label for="team-author-filter" class="filter-label">Authors</label>
+                                <select id="team-author-filter" multiple class="filter-select"></select>
+                            </div>
+                            <div class="filter-group">
+                                <label for="team-label-filter" class="filter-label">Labels</label>
+                                <select id="team-label-filter" multiple class="filter-select"></select>
+                            </div>
+                            <div class="filter-group">
+                                <label for="team-repo-filter" class="filter-label">Repository</label>
+                                <select id="team-repo-filter" multiple class="filter-select"></select>
+                            </div>
+                        </form>
+                    </div>
+                </div>
                 <ul class="pull-request-list" id="team-pull-requests-list"></ul>
             </div>
             <!-- Mentions Tab Content -->
             <div id="mention-content" class="tab-content">
                 <h2 class="tab-header">Pull Request Conversations</h2>
                 <span class="tab-lowbrow">Pull Requests you've commented or been mentioned on</span>
+                <div class="filter-accordion">
+                    <button type="button" class="accordion-toggle" aria-expanded="false">
+                        <img src="./images/filter.png" alt="Filter" width="16" height="16" style="vertical-align:middle;">
+                        Filters
+                    </button>
+                    <div class="filter-form-container" style="display:none;">
+                        <span class="tab-lowbrow">Exclude selected filters</span>
+                        <form class="filter-form" id="mention-filter-form">
+                            <div class="filter-group">
+                                <label for="mention-author-filter" class="filter-label">Authors</label>
+                                <select id="mention-author-filter" multiple class="filter-select"></select>
+                            </div>
+                            <div class="filter-group">
+                                <label for="mention-label-filter" class="filter-label">Labels</label>
+                                <select id="mention-label-filter" multiple class="filter-select"></select>
+                            </div>
+                            <div class="filter-group">
+                                <label for="mention-repo-filter" class="filter-label">Repository</label>
+                                <select id="mention-repo-filter" multiple class="filter-select"></select>
+                            </div>
+                        </form>
+                    </div>
+                </div>
                 <ul class="pull-request-list" id="mention-pull-requests-list"></ul>
             </div>
             <!-- Issues Tab Content -->
             <div id="issues-content" class="tab-content">
                 <h2 class="tab-header">Issues involving you</h2>
                 <span class="tab-lowbrow">Issues you've opened, commented on, or was mentioned</span>
+                <div class="filter-accordion">
+                    <button type="button" class="accordion-toggle" aria-expanded="false">
+                        <img src="./images/filter.png" alt="Filter" width="16" height="16" style="vertical-align:middle;">
+                        Filters
+                    </button>
+                    <div class="filter-form-container" style="display:none;">
+                        <span class="tab-lowbrow">Exclude selected filters</span>
+                        <form class="filter-form" id="issues-filter-form">
+                            <div class="filter-group">
+                                <label for="issues-author-filter" class="filter-label">Authors</label>
+                                <select id="issues-author-filter" multiple class="filter-select"></select>
+                            </div>
+                            <div class="filter-group">
+                                <label for="issues-label-filter" class="filter-label">Labels</label>
+                                <select id="issues-label-filter" multiple class="filter-select"></select>
+                            </div>
+                            <div class="filter-group">
+                                <label for="issues-repo-filter" class="filter-label">Repository</label>
+                                <select id="issues-repo-filter" multiple class="filter-select"></select>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+    <style>
+        .filter-accordion {
+            margin-bottom: 10px;
+            margin-top: 10px;
+        }
+        .accordion-toggle {
+            background: #f5f5f5;
+            color: #0080ff;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 6px 16px;
+            font-size: 14px;
+            cursor: pointer;
+            width: 100%;
+            text-align: left;
+            margin-bottom: 0;
+            transition: background 0.2s;
+        }
+        .accordion-toggle[aria-expanded="true"] {
+            background: #e0e0e0;
+        }
+        .filter-form-container {
+            background: #dfedfb;
+            border: 1px solid #e1e4e8;
+            border-top: none;
+            border-radius: 0 0 4px 4px;
+            padding: 12px 8px 8px 8px;
+        }
+        .filter-form {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 5px;
+        }
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            min-width: 180px;
+            flex: 1 1 220px;
+        }
+        .filter-label {
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+        .filter-select {
+            min-width: 220px;
+            max-width: 320px;
+            padding: 6px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            font-size: 14px;
+        }
+    </style>
                 <ul class="pull-request-list" id="issues-pull-requests-list"></ul>
             </div>
             <!-- Watched Tab Content -->
