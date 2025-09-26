@@ -267,12 +267,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 const expanded = toggle.getAttribute('aria-expanded') === 'true';
                 toggle.setAttribute('aria-expanded', !expanded);
                 container.style.display = expanded ? 'none' : 'block';
-                toggle.textContent = expanded ? 'Show Exclusions' : 'Hide Exclusions';
             });
             // Default: hidden
             toggle.setAttribute('aria-expanded', false);
             container.style.display = 'none';
-            toggle.textContent = 'Show Exclusions';
         }
     });
     const loginButton = document.getElementById('login-button');
@@ -315,7 +313,6 @@ document.addEventListener('DOMContentLoaded', function () {
             if (toggle && container) {
                 toggle.setAttribute('aria-expanded', false);
                 container.style.display = 'none';
-                toggle.textContent = 'Show Exclusions';
             }
         });
 
