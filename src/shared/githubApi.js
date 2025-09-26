@@ -1,3 +1,13 @@
+// Returns the oldest of a commit or comment object (by date)
+function getOldestObject(commit, comment) {
+    if (!commit && !comment) return null;
+    if (!commit) return comment;
+    if (!comment) return commit;
+    const commitDate = new Date(commit.committedDate);
+    const commentDate = new Date(comment.createdAt);
+    return commitDate < commentDate ? commit : comment;
+}
+
 import { getGitHubApiBaseUrl, setFirstUpdateTime, getWatchListUrls } from './storageUtils.js';
 import { GQLSearchPullRequests, GQLSearchIssues, GQLFetchPullRequest, GQLFetchIssue } from './githubGraphql.js';
 
@@ -421,14 +431,20 @@ function enrichIssue(issue, gitpingType="") {
     meta.github_type = issue.meta?.github_type || type;
     meta.gitping_type = issue.meta?.gitping_type || gitpingType;
 
-    // build "latest" object from commits and comments objects by choosing the most recent created_at date
+    // build "latest" and "oldest" objects from commits and comments
     const latestCommit = getLatestCommit(issue);
     const latestComment = getLatestComment(issue);
     const latestObject = getLatestObject(latestCommit, latestComment);
+    const oldestObject = getOldestObject(latestCommit, latestComment);
     meta.latest_message = {
         message: latestObject?.commit?.message || latestObject?.body || '',
         committedDate: latestObject?.committedDate || latestObject?.createdAt || '',
         author: latestObject?.commit?.author?.user || latestObject?.author || {},
+    };
+    meta.quote_message = {
+        message: oldestObject?.commit?.message || oldestObject?.body || '',
+        committedDate: oldestObject?.committedDate || oldestObject?.createdAt || '',
+        author: oldestObject?.commit?.author?.user || oldestObject?.author || {},
     };
 
     // owner and repo name from url

@@ -109,9 +109,16 @@ async function quoteCard(pr) {
     // --- Create the Quote Element ---
     const quote = document.createElement('blockquote');
     quote.className = 'pr-quote';
-    // render the markdwown text of the latest message
-    // Set the text content of the quote   
-    quote.textContent = pr.meta?.latest_message?.message || '';
+    // render the markdown text of the quote message (oldest of last comment/commit)
+    // Fallback: if quote_message is missing or empty, use latest_message or a default
+    let quoteText = pr.meta?.quote_message?.message;
+    if (!quoteText || quoteText.trim() === '') {
+        quoteText = pr.meta?.latest_message?.message;
+    }
+    if (!quoteText || quoteText.trim() === '') {
+        quoteText = '(No commit or comment message)';
+    }
+    quote.textContent = quoteText;
     // TODO: convert quote.textContent markdown to HTML
 
     // ensure quote is vertically scrollable if too long
@@ -135,16 +142,15 @@ async function quoteCard(pr) {
     quote.style.fontStyle = 'italic';
     quote.style.margin = '0 0 8px 0';
     // --- Add the author of the quote ---
-    if (pr.meta?.latest_message?.author?.login) {
+    if (pr.meta?.quote_message?.author?.login) {
         const author = document.createElement('span');
         author.className = 'pr-quote-author';
-        author.textContent = ` - ${pr.meta.latest_message.author.login} `;
-        // author.style.fontWeight = 'bold';
+        author.textContent = ` - ${pr.meta.quote_message.author.login} `;
         author.style.display = 'block';
         author.style.marginTop = '4px';
 
         // Add the avatar of the author
-        const authorAvatar = await avatarForUser(pr.meta.latest_message.author);
+        const authorAvatar = await avatarForUser(pr.meta.quote_message.author);
         if (authorAvatar) {
             authorAvatar.style.width = '16px';
             authorAvatar.style.height = '16px';
