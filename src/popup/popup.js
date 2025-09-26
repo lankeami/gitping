@@ -65,15 +65,38 @@ function extractUniqueLabels(pullRequests) {
     return Array.from(labels).sort();
 }
 
-function populateFilterSelect(selectElem, options) {
-    selectElem.innerHTML = '';
+
+// Render a custom multiselect dropdown with checkboxes and chips
+function renderCustomMultiselect(container, options, selected, onChange) {
+    container.innerHTML = '';
+    const list = document.createElement('div');
+    list.className = 'multiselect-list';
     options.forEach(opt => {
-        const option = document.createElement('option');
-        option.value = opt;
-        option.textContent = opt;
-        option.selected = false; // default unselected
-        selectElem.appendChild(option);
+        const optionDiv = document.createElement('div');
+        optionDiv.className = 'multiselect-option';
+            const label = document.createElement('label');
+            label.style.display = 'flex';
+            label.style.alignItems = 'center';
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.value = opt;
+            checkbox.checked = selected.includes(opt);
+            checkbox.addEventListener('change', e => {
+                if (e.target.checked) {
+                    onChange([...selected, opt]);
+                } else {
+                    onChange(selected.filter(v => v !== opt));
+                }
+            });
+            const textSpan = document.createElement('span');
+            textSpan.textContent = opt;
+            textSpan.style.marginLeft = '6px';
+            label.appendChild(checkbox);
+            label.appendChild(textSpan);
+            optionDiv.appendChild(label);
+        list.appendChild(optionDiv);
     });
+    container.appendChild(list);
 }
 
 function getSelectedOptions(selectElem) {
@@ -102,47 +125,36 @@ function filterPRsByAuthorAndLabel(prs, selectedAuthors, selectedLabels) {
 }
 
 async function setupTabFilters(tabKey, pullRequests, lastViewedTime) {
-    const authorSelect = document.getElementById(`${tabKey}-author-filter`);
-    const labelSelect = document.getElementById(`${tabKey}-label-filter`);
-    const repoSelect = document.getElementById(`${tabKey}-repo-filter`);
+    const authorDiv = document.getElementById(`${tabKey}-author-filter`);
+    const labelDiv = document.getElementById(`${tabKey}-label-filter`);
+    const repoDiv = document.getElementById(`${tabKey}-repo-filter`);
     const listElem = document.getElementById(`${tabKey}-pull-requests-list`);
-    if (!authorSelect || !labelSelect || !repoSelect || !listElem) return;
+    if (!authorDiv || !labelDiv || !repoDiv || !listElem) return;
 
     const authors = extractUniqueAuthors(pullRequests);
     const labels = extractUniqueLabels(pullRequests);
-    const states = extractUniqueStates(pullRequests);
     const repos = extractUniqueRepos(pullRequests);
-    populateFilterSelect(authorSelect, authors);
-    populateFilterSelect(labelSelect, labels);
-    populateFilterSelect(repoSelect, repos);
 
     // Restore filter selections from storage
     const filterKey = `filterSelections_${tabKey}`;
     let restoredAuthors = [];
     let restoredLabels = [];
-    let restoredStates = [];
     let restoredRepos = [];
     await new Promise(resolve => {
         chrome.storage.local.get([filterKey], result => {
             if (result[filterKey]) {
                 restoredAuthors = result[filterKey].authors || [];
                 restoredLabels = result[filterKey].labels || [];
-                restoredStates = result[filterKey].states || [];
                 restoredRepos = result[filterKey].repos || [];
             }
             resolve();
         });
     });
-    // Set restored selections
-    Array.from(authorSelect.options).forEach(opt => {
-        opt.selected = restoredAuthors.includes(opt.value);
-    });
-    Array.from(labelSelect.options).forEach(opt => {
-        opt.selected = restoredLabels.includes(opt.value);
-    });
-    Array.from(repoSelect.options).forEach(opt => {
-        opt.selected = restoredRepos.includes(opt.value);
-    });
+
+    // State for selected values
+    let selectedAuthors = [...restoredAuthors];
+    let selectedLabels = [...restoredLabels];
+    let selectedRepos = [...restoredRepos];
 
     // Render all cards at once using displayPullRequestsCards (ensures all data is present)
     await displayPullRequestsCards(pullRequests, listElem, lastViewedTime, tabKey);
@@ -157,12 +169,7 @@ async function setupTabFilters(tabKey, pullRequests, lastViewedTime) {
     });
 
     function updateCardVisibilityAndPersist() {
-        const selectedAuthors = authorSelect.options.length === 0 ? [] : getSelectedOptions(authorSelect);
-        const selectedLabels = labelSelect.options.length === 0 ? [] : getSelectedOptions(labelSelect);
-        const selectedRepos = repoSelect.options.length === 0 ? [] : getSelectedOptions(repoSelect);
-        // Persist selections
         chrome.storage.local.set({ [filterKey]: { authors: selectedAuthors, labels: selectedLabels, repos: selectedRepos } });
-        // Update card visibility
         pullRequests.forEach(pr => {
             const cardElem = listElem.querySelector(`.pr-card[data-pr-id="${pr.id}"]`);
             if (!cardElem) return;
@@ -173,7 +180,6 @@ async function setupTabFilters(tabKey, pullRequests, lastViewedTime) {
             } else if (pr.labels && Array.isArray(pr.labels.nodes)) {
                 prLabels = pr.labels.nodes.map(l => l.name);
             }
-            const state = pr.state;
             const repo = pr.repository && pr.repository.name;
             let hide = false;
             if (selectedAuthors.length > 0 && selectedAuthors.includes(author)) hide = true;
@@ -183,9 +189,18 @@ async function setupTabFilters(tabKey, pullRequests, lastViewedTime) {
         });
     }
 
-    authorSelect.addEventListener('change', updateCardVisibilityAndPersist);
-    labelSelect.addEventListener('change', updateCardVisibilityAndPersist);
-    repoSelect.addEventListener('change', updateCardVisibilityAndPersist);
+    // Render all custom multiselects
+    function renderAll() {
+        renderCustomMultiselect(authorDiv, authors, selectedAuthors, vals => { selectedAuthors = vals; renderAll(); updateCardVisibilityAndPersist(); });
+        renderCustomMultiselect(labelDiv, labels, selectedLabels, vals => { selectedLabels = vals; renderAll(); updateCardVisibilityAndPersist(); });
+        renderCustomMultiselect(repoDiv, repos, selectedRepos, vals => { selectedRepos = vals; renderAll(); updateCardVisibilityAndPersist(); });
+    }
+    renderAll();
+
+    // Clear buttons
+    authorDiv.parentElement.querySelector('.clear-filter-btn').onclick = () => { selectedAuthors = []; renderAll(); updateCardVisibilityAndPersist(); };
+    labelDiv.parentElement.querySelector('.clear-filter-btn').onclick = () => { selectedLabels = []; renderAll(); updateCardVisibilityAndPersist(); };
+    repoDiv.parentElement.querySelector('.clear-filter-btn').onclick = () => { selectedRepos = []; renderAll(); updateCardVisibilityAndPersist(); };
 
     // Initial visibility (after restoring selections)
     updateCardVisibilityAndPersist();
