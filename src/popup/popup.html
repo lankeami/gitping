@@ -123,10 +123,6 @@
                                 <select id="personal-label-filter" multiple class="filter-select"></select>
                             </div>
                             <div class="filter-group">
-                                <label for="personal-state-filter" class="filter-label">State</label>
-                                <select id="personal-state-filter" multiple class="filter-select"></select>
-                            </div>
-                            <div class="filter-group">
                                 <label for="personal-repo-filter" class="filter-label">Repository</label>
                                 <select id="personal-repo-filter" multiple class="filter-select"></select>
                             </div>
@@ -150,10 +146,6 @@
                             <div class="filter-group">
                                 <label for="mine-label-filter" class="filter-label">Labels</label>
                                 <select id="mine-label-filter" multiple class="filter-select"></select>
-                            </div>
-                            <div class="filter-group">
-                                <label for="mine-state-filter" class="filter-label">State</label>
-                                <select id="mine-state-filter" multiple class="filter-select"></select>
                             </div>
                             <div class="filter-group">
                                 <label for="mine-repo-filter" class="filter-label">Repository</label>
@@ -181,10 +173,6 @@
                                 <select id="team-label-filter" multiple class="filter-select"></select>
                             </div>
                             <div class="filter-group">
-                                <label for="team-state-filter" class="filter-label">State</label>
-                                <select id="team-state-filter" multiple class="filter-select"></select>
-                            </div>
-                            <div class="filter-group">
                                 <label for="team-repo-filter" class="filter-label">Repository</label>
                                 <select id="team-repo-filter" multiple class="filter-select"></select>
                             </div>
@@ -208,10 +196,6 @@
                             <div class="filter-group">
                                 <label for="mention-label-filter" class="filter-label">Labels</label>
                                 <select id="mention-label-filter" multiple class="filter-select"></select>
-                            </div>
-                            <div class="filter-group">
-                                <label for="mention-state-filter" class="filter-label">State</label>
-                                <select id="mention-state-filter" multiple class="filter-select"></select>
                             </div>
                             <div class="filter-group">
                                 <label for="mention-repo-filter" class="filter-label">Repository</label>
@@ -239,10 +223,6 @@
                                 <select id="issues-label-filter" multiple class="filter-select"></select>
                             </div>
                             <div class="filter-group">
-                                <label for="issues-state-filter" class="filter-label">State</label>
-                                <select id="issues-state-filter" multiple class="filter-select"></select>
-                            </div>
-                            <div class="filter-group">
                                 <label for="issues-repo-filter" class="filter-label">Repository</label>
                                 <select id="issues-repo-filter" multiple class="filter-select"></select>
                             </div>
@@ -256,6 +236,7 @@
         }
         .accordion-toggle {
             background: #f5f5f5;
+            color: #0080ff;
             border: 1px solid #ccc;
             border-radius: 4px;
             padding: 6px 16px;
@@ -270,7 +251,7 @@
             background: #e0e0e0;
         }
         .filter-form-container {
-            background: #fafbfc;
+            background: #dfedfb;
             border: 1px solid #e1e4e8;
             border-top: none;
             border-radius: 0 0 4px 4px;
@@ -278,7 +259,7 @@
         }
         .filter-form {
             display: flex;
-            gap: 24px;
+            gap: 10px;
             flex-wrap: wrap;
         }
         .filter-group {
