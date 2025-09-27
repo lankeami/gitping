@@ -13,6 +13,18 @@ function extractUniqueRepos(pullRequests) {
     });
     return Array.from(repos).sort();
 }
+
+function extractUniqueOrgs(pullRequests) {
+    const orgs = new Set();
+    pullRequests.forEach(pr => {
+        if (pr.repository && pr.repository.owner && pr.repository.owner.login) {
+            orgs.add(pr.repository.owner.login);
+        } else if (pr.org) {
+            orgs.add(pr.org);
+        }
+    });
+    return Array.from(orgs).sort();
+}
 // --- DYNAMIC HEIGHT LOGIC (moved from inline script for CSP) ---
 function setPopupContainerHeight() {
     const iconContainer = document.getElementById('icon-container');
@@ -125,24 +137,28 @@ function filterPRsByAuthorAndLabel(prs, selectedAuthors, selectedLabels) {
 }
 
 async function setupTabFilters(tabKey, pullRequests, lastViewedTime) {
+    const orgDiv = document.getElementById(`${tabKey}-org-filter`);
     const authorDiv = document.getElementById(`${tabKey}-author-filter`);
     const labelDiv = document.getElementById(`${tabKey}-label-filter`);
     const repoDiv = document.getElementById(`${tabKey}-repo-filter`);
     const listElem = document.getElementById(`${tabKey}-pull-requests-list`);
-    if (!authorDiv || !labelDiv || !repoDiv || !listElem) return;
+    if (!orgDiv || !authorDiv || !labelDiv || !repoDiv || !listElem) return;
 
+    const orgs = extractUniqueOrgs(pullRequests);
     const authors = extractUniqueAuthors(pullRequests);
     const labels = extractUniqueLabels(pullRequests);
     const repos = extractUniqueRepos(pullRequests);
 
     // Restore filter selections from storage
     const filterKey = `filterSelections_${tabKey}`;
+    let restoredOrgs = [];
     let restoredAuthors = [];
     let restoredLabels = [];
     let restoredRepos = [];
     await new Promise(resolve => {
         chrome.storage.local.get([filterKey], result => {
             if (result[filterKey]) {
+                restoredOrgs = result[filterKey].orgs || [];
                 restoredAuthors = result[filterKey].authors || [];
                 restoredLabels = result[filterKey].labels || [];
                 restoredRepos = result[filterKey].repos || [];
@@ -152,6 +168,7 @@ async function setupTabFilters(tabKey, pullRequests, lastViewedTime) {
     });
 
     // State for selected values
+    let selectedOrgs = [...restoredOrgs];
     let selectedAuthors = [...restoredAuthors];
     let selectedLabels = [...restoredLabels];
     let selectedRepos = [...restoredRepos];
@@ -169,10 +186,11 @@ async function setupTabFilters(tabKey, pullRequests, lastViewedTime) {
     });
 
     function updateCardVisibilityAndPersist() {
-        chrome.storage.local.set({ [filterKey]: { authors: selectedAuthors, labels: selectedLabels, repos: selectedRepos } });
+        chrome.storage.local.set({ [filterKey]: { orgs: selectedOrgs, authors: selectedAuthors, labels: selectedLabels, repos: selectedRepos } });
         pullRequests.forEach(pr => {
             const cardElem = listElem.querySelector(`.pr-card[data-pr-id="${pr.id}"]`);
             if (!cardElem) return;
+            const org = pr.repository?.owner?.login || pr.org;
             const author = pr.author?.login || pr.user?.login;
             let prLabels = [];
             if (Array.isArray(pr.labels)) {
@@ -182,6 +200,7 @@ async function setupTabFilters(tabKey, pullRequests, lastViewedTime) {
             }
             const repo = pr.repository && pr.repository.name;
             let hide = false;
+            if (selectedOrgs.length > 0 && selectedOrgs.includes(org)) hide = true;
             if (selectedAuthors.length > 0 && selectedAuthors.includes(author)) hide = true;
             if (selectedLabels.length > 0 && prLabels.some(label => selectedLabels.includes(label))) hide = true;
             if (selectedRepos.length > 0 && selectedRepos.includes(repo)) hide = true;
@@ -191,6 +210,7 @@ async function setupTabFilters(tabKey, pullRequests, lastViewedTime) {
 
     // Render all custom multiselects
     function renderAll() {
+        renderCustomMultiselect(orgDiv, orgs, selectedOrgs, vals => { selectedOrgs = vals; renderAll(); updateCardVisibilityAndPersist(); });
         renderCustomMultiselect(authorDiv, authors, selectedAuthors, vals => { selectedAuthors = vals; renderAll(); updateCardVisibilityAndPersist(); });
         renderCustomMultiselect(labelDiv, labels, selectedLabels, vals => { selectedLabels = vals; renderAll(); updateCardVisibilityAndPersist(); });
         renderCustomMultiselect(repoDiv, repos, selectedRepos, vals => { selectedRepos = vals; renderAll(); updateCardVisibilityAndPersist(); });
@@ -198,6 +218,7 @@ async function setupTabFilters(tabKey, pullRequests, lastViewedTime) {
     renderAll();
 
     // Clear buttons
+    orgDiv.parentElement.querySelector('.clear-filter-btn').onclick = () => { selectedOrgs = []; renderAll(); updateCardVisibilityAndPersist(); };
     authorDiv.parentElement.querySelector('.clear-filter-btn').onclick = () => { selectedAuthors = []; renderAll(); updateCardVisibilityAndPersist(); };
     labelDiv.parentElement.querySelector('.clear-filter-btn').onclick = () => { selectedLabels = []; renderAll(); updateCardVisibilityAndPersist(); };
     repoDiv.parentElement.querySelector('.clear-filter-btn').onclick = () => { selectedRepos = []; renderAll(); updateCardVisibilityAndPersist(); };
