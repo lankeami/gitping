@@ -530,10 +530,8 @@ export function displayBadgeCount(prefix, pullRequests, lastViewedTime=null) {
     const listElem = document.getElementById(`${prefix}-pull-requests-list`);
     let visibleCount = 0;
     if (listElem) {
-        const cards = listElem.querySelectorAll('.pr-card');
-        cards.forEach(card => {
-            if (!card.classList.contains('hidden')) visibleCount++;
-        });
+        const visibleCards = listElem.querySelectorAll('.pr-card:not(.hidden)');
+        visibleCount = visibleCards.length;
     }
     const badgeText = visibleCount > 0 ? visibleCount : '';
 
