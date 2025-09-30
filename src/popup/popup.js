@@ -185,6 +185,15 @@ async function setupTabFilters(tabKey, pullRequests, lastViewedTime) {
         }
     });
 
+    function updateFilterCountBadge() {
+        const badge = document.getElementById(`${tabKey}-filter-count`);
+        const count = selectedOrgs.length + selectedAuthors.length + selectedLabels.length + selectedRepos.length;
+        if (badge) {
+            badge.textContent = count > 0 ? count : '';
+            badge.style.display = count > 0 ? 'inline-block' : 'none';
+        }
+    }
+
     function updateCardVisibilityAndPersist() {
         chrome.storage.local.set({ [filterKey]: { orgs: selectedOrgs, authors: selectedAuthors, labels: selectedLabels, repos: selectedRepos } });
         pullRequests.forEach(pr => {
@@ -206,6 +215,7 @@ async function setupTabFilters(tabKey, pullRequests, lastViewedTime) {
             if (selectedRepos.length > 0 && selectedRepos.includes(repo)) hide = true;
             cardElem.classList.toggle('hidden', hide);
         });
+        updateFilterCountBadge();
     }
 
     // Render all custom multiselects
@@ -214,6 +224,7 @@ async function setupTabFilters(tabKey, pullRequests, lastViewedTime) {
         renderCustomMultiselect(authorDiv, authors, selectedAuthors, vals => { selectedAuthors = vals; renderAll(); updateCardVisibilityAndPersist(); });
         renderCustomMultiselect(labelDiv, labels, selectedLabels, vals => { selectedLabels = vals; renderAll(); updateCardVisibilityAndPersist(); });
         renderCustomMultiselect(repoDiv, repos, selectedRepos, vals => { selectedRepos = vals; renderAll(); updateCardVisibilityAndPersist(); });
+        updateFilterCountBadge();
     }
     renderAll();
 
