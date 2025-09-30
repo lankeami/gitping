@@ -526,8 +526,16 @@ export function displayBadgeCount(prefix, pullRequests, lastViewedTime=null) {
     if (!Array.isArray(pullRequests)) {
         return;
     }
-    const pullRequestCount = pullRequests.length;
-    const badgeText = pullRequestCount > 0 ? pullRequestCount : '';
+    // Count only visible cards in the tab's list
+    const listElem = document.getElementById(`${prefix}-pull-requests-list`);
+    let visibleCount = 0;
+    if (listElem) {
+        const cards = listElem.querySelectorAll('.pr-card');
+        cards.forEach(card => {
+            if (!card.classList.contains('hidden')) visibleCount++;
+        });
+    }
+    const badgeText = visibleCount > 0 ? visibleCount : '';
 
     // create a boolean if pullRequests have updated after lastViewedTime
     // Highlight the updatedAt text if it is greater than lastViewedTime
