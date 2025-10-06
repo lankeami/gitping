@@ -1,4 +1,5 @@
 import { getAppVersion, setAppVersion, getAuthToken, getUsername, updateExtensionBadge, getPersonalReviewRequests, getLastUpdateTime, getMentions, getMinePullRequests, getStoredPullRequests, setLastUpdateTime, setLastError, getPollingInterval, getLastViewedTime, pruneLocalStorage } from '../shared/storageUtils.js';
+import { setLastPushNotificationDate, getLastPushNotificationDate, triggerPushNotification } from '../shared/storageUtils.js';
 import { fetchAndFilterPullRequests } from '../shared/githubApi.js';
 
 /**
@@ -111,6 +112,8 @@ async function checkForUpdates() {
 // Create an alarm to trigger periodic updates
 const pollingInterval = 5;
 const purgeLocalStorageInterval = (60 * 24); // set to 1 day
+const dailyLoginNotificationInterval = 1440; // 1 day in minutes
+chrome.alarms.create('dailyLoginNotification', { periodInMinutes: dailyLoginNotificationInterval, delayInMinutes: 0 });
 chrome.alarms.create('checkForUpdates', { periodInMinutes: pollingInterval, delayInMinutes: 0 });
 chrome.alarms.create('pruneLocalStorage', {periodInMinutes: purgeLocalStorageInterval, delayInMinutes: 0})
 
@@ -123,4 +126,32 @@ chrome.alarms.onAlarm.addListener((alarm) => {
     if (alarm.name === 'pruneLocalStorage') {
         pruneLocalStorage();
     }
+
+    if (alarm.name === 'dailyLoginNotification') {
+        sendDailyLoginNotificationIfNeeded();
+    }
 });
+
+/**
+ * Checks if user is not logged in and sends a daily push notification encouraging login.
+ */
+async function sendDailyLoginNotificationIfNeeded() {
+    console.log("Sending daily login notification to user to encourage login.");
+    const token = await getAuthToken();
+    if (!token && await shouldSendPushNotification()) {
+        triggerPushNotification('Log in to GitPing to become a more efficient developer. Get real-time updates on reviews and issues.');
+        await setLastPushNotificationDate(Date.now());
+    }
+}
+
+/**
+ * Check if a push notification should be sent (once per day).
+ * @returns {Promise<boolean>} - True if notification should be sent.
+ */
+async function shouldSendPushNotification() {
+    const lastDate = await getLastPushNotificationDate();
+    if (!lastDate) return true;
+    const now = Date.now();
+    // dailyLoginNotificationInterval is in minutes, convert to ms
+    return (now - lastDate) > dailyLoginNotificationInterval * 60 * 1000;
+}

@@ -38,6 +38,31 @@ export async function getGitHubApiBaseUrl() {
  * Retrieve the polling interval from chrome.storage.local.
  * @returns {Promise<number>} - The polling interval in milliseconds.
  */
+/**
+ * Get the last push notification date from chrome.storage.local.
+ * @returns {Promise<number>} - The timestamp of the last notification (ms since epoch).
+ */
+export async function getLastPushNotificationDate() {
+    return new Promise((resolve) => {
+        chrome.storage.local.get(['lastPushNotificationDate'], (result) => {
+            resolve(result.lastPushNotificationDate);
+        });
+    });
+}
+
+/**
+ * Set the last push notification date in chrome.storage.local.
+ * @param {number} timestamp - The timestamp to set (ms since epoch).
+ * @returns {Promise<void>}
+ */
+export async function setLastPushNotificationDate(timestamp) {
+    return new Promise((resolve) => {
+        chrome.storage.local.set({ lastPushNotificationDate: timestamp }, () => {
+            resolve();
+        });
+    });
+}
+
 export async function getPollingInterval() {
     return new Promise((resolve) => {
         chrome.storage.local.get(['pollingInterval'], (result) => {
@@ -433,7 +458,7 @@ export async function removeWatchedPullRequest(id) {
 // PUSH NOTIFICATIONS
 //
 
-function triggerPushNotification(msg) {
+export function triggerPushNotification(msg) {
     const notificationOptions = {
         type: 'basic',
         iconUrl: '/icons/icon48.png', // Replace with the path to your extension's icon
