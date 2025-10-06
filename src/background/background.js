@@ -112,7 +112,7 @@ async function checkForUpdates() {
 // Create an alarm to trigger periodic updates
 const pollingInterval = 5;
 const purgeLocalStorageInterval = (60 * 24); // set to 1 day
-const dailyLoginNotificationInterval = 1440; // 1 day in minutes
+const dailyLoginNotificationInterval = (60 * 24); // set to 1 day
 chrome.alarms.create('dailyLoginNotification', { periodInMinutes: dailyLoginNotificationInterval, delayInMinutes: 0 });
 chrome.alarms.create('checkForUpdates', { periodInMinutes: pollingInterval, delayInMinutes: 0 });
 chrome.alarms.create('pruneLocalStorage', {periodInMinutes: purgeLocalStorageInterval, delayInMinutes: 0})
