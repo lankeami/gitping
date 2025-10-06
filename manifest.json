@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "GitPing: GitHub Notifications for Issues & PRs",
-  "version": "1.4.4",
+  "version": "1.4.5",
   "description": "Never miss a GitHub update! Get real-time notifications for Issues, Pull Requests, and review requests. 🚀",
   "permissions": [
     "storage",

@@ -109,6 +109,8 @@
     transition: box-shadow 0.2s ease;
     width: 310px; /* Make the card span the full width */
     box-sizing: border-box; /* Include padding and border in width */
+    word-break: break-word; /* Wrap long text */
+    overflow-wrap: anywhere;
 }
 .pr-card:hover {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
@@ -145,7 +147,8 @@ body {
     padding-left: 2px;
     padding-right: 5px;
     box-sizing: border-box; /* Include padding and border in the width */
-    overflow: hidden; /* Prevent the entire popup from scrolling */
+    overflow-x: hidden; /* Hide horizontal scrollbar */
+    overflow-y: auto;
 }
 
 .icon-container {
@@ -180,6 +183,14 @@ body {
     margin: 0;
     font-size: 18px;
     color: #333;
+}
+
+#footnote-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    margin-top: 8px;
 }
 
 .footnote {
@@ -266,10 +277,10 @@ body {
 /* tab structure for different pages of pull requests */
 #popup-container {
     display: flex;
-    height: 100%;
     width: 100%;
-    overflow-y: auto; /* Enable vertical scrolling */
-    overflow-x: hidden; /* Prevent horizontal scrolling */
+    /* Remove height and overflow so only body scrolls */
+    height: 515px;
+    overflow-x: hidden; /* Hide horizontal scrollbar */
 }
 
 #tabs {
@@ -452,4 +463,57 @@ h2 {
 }
 .review-toast.hidden {
     display: none;
+}
+
+.filter-accordion {
+    margin-bottom: 10px;
+    margin-top: 10px;
+}
+.accordion-toggle {
+    background: #f5f5f5;
+    color: #0080ff;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 6px 16px;
+    font-size: 14px;
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+    margin-bottom: 0;
+    transition: background 0.2s;
+}
+.accordion-toggle[aria-expanded="true"] {
+    background: #e0e0e0;
+}
+.filter-form-container {
+    background: #dfedfb;
+    border: 1px solid #e1e4e8;
+    border-top: none;
+    border-radius: 0 0 4px 4px;
+    padding: 12px 8px 8px 8px;
+}
+.filter-form {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 5px;
+}
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    min-width: 180px;
+    flex: 1 1 220px;
+}
+.filter-label {
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+.filter-select {
+    min-width: 220px;
+    max-width: 320px;
+    padding: 6px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    font-size: 14px;
 }
