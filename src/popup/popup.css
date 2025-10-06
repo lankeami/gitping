@@ -147,8 +147,7 @@ body {
     padding-left: 2px;
     padding-right: 5px;
     box-sizing: border-box; /* Include padding and border in the width */
-    overflow-x: hidden; /* Hide horizontal scrollbar */
-    overflow-y: auto;
+        overflow: hidden;
 }
 
 .icon-container {
@@ -215,7 +214,15 @@ body {
     border: 1px solid #ccc;
     border-radius: 4px;
 }
-
+    .content {
+        padding: 16px;
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        margin-bottom: 16px;
+        max-height: 100%;
+        overflow-y: auto;
+    }
 #login-button {
     padding: 10px;
     font-size: 14px;
