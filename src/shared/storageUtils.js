@@ -144,6 +144,7 @@ export async function getFirstUpdateTime() {
  * The time is formatted as a locale string.
  */
 export async function setLastViewedTime() {
+    console.log('Popup hidden, setting last viewed time');
     const lastViewedTime = new Date().toLocaleString();
 
     return new Promise((resolve) => {
