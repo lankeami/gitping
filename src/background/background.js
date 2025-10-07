@@ -1,5 +1,5 @@
 import { getAppVersion, setAppVersion, getAuthToken, getUsername, updateExtensionBadge, getPersonalReviewRequests, getLastUpdateTime, getMentions, getMinePullRequests, getStoredPullRequests, setLastUpdateTime, setLastError, getPollingInterval, getLastViewedTime, pruneLocalStorage } from '../shared/storageUtils.js';
-import { setLastPushNotificationDate, getLastPushNotificationDate, triggerPushNotification } from '../shared/storageUtils.js';
+import { setLastPushNotificationDate, getLastPushNotificationDate, triggerPushNotification, setLastViewedTime } from '../shared/storageUtils.js';
 import { fetchAndFilterPullRequests } from '../shared/githubApi.js';
 
 /**
@@ -129,6 +129,11 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 
     if (alarm.name === 'dailyLoginNotification') {
         sendDailyLoginNotificationIfNeeded();
+    }
+
+    if (alarm.name === 'updateLastViewedTime') {
+        // update the last viewed time to now
+        setLastViewedTime();
     }
 });
 

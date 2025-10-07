@@ -584,6 +584,10 @@ document.addEventListener('DOMContentLoaded', function () {
         if (document.visibilityState === 'hidden') {
             setLastViewedTime();
         }
+
+        if (document.visibilityState === 'visible') {
+            chrome.alarms.create('updateLastViewedTime',{delayInMinutes: 0.2});
+        }
     });
 
     async function showReviewToast() {
