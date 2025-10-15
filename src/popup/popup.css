@@ -524,3 +524,12 @@ h2 {
     border: 1px solid #ccc;
     font-size: 14px;
 }
+.filter-input {
+    width: calc(100% - 7px); /* Adjust width to account for the extra space */
+    padding: 8px;
+    font-size: 14px;
+    font-family: system-ui, sans-serif; /* Set font-family to system-ui, sans-serif */
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
