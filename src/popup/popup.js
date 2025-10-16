@@ -212,7 +212,7 @@ async function setupTabFilters(tabKey, pullRequests, lastViewedTime) {
                 prLabels = pr.labels.nodes.map(l => l.name);
             }
             const repo = pr.repository && pr.repository.name;
-            const updatedAtRaw = pr.card.updated_at || pr.last_updated || null; // Check multiple fields for updated_at
+            const updatedAtRaw = pr.card?.updated_at || pr.last_updated || null; // Check multiple fields for updated_at
             const updatedAt = updatedAtRaw ? new Date(updatedAtRaw) : null; // Ensure updated_at is valid
             let hide = false;
             if (selectedOrgs.length > 0 && selectedOrgs.includes(org)) hide = true;
@@ -241,7 +241,6 @@ async function setupTabFilters(tabKey, pullRequests, lastViewedTime) {
         dateInput.className = 'filter-input'; // Add class for consistent styling
         dateInput.addEventListener('change', e => {
             selectedDate = e.target.value;
-            renderAll();
             updateCardVisibilityAndPersist();
         });
         dateDiv.appendChild(dateInput);
