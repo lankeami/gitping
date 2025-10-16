@@ -141,8 +141,9 @@ async function setupTabFilters(tabKey, pullRequests, lastViewedTime) {
     const authorDiv = document.getElementById(`${tabKey}-author-filter`);
     const labelDiv = document.getElementById(`${tabKey}-label-filter`);
     const repoDiv = document.getElementById(`${tabKey}-repo-filter`);
+    const dateDiv = document.getElementById(`${tabKey}-date-filter`); // Add date filter container
     const listElem = document.getElementById(`${tabKey}-pull-requests-list`);
-    if (!orgDiv || !authorDiv || !labelDiv || !repoDiv || !listElem) return;
+    if (!orgDiv || !authorDiv || !labelDiv || !repoDiv || !dateDiv || !listElem) return;
 
     const orgs = extractUniqueOrgs(pullRequests);
     const authors = extractUniqueAuthors(pullRequests);
@@ -155,6 +156,7 @@ async function setupTabFilters(tabKey, pullRequests, lastViewedTime) {
     let restoredAuthors = [];
     let restoredLabels = [];
     let restoredRepos = [];
+    let restoredDate = null; // Add restored date
     await new Promise(resolve => {
         chrome.storage.local.get([filterKey], result => {
             if (result[filterKey]) {
@@ -162,6 +164,7 @@ async function setupTabFilters(tabKey, pullRequests, lastViewedTime) {
                 restoredAuthors = result[filterKey].authors || [];
                 restoredLabels = result[filterKey].labels || [];
                 restoredRepos = result[filterKey].repos || [];
+                restoredDate = result[filterKey].date || null; // Restore date
             }
             resolve();
         });
@@ -172,6 +175,7 @@ async function setupTabFilters(tabKey, pullRequests, lastViewedTime) {
     let selectedAuthors = [...restoredAuthors];
     let selectedLabels = [...restoredLabels];
     let selectedRepos = [...restoredRepos];
+    let selectedDate = restoredDate; // Initialize selected date
 
     // Render all cards at once using displayPullRequestsCards (ensures all data is present)
     await displayPullRequestsCards(pullRequests, listElem, lastViewedTime, tabKey);
@@ -187,7 +191,7 @@ async function setupTabFilters(tabKey, pullRequests, lastViewedTime) {
 
     function updateFilterCountBadge() {
         const badge = document.getElementById(`${tabKey}-filter-count`);
-        const count = selectedOrgs.length + selectedAuthors.length + selectedLabels.length + selectedRepos.length;
+        const count = selectedOrgs.length + selectedAuthors.length + selectedLabels.length + selectedRepos.length + (selectedDate ? 1 : 0);
         if (badge) {
             badge.textContent = count > 0 ? count : '';
             badge.style.display = count > 0 ? 'inline-block' : 'none';
@@ -195,7 +199,7 @@ async function setupTabFilters(tabKey, pullRequests, lastViewedTime) {
     }
 
     function updateCardVisibilityAndPersist() {
-        chrome.storage.local.set({ [filterKey]: { orgs: selectedOrgs, authors: selectedAuthors, labels: selectedLabels, repos: selectedRepos } });
+        chrome.storage.local.set({ [filterKey]: { orgs: selectedOrgs, authors: selectedAuthors, labels: selectedLabels, repos: selectedRepos, date: selectedDate } });
         pullRequests.forEach(pr => {
             const cardElem = listElem.querySelector(`.pr-card[data-pr-id="${pr.id}"]`);
             if (!cardElem) return;
@@ -208,11 +212,15 @@ async function setupTabFilters(tabKey, pullRequests, lastViewedTime) {
                 prLabels = pr.labels.nodes.map(l => l.name);
             }
             const repo = pr.repository && pr.repository.name;
+            const updatedAtRaw = pr.card?.updated_at || pr.last_updated || null; // Check multiple fields for updated_at
+            const updatedAt = updatedAtRaw ? new Date(updatedAtRaw) : null; // Ensure updated_at is valid
             let hide = false;
             if (selectedOrgs.length > 0 && selectedOrgs.includes(org)) hide = true;
             if (selectedAuthors.length > 0 && selectedAuthors.includes(author)) hide = true;
             if (selectedLabels.length > 0 && prLabels.some(label => selectedLabels.includes(label))) hide = true;
             if (selectedRepos.length > 0 && selectedRepos.includes(repo)) hide = true;
+            if (selectedDate && updatedAt && updatedAt < new Date(selectedDate)) hide = true; // Hide if updated_at is less than the selected date
+
             cardElem.classList.toggle('hidden', hide);
         });
         updateFilterCountBadge();
@@ -224,6 +232,19 @@ async function setupTabFilters(tabKey, pullRequests, lastViewedTime) {
         renderCustomMultiselect(authorDiv, authors, selectedAuthors, vals => { selectedAuthors = vals; renderAll(); updateCardVisibilityAndPersist(); });
         renderCustomMultiselect(labelDiv, labels, selectedLabels, vals => { selectedLabels = vals; renderAll(); updateCardVisibilityAndPersist(); });
         renderCustomMultiselect(repoDiv, repos, selectedRepos, vals => { selectedRepos = vals; renderAll(); updateCardVisibilityAndPersist(); });
+
+        // Render date picker
+        dateDiv.innerHTML = '';
+        const dateInput = document.createElement('input');
+        dateInput.type = 'date';
+        dateInput.value = selectedDate || '';
+        dateInput.className = 'filter-input'; // Add class for consistent styling
+        dateInput.addEventListener('change', e => {
+            selectedDate = e.target.value;
+            updateCardVisibilityAndPersist();
+        });
+        dateDiv.appendChild(dateInput);
+
         updateFilterCountBadge();
     }
     renderAll();
@@ -233,6 +254,7 @@ async function setupTabFilters(tabKey, pullRequests, lastViewedTime) {
     authorDiv.parentElement.querySelector('.clear-filter-btn').onclick = () => { selectedAuthors = []; renderAll(); updateCardVisibilityAndPersist(); };
     labelDiv.parentElement.querySelector('.clear-filter-btn').onclick = () => { selectedLabels = []; renderAll(); updateCardVisibilityAndPersist(); };
     repoDiv.parentElement.querySelector('.clear-filter-btn').onclick = () => { selectedRepos = []; renderAll(); updateCardVisibilityAndPersist(); };
+    dateDiv.parentElement.querySelector('.clear-filter-btn').onclick = () => { selectedDate = null; renderAll(); updateCardVisibilityAndPersist(); }; // Clear date filter
 
     // Initial visibility (after restoring selections)
     updateCardVisibilityAndPersist();
@@ -377,63 +399,65 @@ document.addEventListener('DOMContentLoaded', function () {
      * Fetch and display all pull requests
      * @param {object} overridePRs 
      */
-    async function updateDisplays(overridePRs=null) {
+    async function updateDisplays(overridePRs = null) {
         const token = await getAuthToken();
         const username = await getUsername();
         const lastUpdateTime = await getLastUpdateTime();
         const lastViewedTime = await getLastViewedTime();
 
-        var pullRequests = null;
+        let pullRequests = null;
 
-        if (token && username) {
-            if (overridePRs) {
-                pullRequests = overridePRs;
-                if(!getFirstUpdateTime()) {
+        try {
+            if (token && username) {
+                if (overridePRs) {
+                    pullRequests = overridePRs;
+                    if (!getFirstUpdateTime()) {
+                        return;
+                    }
+                } else {
+                    lastUpdateTimeElement.textContent = "Fetching latest pull requests.";
+
+                    // NOTE: we can't fetch GitHub APIs in the main thread, it leads to CORS issues
+                    // so we use a background script to run in the service worker
+                    chrome.alarms.create('popupCheckForUpdates', { delayInMinutes: 0 });
                     return;
                 }
-            } else {
-                lastUpdateTimeElement.textContent = "Fetching latest pull requests.";
-                
-                // NOTE: we can't fetch GitHub APIs in the main thread, it leads to CORS issues
-                // so we use a background script to run in the service worker
-                chrome.alarms.create('popupCheckForUpdates',{delayInMinutes: 0});
-                return;
-            }
 
-            // TODO: hard coded Tab names / stored pull requests -- make them configurable
-            const config = {
-                personal: pullRequests.personalPullRequests || pullRequests.personal,
-                mine: pullRequests.minePullRequests         || pullRequests.mine,
-                team: pullRequests.teamPullRequests         || pullRequests.team,
-                mention: pullRequests.mentionsPullRequests  || pullRequests.mentions,
-                issues: pullRequests.issuesPullRequests     || pullRequests.issues,
-                watched: pullRequests.watchedPullRequests   || pullRequests.watched
-            }
+                // TODO: hard coded Tab names / stored pull requests -- make them configurable
+                const config = {
+                    personal: pullRequests.personalPullRequests || pullRequests.personal,
+                    mine: pullRequests.minePullRequests || pullRequests.mine,
+                    team: pullRequests.teamPullRequests || pullRequests.team,
+                    mention: pullRequests.mentionsPullRequests || pullRequests.mentions,
+                    issues: pullRequests.issuesPullRequests || pullRequests.issues,
+                    watched: pullRequests.watchedPullRequests || pullRequests.watched,
+                };
 
-            // set all displays
-            Object.keys(config).forEach(element => {
-                var pullRequests = config[element];
-                var listElement = document.getElementById(`${element}-pull-requests-list`);
-                let key = element == 'mention' ? 'mentions' : element;
-                chrome.storage.local.set({ [`${key}PullRequests`]: pullRequests }, async function () {
-                    // Setup filters for tabs with filter forms
-                    if (TAB_KEYS.includes(element)) {
-                        setupTabFilters(element, pullRequests, lastViewedTime);
-                    } else if (listElement) {
-                        // Fallback: just display cards
-                        await displayPullRequestsCards(pullRequests, listElement, lastViewedTime, element);
-                    }
-                    displayBadgeCount(element, pullRequests, lastViewedTime);
+                // Set all displays
+                Object.keys(config).forEach((element) => {
+                    const pullRequests = config[element];
+                    const listElement = document.getElementById(`${element}-pull-requests-list`);
+                    const key = element === 'mention' ? 'mentions' : element;
+                    chrome.storage.local.set({ [`${key}PullRequests`]: pullRequests }, async function () {
+                        // Setup filters for tabs with filter forms
+                        if (TAB_KEYS.includes(element)) {
+                            setupTabFilters(element, pullRequests, lastViewedTime);
+                        } else if (listElement) {
+                            // Fallback: just display cards
+                            await displayPullRequestsCards(pullRequests, listElement, lastViewedTime, element);
+                        }
+                        displayBadgeCount(element, pullRequests, lastViewedTime);
+                    });
                 });
-            });
 
-            if(lastViewedTime) {
-                await showReviewToast();
+                if (lastViewedTime) {
+                    await showReviewToast();
+                }
+
+                setLastUpdateTime();
+                setLastError();
             }
-
-            setLastUpdateTime();
-            setLastError();
-        } else {
+        } catch (error) {
             setLastError("Error updating displays", error.message);
         }
     }
