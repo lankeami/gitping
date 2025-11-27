@@ -65,6 +65,9 @@ function getPrSchema() {
                 nodes {
                     commit {
                         message
+                        messageHeadline
+                        messageBody
+                        messageBodyHTML
                         committedDate
                         author {
                             user {
@@ -75,16 +78,45 @@ function getPrSchema() {
                     }
                 }
             }
+
             comments(last: 1) {
                 nodes {
                     body
                     bodyHTML
+                    bodyText
                     author {
                         login
                         avatarUrl
                     }
                     createdAt
                     url
+                }
+            }
+
+            reviews(last: 10) {
+                nodes {
+                    state
+                    author {
+                        login
+                        avatarUrl
+                    }
+                    body
+                    bodyHTML
+                    bodyText
+                    createdAt
+                    comments(last: 10) {
+                        nodes {
+                            body
+                            bodyHTML
+                            bodyText
+                            createdAt
+                            url
+                            author {
+                                login
+                                avatarUrl
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -134,6 +166,7 @@ function getIssueSchema() {
                 nodes {
                     body
                     bodyHTML
+                    bodyText
                     author {
                         login
                         avatarUrl
@@ -249,6 +282,29 @@ query GetPullRequestDetails($owner: String!, $repo: String!, $pullNumber: Int!) 
             login
             avatarUrl
           }
+        }
+      }
+
+      reviews(last: 10) {
+        nodes {
+            state
+            author {
+                login
+                avatarUrl
+            }
+            body
+            createdAt
+            comments(last: 10) {
+                nodes {
+                    body
+                    createdAt
+                    url
+                    author {
+                        login
+                        avatarUrl
+                    }
+                }
+            }
         }
       }
     }

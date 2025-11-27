@@ -377,25 +377,48 @@ function getLatestComment(issue) {
     }, null);
 }
 
+function getLatestReview(issue) {
+    if (!issue || !issue.reviews || !issue.reviews.nodes) {
+        return null;
+    }
+    // Find the latest review by comparing created dates
+    return issue.reviews.nodes.reduce((latest, review) => {
+        if (!latest || new Date(review.createdAt) > new Date(latest.createdAt)) {
+            return review;
+        }
+        return latest;
+    }, null);
+}
+
 /**
  * Given a Commit object and a Comment object, return the object with latest date
  * @param {Object} commit - The Commit object.
  * @param {Object} comment - The Comment object.
  * @returns {Object} - The object with the latest date.
  */
-function getLatestObject(commit, comment) {
-    if (!commit && !comment) {
+function getLatestObject(commit, comment, review) {
+    if (!commit && !comment && !review) {
         return null;
     }
-    if (!commit) {
-        return comment;
+
+    // take the maximum of these three dates
+    const commitDate = commit ? new Date(commit.commit.committedDate) : null;
+    const commentDate = comment ? new Date(comment.createdAt) : null;
+    const reviewDate = review ? new Date(review.createdAt) : null;
+    let latestDate = commitDate;
+    let latestObject = commit;
+
+    if (commentDate && (!latestDate || commentDate > latestDate)) {
+        latestDate = commentDate;
+        latestObject = comment;
     }
-    if (!comment) {
-        return commit;
+
+    if (reviewDate && (!latestDate || reviewDate > latestDate)) {
+        latestDate = reviewDate;
+        latestObject = review;
     }
-    const commitDate = new Date(commit.committedDate);
-    const commentDate = new Date(comment.createdAt);
-    return commitDate > commentDate ? commit : comment;
+
+    return latestObject;
 }
 
 function enrichIssue(issue, gitpingType="") {
@@ -424,11 +447,14 @@ function enrichIssue(issue, gitpingType="") {
     // build "latest" object from commits and comments objects by choosing the most recent created_at date
     const latestCommit = getLatestCommit(issue);
     const latestComment = getLatestComment(issue);
-    const latestObject = getLatestObject(latestCommit, latestComment);
+    const latestReview = getLatestReview(issue);
+    const latestObject = getLatestObject(latestCommit, latestComment, latestReview);
+
     meta.latest_message = {
-        message: latestObject?.commit?.message || latestObject?.body || '',
-        committedDate: latestObject?.committedDate || latestObject?.createdAt || '',
+        message: latestObject?.commit?.message || latestObject?.bodyText || latestObject?.state || '',
+        committedDate: latestObject?.commit?.committedDate || latestObject?.createdAt || '',
         author: latestObject?.commit?.author?.user || latestObject?.author || {},
+        message_html: latestObject?.commit?.message || latestObject?.bodyHTML || ''
     };
 
     // owner and repo name from url
