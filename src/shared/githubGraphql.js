@@ -93,7 +93,7 @@ function getPrSchema() {
                 }
             }
 
-            reviews(last: 10) {
+            reviews(last: 15) {
                 nodes {
                     state
                     author {
@@ -104,19 +104,6 @@ function getPrSchema() {
                     bodyHTML
                     bodyText
                     createdAt
-                    comments(last: 10) {
-                        nodes {
-                            body
-                            bodyHTML
-                            bodyText
-                            createdAt
-                            url
-                            author {
-                                login
-                                avatarUrl
-                            }
-                        }
-                    }
                 }
             }
         }
@@ -260,6 +247,9 @@ query GetPullRequestDetails($owner: String!, $repo: String!, $pullNumber: Int!) 
         nodes {
           commit {
             message
+            messageHeadline
+            messageBody
+            messageBodyHTML
             committedDate
             author {
               user {
@@ -273,19 +263,20 @@ query GetPullRequestDetails($owner: String!, $repo: String!, $pullNumber: Int!) 
 
       # --- Last Comment Details ---
       comments(last: 1) {
-        nodes {
-          body
-          bodyHTML
-          createdAt
-          url
-          author {
-            login
-            avatarUrl
-          }
-        }
+            nodes {
+                body
+                bodyHTML
+                bodyText
+                createdAt
+                url
+                author {
+                    login
+                    avatarUrl
+                }
+            }
       }
 
-      reviews(last: 10) {
+      reviews(last: 15) {
         nodes {
             state
             author {
@@ -293,18 +284,9 @@ query GetPullRequestDetails($owner: String!, $repo: String!, $pullNumber: Int!) 
                 avatarUrl
             }
             body
+            bodyHTML
+            bodyText
             createdAt
-            comments(last: 10) {
-                nodes {
-                    body
-                    createdAt
-                    url
-                    author {
-                        login
-                        avatarUrl
-                    }
-                }
-            }
         }
       }
     }
@@ -352,6 +334,7 @@ function getIssueQuery() {
                         nodes {
                             body
                             bodyHTML
+                            bodyText
                             author {
                                 login
                                 avatarUrl
