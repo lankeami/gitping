@@ -72,6 +72,10 @@
     <!-- Display tabs for user requested reviews and team requested reviews -->
     <div id="popup-container">
         <div id="tabs">
+            <button id="copilot-tab" class="tab active" title="Copilot Overview">
+                <img src="./images/copilot.png" alt="Copilot Overviews" width="20" height="20">
+                <span id="copilot-badge" class="tab-badge hidden">0</span>
+            </button>
             <button id="personal-tab" class="tab active" title="Personal Review Requests">
                 <img src="./images/person.png" alt="Personal Review Requests" width="20" height="20">
                 <span id="personal-badge" class="tab-badge hidden">0</span>
@@ -98,6 +102,49 @@
             </button>
         </div>
         <div id="content">
+           <!-- Copilot Overviews Tab Content -->
+            <div id="copilot-content" class="tab-content active">
+                <h2 class="tab-header">Copilot Overview</h2>
+                <span class="tab-lowbrow">Your latest changes explained by Copilot</span>
+                <div class="filter-accordion">
+                    <button type="button" class="accordion-toggle" aria-expanded="false">
+                        <img src="./images/filter.png" alt="Filter" width="16" height="16" style="vertical-align:middle;">
+                        Filters
+                        <span class="filter-count-badge" id="copilot-filter-count" style="margin-left:8px; background:#0080ff; color:#fff; border-radius:10px; padding:2px 8px; font-size:12px; display:none;"></span>
+                    </button>
+                    <div class="filter-form-container" style="display:none;">
+                        <span class="tab-lowbrow">Exclude selected filters</span>
+                        <form class="filter-form" id="copilot-filter-form">
+                            <div class="filter-group">
+                                <label class="filter-label">Labels</label>
+                                <div class="custom-multiselect" id="copilot-label-filter"></div>
+                                <button type="button" class="clear-filter-btn" data-filter="copilot-label-filter">Clear</button>
+                            </div>
+                            <div class="filter-group">
+                                <label class="filter-label">Organization</label>
+                                <div class="custom-multiselect" id="copilot-org-filter"></div>
+                                <button type="button" class="clear-filter-btn" data-filter="copilot-org-filter">Clear</button>
+                            </div>
+                            <div class="filter-group">
+                                <label class="filter-label">Authors</label>
+                                <div class="custom-multiselect" id="copilot-author-filter"></div>
+                                <button type="button" class="clear-filter-btn" data-filter="copilot-author-filter">Clear</button>
+                            </div>
+                            <div class="filter-group">
+                                <label class="filter-label">Repository</label>
+                                <div class="custom-multiselect" id="copilot-repo-filter"></div>
+                                <button type="button" class="clear-filter-btn" data-filter="copilot-repo-filter">Clear</button>
+                            </div>
+                            <div class="filter-group">
+                                <label class="filter-label">Updated After</label>
+                                <div id="copilot-date-filter"></div>
+                                <button type="button" class="clear-filter-btn" data-filter="copilot-date-filter">Clear</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                <ul class="pull-request-list" id="copilot-pull-requests-list"></ul>
+            </div>
             <!-- Personal Reviews Tab Content -->
             <div id="personal-content" class="tab-content active">
                 <h2 class="tab-header">Needs Your Approval</h2>

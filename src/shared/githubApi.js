@@ -450,6 +450,12 @@ function enrichIssue(issue, gitpingType="") {
     const latestReview = getLatestReview(issue);
     const latestObject = getLatestObject(latestCommit, latestComment, latestReview);
 
+    meta.latest = {
+        latest_commit: latestCommit || {},
+        latest_comment: latestComment || {},
+        latest_review: latestReview || {}
+    }
+
     meta.latest_message = {
         message: latestObject?.commit?.message || latestObject?.bodyText || latestObject?.state || '',
         committedDate: latestObject?.commit?.committedDate || latestObject?.createdAt || '',
@@ -494,6 +500,14 @@ function enrichIssue(issue, gitpingType="") {
     }
 
     return result;
+}
+
+function enrichCopilotReview(issue, review) {
+    issue.comments = []
+    issue.commits = []
+    issue.reviews = {nodes: [review]}
+    issue.card = {}
+    return enrichIssue(issue);
 }
 
 //
@@ -571,7 +585,8 @@ export async function fetchAndFilterPullRequests(username, token) {
     results['mine']     = myPullRequests;
     results['mentions'] = mentionsPullRequests;
     results['issues']   = issuesPullRequests;
-    results['watched']  = watchedRepos; 
+    results['watched']  = watchedRepos;
+    results['copilot']  = [];
 
     // enrich all the results
     Object.keys(results).forEach((key) => {
@@ -581,6 +596,26 @@ export async function fetchAndFilterPullRequests(username, token) {
             return bTime - aTime;
         });
         results[key] = results[key].map(issue => enrichIssue(issue, key));
+    });
+
+    // filter through all results, look for pull requests that have reviews that are authored by copilot
+    Object.keys(results).forEach((key) => {
+        results[key].forEach((issue) => {
+            if (issue.reviews && issue.reviews.nodes) {
+                issue.reviews.nodes.forEach((review) => {
+                    if (review.author && review.author.login && review.author.login.toLowerCase().includes('copilot')) {
+                        results['copilot'].push(enrichCopilotReview({ ...issue }, review));
+                    }
+                });
+            }
+        });
+    });
+
+    // sort results['copilot'] by createdAt date descending so it's newest first
+    results['copilot'].sort((a, b) => {
+        const aTime = new Date(a.createdAt || 0).getTime();
+        const bTime = new Date(b.createdAt || 0).getTime();
+        return bTime - aTime;
     });
 
     // ensure we set the first update time -- used for display purposes

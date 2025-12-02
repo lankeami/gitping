@@ -50,7 +50,7 @@ function getCardElementById(listElem, prId) {
 }
 
 // --- FILTER LOGIC ---
-const TAB_KEYS = ['personal', 'mine', 'team', 'mention', 'issues'];
+const TAB_KEYS = ['personal', 'mine', 'team', 'mention', 'issues', 'watched', 'copilot'];
 
 function extractUniqueAuthors(pullRequests) {
     const authors = new Set();
@@ -431,6 +431,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     mention: pullRequests.mentionsPullRequests || pullRequests.mentions,
                     issues: pullRequests.issuesPullRequests || pullRequests.issues,
                     watched: pullRequests.watchedPullRequests || pullRequests.watched,
+                    copilot: pullRequests.copilotPullRequests || pullRequests.copilot,
                 };
 
                 // Set all displays
@@ -485,7 +486,7 @@ document.addEventListener('DOMContentLoaded', function () {
             lastErrorElement.classList.add('hidden');
         }
 
-        switchTab('personal'); // Set the default tab to "personal"
+        switchTab('copilot'); // Set the default tab to "copilot"
     }
 
     async function hidePopup() {
@@ -501,7 +502,7 @@ document.addEventListener('DOMContentLoaded', function () {
     function updateDisplaysFromStorage() {
         // Check if username is stored in local storage
         // TODO: hard coded Tab names / stored pull requests -- make them configurable
-        chrome.storage.local.get(['githubUsername', 'lastUpdateTime', 'lastError', 'minePullRequests', 'personalPullRequests', 'teamPullRequests', 'mentionsPullRequests', 'issuesPullRequests', 'watchedPullRequests'], async function (result) {
+        chrome.storage.local.get(['githubUsername', 'lastUpdateTime', 'lastError', 'minePullRequests', 'personalPullRequests', 'teamPullRequests', 'mentionsPullRequests', 'issuesPullRequests', 'watchedPullRequests', 'copilotPullRequests'], async function (result) {
             const username = result.githubUsername
             const firstUpdateTime = await getFirstUpdateTime();
 
