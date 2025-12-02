@@ -104,6 +104,19 @@ function getPrSchema() {
                     bodyHTML
                     bodyText
                     createdAt
+                    comments(last: 1) {
+                        nodes {
+                            body
+                            bodyHTML
+                            bodyText
+                            createdAt
+                            url
+                            author {
+                                login
+                                avatarUrl
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -287,6 +300,19 @@ query GetPullRequestDetails($owner: String!, $repo: String!, $pullNumber: Int!) 
             bodyHTML
             bodyText
             createdAt
+            comments(last: 1) {
+                nodes {
+                    body
+                    bodyHTML
+                    bodyText
+                    createdAt
+                    url
+                    author {
+                        login
+                        avatarUrl
+                    }
+                }
+            }
         }
       }
     }

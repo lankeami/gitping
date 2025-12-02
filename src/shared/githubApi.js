@@ -451,10 +451,10 @@ function enrichIssue(issue, gitpingType="") {
     const latestObject = getLatestObject(latestCommit, latestComment, latestReview);
 
     meta.latest_message = {
-        message: latestObject?.commit?.message || latestObject?.bodyText || latestObject?.state || '',
+        message: latestObject?.commit?.message || latestObject?.bodyText || latestObject?.comments?.nodes?.[0]?.bodyText || latestObject?.state || '',
         committedDate: latestObject?.commit?.committedDate || latestObject?.createdAt || '',
         author: latestObject?.commit?.author?.user || latestObject?.author || {},
-        message_html: latestObject?.commit?.message || latestObject?.bodyHTML || ''
+        message_html: latestObject?.commit?.message || latestObject?.bodyHTML || latestObject?.comments?.nodes?.[0]?.bodyHTML || ''
     };
 
     // owner and repo name from url
