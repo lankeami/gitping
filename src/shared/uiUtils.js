@@ -50,11 +50,7 @@ async function avatarForUser(user) {
     const avatarImg = document.createElement('img');
     avatarImg.src = avatarUrl;
     avatarImg.alt = user.login;
-    avatarImg.style.width = '24px';
-    avatarImg.style.height = '24px';
-    avatarImg.style.borderRadius = '50%';
-    avatarImg.style.verticalAlign = 'middle';
-    avatarImg.style.marginRight = '8px';
+    avatarImg.className = 'avatar avatar-md';
     return avatarImg;
 }
 
@@ -110,47 +106,27 @@ async function quoteCard(pr) {
     const quote = document.createElement('blockquote');
     quote.className = 'pr-quote';
     // render the markdwown text of the latest message
-    // Set the text content of the quote   
+    // Set the text content of the quote
     quote.textContent = pr.meta?.latest_message?.message || '';
     // TODO: convert quote.textContent markdown to HTML
 
-    // ensure quote is vertically scrollable if too long
-    quote.style.maxHeight = '50px';
-    quote.style.overflowY = 'auto';
-    quote.style.margin = '8px 0';
-    quote.style.padding = '8px';
-    quote.style.backgroundColor = '#f9f9f9';
-    quote.style.borderLeft = '4px solid #ccc';
-    quote.style.borderRadius = '4px';
-    quote.style.fontStyle = 'italic';
-    quote.style.whiteSpace = 'pre-wrap'; // Preserve whitespace and line breaks
-    quote.style.wordWrap = 'break-word'; // Ensure long words break to fit the container
-    // Ensure the quote is left aligned
-    quote.style.textAlign = 'left';
-    quote.style.fontSize = '12px';
-    quote.style.color = '#555';
-    quote.style.borderLeft = '2px solid #ccc';
-    quote.style.paddingLeft = '16px';
-    quote.style.margin = '8px 0';
-    quote.style.fontStyle = 'italic';
-    quote.style.margin = '0 0 8px 0';
+    // Add click handler to expand/collapse
+    quote.addEventListener('click', (e) => {
+        e.stopPropagation(); // Prevent card click
+        quote.classList.toggle('expanded');
+    });
+
     // --- Add the author of the quote ---
     if (pr.meta?.latest_message?.author?.login) {
         const author = document.createElement('span');
         author.className = 'pr-quote-author';
         author.textContent = ` - ${pr.meta.latest_message.author.login} `;
-        // author.style.fontWeight = 'bold';
-        author.style.display = 'block';
-        author.style.marginTop = '4px';
 
         // Add the avatar of the author
         const authorAvatar = await avatarForUser(pr.meta.latest_message.author);
         if (authorAvatar) {
-            authorAvatar.style.width = '16px';
-            authorAvatar.style.height = '16px';
-            authorAvatar.style.borderRadius = '50%';
-            authorAvatar.style.marginRight = '4px';
-            author.append(authorAvatar);
+            authorAvatar.className = 'avatar avatar-sm';
+            author.prepend(authorAvatar);
         }
 
         quote.appendChild(author);
@@ -220,8 +196,7 @@ async function cardHighbrow(pr) {
     }
     const ownerAvatar = await avatarForUser(owner);
     if(ownerAvatar) {
-        ownerAvatar.style.float = 'right';
-        ownerAvatar.style.marginLeft = '8px';
+        ownerAvatar.classList.add('avatar-float-right');
         highbrow.appendChild(ownerAvatar);
     }
     return highbrow;
@@ -244,39 +219,31 @@ function cardTitle(pr) {
             typeIcon.src = '../popup/images/issues.png'; // Make sure this icon exists
             typeIcon.alt = 'Issue';
         }
+        typeIcon.className = 'pr-type-icon';
         typeIcon.width = 18;
         typeIcon.height = 18;
-        typeIcon.style.verticalAlign = 'middle';
-        typeIcon.style.marginRight = '6px';
         title.appendChild(typeIcon);
     }
     title.appendChild(document.createTextNode(pr.title));
 
     // --- Add PR status badge ---
     const statusBadge = document.createElement('span');
-    statusBadge.className = 'pr-status-badge';
     if (pr.draft) {
         statusBadge.textContent = 'Draft';
-        statusBadge.style.backgroundColor = '#6c757d';
+        statusBadge.className = 'pr-status-badge pr-status-badge--draft';
     } else if (pr.state.toLowerCase() === 'open') {
         statusBadge.textContent = 'Open';
-        statusBadge.style.backgroundColor = '#28a745';
+        statusBadge.className = 'pr-status-badge pr-status-badge--open';
     } else if (pr.state.toLowerCase() === 'closed' && pr.merged_at) {
         statusBadge.textContent = 'Merged';
-        statusBadge.style.backgroundColor = '#6f42c1';
+        statusBadge.className = 'pr-status-badge pr-status-badge--merged';
     } else if (pr.state.toLowerCase() === 'closed') {
         statusBadge.textContent = 'Closed';
-        statusBadge.style.backgroundColor = '#d73a49';
+        statusBadge.className = 'pr-status-badge pr-status-badge--closed';
     } else {
         statusBadge.textContent = pr.state;
-        statusBadge.style.backgroundColor = '#cccccc';
+        statusBadge.className = 'pr-status-badge pr-status-badge--default';
     }
-    statusBadge.style.color = '#fff';
-    statusBadge.style.padding = '2px 8px';
-    statusBadge.style.borderRadius = '12px';
-    statusBadge.style.fontSize = '12px';
-    statusBadge.style.marginLeft = '8px';
-    statusBadge.style.verticalAlign = 'middle';
 
     title.appendChild(statusBadge);
     return title;
@@ -307,9 +274,7 @@ function cardFootnote(pr, section_name = null, lastViewedTime = null) {
     if (section_name === 'watched') {
         // Create a container for timestamps and remove button
         const footnoteRow = document.createElement('div');
-        footnoteRow.style.display = 'flex';
-        footnoteRow.style.alignItems = 'center';
-        footnoteRow.style.justifyContent = 'space-between';
+        footnoteRow.className = 'watched-footnote-row';
 
         // Left: timestamps
         const timestampsDiv = document.createElement('div');
@@ -320,21 +285,12 @@ function cardFootnote(pr, section_name = null, lastViewedTime = null) {
         const removeBtn = document.createElement('button');
         removeBtn.className = 'remove-watched-btn';
         removeBtn.title = 'Remove from watch list';
-        removeBtn.style.display = 'flex';
-        removeBtn.style.alignItems = 'center';
-        removeBtn.style.justifyContent = 'center';
-        removeBtn.style.background = 'none';
-        removeBtn.style.border = 'none';
-        removeBtn.style.cursor = 'pointer';
-        removeBtn.style.padding = '2px 6px';
-        removeBtn.style.marginLeft = '12px';
 
         const trashIcon = document.createElement('img');
         trashIcon.src = './images/delete.png';
         trashIcon.alt = 'Remove';
         trashIcon.width = 18;
         trashIcon.height = 18;
-        trashIcon.style.display = 'block';
 
         removeBtn.appendChild(trashIcon);
 

@@ -87,8 +87,6 @@ function renderCustomMultiselect(container, options, selected, onChange) {
         const optionDiv = document.createElement('div');
         optionDiv.className = 'multiselect-option';
             const label = document.createElement('label');
-            label.style.display = 'flex';
-            label.style.alignItems = 'center';
             const checkbox = document.createElement('input');
             checkbox.type = 'checkbox';
             checkbox.value = opt;
@@ -194,7 +192,11 @@ async function setupTabFilters(tabKey, pullRequests, lastViewedTime) {
         const count = selectedOrgs.length + selectedAuthors.length + selectedLabels.length + selectedRepos.length + (selectedDate ? 1 : 0);
         if (badge) {
             badge.textContent = count > 0 ? count : '';
-            badge.style.display = count > 0 ? 'inline-block' : 'none';
+            if (count > 0) {
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
         }
     }
 
@@ -335,11 +337,15 @@ document.addEventListener('DOMContentLoaded', function () {
             toggle.addEventListener('click', () => {
                 const expanded = toggle.getAttribute('aria-expanded') === 'true';
                 toggle.setAttribute('aria-expanded', !expanded);
-                container.style.display = expanded ? 'none' : 'block';
+                if (expanded) {
+                    container.classList.add('hidden');
+                } else {
+                    container.classList.remove('hidden');
+                }
             });
             // Default: hidden
             toggle.setAttribute('aria-expanded', false);
-            container.style.display = 'none';
+            container.classList.add('hidden');
         }
     });
     const loginButton = document.getElementById('login-button');
@@ -381,7 +387,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const container = acc.querySelector('.filter-form-container');
             if (toggle && container) {
                 toggle.setAttribute('aria-expanded', false);
-                container.style.display = 'none';
+                container.classList.add('hidden');
             }
         });
 

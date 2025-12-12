@@ -3,24 +3,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GitPing</title>
     <link rel="stylesheet" href="popup.css">
-    <style>
-        .pr-card.hidden {
-            display: none !important;
-        }
-        #popup-container {
-            max-width: 420px;
-            min-width: 340px;
-            margin: 0 auto;
-        }
-        body {
-            min-width: 340px;
-            max-width: 440px;
-        }
-    </style>
 </head>
 <body>
     <div id="header-section">
-        <a href="https://github.com/lankeami/gitping" target="_blank" style="text-decoration: none;">
+        <a href="https://github.com/lankeami/gitping" target="_blank">
             <h1>GitPing</h1>
         </a>
         <p id="header-section-description">Get pinged for pull requests that need your review</p>
@@ -34,14 +20,14 @@
                 <img src="./images/refresh-icon.png" alt="Refresh" width="20" height="20">
             </button>
         </div>
-        <a href="https://github.com/lankeami/gitping" target="_blank" style="text-decoration: none;">
+        <a href="https://github.com/lankeami/gitping" target="_blank">
             <h1>GitPing</h1>
         </a>
         <div id="right-icon-container">
-            <button class="header-icon" id="settings-button" style="position: relative;">
+            <button class="header-icon" id="settings-button">
                 <img src="./images/settings.png" alt="Settings" width="20" height="20">
-                <span id="user-avatar-container" style="display:none; position:absolute; top:0; right:0;">
-                    <img id="user-avatar" src="" alt="User Avatar" style="width:16px; height:16px; border-radius:50%; border:2px solid #fff;">
+                <span id="user-avatar-container" class="user-avatar-overlay hidden">
+                    <img id="user-avatar" src="" alt="User Avatar" class="user-avatar-img">
                 </span>
             </button>
             <button class="header-icon" id="reset-button">
@@ -104,11 +90,11 @@
                 <span class="tab-lowbrow">The author of these Pull Requests requires your review</span>
                 <div class="filter-accordion">
                     <button type="button" class="accordion-toggle" aria-expanded="false">
-                        <img src="./images/filter.png" alt="Filter" width="16" height="16" style="vertical-align:middle;">
+                        <img src="./images/filter.png" alt="Filter" width="16" height="16" class="filter-icon">
                         Filters
-                        <span class="filter-count-badge" id="personal-filter-count" style="margin-left:8px; background:#0080ff; color:#fff; border-radius:10px; padding:2px 8px; font-size:12px; display:none;"></span>
+                        <span class="filter-count-badge hidden" id="personal-filter-count"></span>
                     </button>
-                    <div class="filter-form-container" style="display:none;">
+                    <div class="filter-form-container hidden">
                         <span class="tab-lowbrow">Exclude selected filters</span>
                         <form class="filter-form" id="personal-filter-form">
                             <div class="filter-group">
@@ -147,11 +133,11 @@
                 <span class="tab-lowbrow">Your open Pull Requests pending review</span>
                 <div class="filter-accordion">
                     <button type="button" class="accordion-toggle" aria-expanded="false">
-                        <img src="./images/filter.png" alt="Filter" width="16" height="16" style="vertical-align:middle;">
+                        <img src="./images/filter.png" alt="Filter" width="16" height="16" class="filter-icon">
                         Filters
-                        <span class="filter-count-badge" id="mine-filter-count" style="margin-left:8px; background:#0080ff; color:#fff; border-radius:10px; padding:2px 8px; font-size:12px; display:none;"></span>
+                        <span class="filter-count-badge hidden" id="mine-filter-count"></span>
                     </button>
-                    <div class="filter-form-container" style="display:none;">
+                    <div class="filter-form-container hidden">
                         <span class="tab-lowbrow">Exclude selected filters</span>
                         <form class="filter-form" id="mine-filter-form">
                             <div class="filter-group">
@@ -190,11 +176,11 @@
                 <span class="tab-lowbrow">Open Pull Requests requiring a team member to review</span>
                 <div class="filter-accordion">
                     <button type="button" class="accordion-toggle" aria-expanded="false">
-                        <img src="./images/filter.png" alt="Filter" width="16" height="16" style="vertical-align:middle;">
+                        <img src="./images/filter.png" alt="Filter" width="16" height="16" class="filter-icon">
                         Filters
-                        <span class="filter-count-badge" id="team-filter-count" style="margin-left:8px; background:#0080ff; color:#fff; border-radius:10px; padding:2px 8px; font-size:12px; display:none;"></span>
+                        <span class="filter-count-badge hidden" id="team-filter-count"></span>
                     </button>
-                    <div class="filter-form-container" style="display:none;">
+                    <div class="filter-form-container hidden">
                         <span class="tab-lowbrow">Exclude selected filters</span>
                         <form class="filter-form" id="team-filter-form">
                             <div class="filter-group">
@@ -233,11 +219,11 @@
                 <span class="tab-lowbrow">Pull Requests you've commented or been mentioned on</span>
                 <div class="filter-accordion">
                     <button type="button" class="accordion-toggle" aria-expanded="false">
-                        <img src="./images/filter.png" alt="Filter" width="16" height="16" style="vertical-align:middle;">
+                        <img src="./images/filter.png" alt="Filter" width="16" height="16" class="filter-icon">
                         Filters
-                        <span class="filter-count-badge" id="mention-filter-count" style="margin-left:8px; background:#0080ff; color:#fff; border-radius:10px; padding:2px 8px; font-size:12px; display:none;"></span>
+                        <span class="filter-count-badge hidden" id="mention-filter-count"></span>
                     </button>
-                    <div class="filter-form-container" style="display:none;">
+                    <div class="filter-form-container hidden">
                         <span class="tab-lowbrow">Exclude selected filters</span>
                         <form class="filter-form" id="mention-filter-form">
                             <div class="filter-group">
@@ -276,11 +262,11 @@
                 <span class="tab-lowbrow">Issues you've opened, commented on, or was mentioned</span>
                 <div class="filter-accordion">
                     <button type="button" class="accordion-toggle" aria-expanded="false">
-                        <img src="./images/filter.png" alt="Filter" width="16" height="16" style="vertical-align:middle;">
+                        <img src="./images/filter.png" alt="Filter" width="16" height="16" class="filter-icon">
                         Filters
-                        <span class="filter-count-badge" id="issues-filter-count" style="margin-left:8px; background:#0080ff; color:#fff; border-radius:10px; padding:2px 8px; font-size:12px; display:none;"></span>
+                        <span class="filter-count-badge hidden" id="issues-filter-count"></span>
                     </button>
-                    <div class="filter-form-container" style="display:none;">
+                    <div class="filter-form-container hidden">
                         <span class="tab-lowbrow">Exclude selected filters</span>
                         <form class="filter-form" id="issues-filter-form">
                             <div class="filter-group">
@@ -319,8 +305,8 @@
                 <h2 class="tab-header">Watch List</h2>
                 <span class="tab-lowbrow">Pull Requests and Issues you're actively watching</span>
                 <!-- Inline Add Form -->
-                <form id="add-watched-form" style="display: flex; gap: 8px; margin-top: 10px; margin-bottom: 12px;">
-                    <input type="text" id="add-watched-input" placeholder="Paste PR or Issue URL" style="flex: 1;" />
+                <form id="add-watched-form">
+                    <input type="text" id="add-watched-input" placeholder="Paste PR or Issue URL" />
                     <button type="button" id="add-watched-btn">Add</button>
                 </form>
                 <ul class="pull-request-list" id="watched-pull-requests-list"></ul>
@@ -330,8 +316,8 @@
 
     <div id="toast" class="toast hidden"> </div>
     <div id="footnote-section" class="footnote-section">
-        <div id="manifest-version" class="footnote" style="float: left;">v1.0.0</div>
-        <div id="last-update-time" class="footnote" style="float: right;"></div>
+        <div id="manifest-version" class="footnote footnote-left">v1.0.0</div>
+        <div id="last-update-time" class="footnote footnote-right"></div>
     </div>
     <div id="last-error" class="error hidden"></div>
 
