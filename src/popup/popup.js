@@ -355,10 +355,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const apiBaseUrlInput = document.getElementById('api-base-url');
     const tokenInput = document.getElementById('token');
     const credentialsDiv = document.getElementById('credentials');
-    const headerSection = document.getElementById('header-section');
+    const appHeader = document.querySelector('.app-header');
     const lastUpdateTimeElement = document.getElementById('last-update-time');
     const lastErrorElement = document.getElementById('last-error');
-    const iconContainer = document.getElementById('icon-container');
     const appIconContainer = document.getElementById('app-icon-container');
     const popupContainer = document.getElementById('popup-container');
     const settingsButton = document.getElementById('settings-button');
@@ -470,8 +469,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     async function showPopup() {
         credentialsDiv.classList.add('hidden');
-        headerSection.classList.add('hidden');
-        iconContainer.classList.remove('hidden');
         popupContainer.classList.remove('hidden');
 
         const lastUpdateTime = await getLastUpdateTime();
@@ -496,8 +493,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     async function hidePopup() {
         credentialsDiv.classList.remove('hidden');
-        headerSection.classList.remove('hidden');
-        iconContainer.classList.add('hidden');
         popupContainer.classList.add('hidden');
         lastUpdateTimeElement.textContent = '';
         lastErrorElement.textContent = '';
@@ -563,8 +558,6 @@ document.addEventListener('DOMContentLoaded', function () {
             if (token && username && apiBaseUrl) {
                 chrome.storage.local.set({ githubToken: token, githubUsername: username, githubApiBaseUrl: apiBaseUrl }, function () {
                     credentialsDiv.classList.add('hidden');
-                    headerSection.classList.add('hidden');
-                    iconContainer.classList.remove('hidden');
                 });
                 
                 lastUpdateTimeElement.textContent = "Fetching latest pull requests.";

@@ -139,8 +139,8 @@
      ======================================== */
 
   --popup-width-min: 340px;
-  --popup-width-max: 440px;
-  --popup-width-ideal: 420px;
+  --popup-width-max: 500px;
+  --popup-width-ideal: 480px;
   --popup-height: 600px;
 
   --card-width: 310px;

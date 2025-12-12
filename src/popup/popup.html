@@ -5,38 +5,36 @@
     <link rel="stylesheet" href="popup.css">
 </head>
 <body>
-    <div id="header-section">
-        <a href="https://github.com/lankeami/gitping" target="_blank">
-            <h1>GitPing</h1>
-        </a>
-        <p id="header-section-description">Get pinged for pull requests that need your review</p>
-    </div>
-    <div id="icon-container" class="icon-container">
-        <div class="left-icons">
-            <button class="header-icon" id="app-icon-container">
-                <img id="app-icon" src="./images/app-icon.png" alt="App Icon" width="20" height="20">
+    <header class="app-header">
+        <div class="header-brand">
+            <button class="header-icon-btn" id="app-icon-container">
+                <img id="app-icon" src="./images/app-icon.png" alt="GitPing" width="20" height="20">
             </button>
-            <button class="header-icon" id="refresh-button">
-                <img src="./images/refresh-icon.png" alt="Refresh" width="20" height="20">
-            </button>
+            <h1 class="app-title">GitPing</h1>
         </div>
-        <a href="https://github.com/lankeami/gitping" target="_blank">
-            <h1>GitPing</h1>
-        </a>
-        <div id="right-icon-container">
-            <button class="header-icon" id="settings-button">
-                <img src="./images/settings.png" alt="Settings" width="20" height="20">
-                <span id="user-avatar-container" class="user-avatar-overlay hidden">
+        <nav class="header-nav">
+            <button class="header-btn refresh-btn" id="refresh-button" title="Refresh">
+                <img src="./images/refresh-icon.png" alt="" width="16" height="16">
+                <span>Refresh</span>
+            </button>
+            <a href="https://github.com/lankeami/gitping" target="_blank" class="header-btn" title="View on GitHub">
+                GitHub
+            </a>
+            <button class="header-btn" id="settings-button" title="Settings">
+                <img src="./images/settings.png" alt="" width="16" height="16">
+                <span>Settings</span>
+                <span id="user-avatar-container" class="user-avatar-badge hidden">
                     <img id="user-avatar" src="" alt="User Avatar" class="user-avatar-img">
                 </span>
             </button>
-            <button class="header-icon" id="reset-button">
-                <img src="./images/trashcan-icon.png" alt="Reset" width="20" height="20">
+            <button class="header-btn logout-btn" id="reset-button" title="Logout & Clear Data">
+                <img src="./images/trashcan-icon.png" alt="" width="16" height="16">
+                <span>Logout</span>
             </button>
-        </div>
-    </div>
+        </nav>
+    </header>
     <div id="credentials">
-        <img src="./images/header.gif" alt="GitPing Header" width="100%" height="auto">
+        <img src="./images/header.gif" alt="GitPing Header">
     
         <label for="username">GitHub Username</label>
         <input type="text" id="username" placeholder="Enter your GitHub username">

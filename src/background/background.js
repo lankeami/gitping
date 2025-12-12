@@ -94,7 +94,7 @@ async function checkForUpdates() {
 
             // update the extension badge with the sum of the lengths of the arrays in diffs
             const totalNewPullRequests = Object.values(diffs).reduce((acc, arr) => acc + arr.length, 0);
-            updateExtensionBadge(totalNewPullRequests);
+            updateExtensionBadge(totalNewPullRequests, diffs);
 
             // reset the last error
             setLastError();

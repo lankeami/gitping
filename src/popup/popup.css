@@ -41,91 +41,116 @@ body {
 }
 
 /* ========================================
-   Header Section
+   Modern App Header
    ======================================== */
 
-#header-section {
-    text-align: center;
-    padding: var(--space-3) var(--space-3) 0;
-    flex-shrink: 0;
-}
-
-#header-section h1 {
-    font-size: var(--font-size-xl);
-    margin: 0;
-    color: var(--color-text-primary);
-    font-weight: var(--font-weight-semibold);
-}
-
-#header-section p {
-    font-size: var(--font-size-base);
-    margin: var(--space-2) 0 0;
-    color: var(--color-text-secondary);
-}
-
-/* ========================================
-   Icon Container (Top Bar)
-   ======================================== */
-
-.icon-container {
+.app-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    width: 100%;
-    margin: var(--space-3) 0;
     padding: var(--space-2) var(--space-3);
-    background: var(--color-bg-secondary);
-    border-radius: var(--radius-lg);
-    position: relative;
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
+    color: white;
     flex-shrink: 0;
+    box-shadow: var(--shadow-md);
 }
 
-.left-icons,
-#right-icon-container {
+.header-brand {
     display: flex;
-    gap: var(--space-2);
     align-items: center;
+    gap: var(--space-2);
 }
 
-.icon-container a {
-    text-decoration: none;
-    color: inherit;
-    transition: opacity var(--transition-fast);
-}
-
-.icon-container a:hover {
-    opacity: 0.8;
-}
-
-.icon-container h1 {
-    margin: 0;
-    font-size: var(--font-size-lg);
-    color: var(--color-text-primary);
-    font-weight: var(--font-weight-semibold);
-}
-
-.header-icon {
+.header-icon-btn {
     background: none;
     border: none;
     cursor: pointer;
-    display: inline-flex;
+    padding: 0;
+    display: flex;
     align-items: center;
     justify-content: center;
-    padding: var(--space-2);
-    border-radius: var(--radius-md);
-    transition: background-color var(--transition-fast);
     position: relative;
 }
 
-.header-icon:hover {
-    background-color: var(--color-bg-hover);
+.app-title {
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-bold);
+    margin: 0;
+    color: white;
+    letter-spacing: -0.5px;
+}
+
+.header-nav {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+}
+
+.header-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    padding: var(--space-1) var(--space-2);
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: var(--radius-md);
+    color: white;
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+    font-family: var(--font-family-base);
+    text-decoration: none;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    white-space: nowrap;
+    position: relative;
+}
+
+.header-btn:hover {
+    background: rgba(255, 255, 255, 0.25);
+    border-color: rgba(255, 255, 255, 0.4);
+    transform: translateY(-1px);
+}
+
+.header-btn:active {
+    transform: translateY(0);
+}
+
+.header-btn img {
+    opacity: 0.9;
+}
+
+.logout-btn {
+    background: rgba(239, 68, 68, 0.2);
+    border-color: rgba(239, 68, 68, 0.3);
+}
+
+.logout-btn:hover {
+    background: rgba(239, 68, 68, 0.35);
+    border-color: rgba(239, 68, 68, 0.5);
+}
+
+.user-avatar-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    width: 14px;
+    height: 14px;
+    border-radius: var(--radius-full);
+    border: 2px solid var(--color-primary);
+    overflow: hidden;
+}
+
+.user-avatar-badge .user-avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 
 #app-icon {
     display: inline-block;
     vertical-align: middle;
-    width: 20px;
-    height: 20px;
+    width: 16px;
+    height: 16px;
     cursor: pointer;
     position: relative;
 }
@@ -171,21 +196,29 @@ body {
 #credentials {
     display: flex;
     flex-direction: column;
-    gap: var(--space-3);
-    padding: var(--space-5) var(--space-8);
+    gap: var(--space-1);
+    padding: var(--space-3) var(--space-4) var(--space-2);
     flex-shrink: 0;
+    overflow-y: hidden;
 }
 
 #credentials label {
     font-size: var(--font-size-sm);
     font-weight: var(--font-weight-medium);
     color: var(--color-text-secondary);
+    margin: 0;
+}
+
+#credentials img {
+    width: 100%;
+    height: auto;
+    object-fit: contain;
     margin-bottom: var(--space-1);
 }
 
 #credentials input {
-    padding: var(--space-3);
-    font-size: var(--font-size-base);
+    padding: var(--space-2);
+    font-size: var(--font-size-sm);
     font-family: var(--font-family-base);
     border: 1px solid var(--color-border-medium);
     border-radius: var(--radius-md);
@@ -200,8 +233,8 @@ body {
 }
 
 #login-button {
-    padding: var(--space-3) var(--space-4);
-    font-size: var(--font-size-base);
+    padding: var(--space-2) var(--space-4);
+    font-size: var(--font-size-sm);
     font-weight: var(--font-weight-medium);
     background-color: var(--color-primary);
     color: white;
@@ -210,6 +243,7 @@ body {
     cursor: pointer;
     transition: background-color var(--transition-fast),
                 transform var(--transition-fast);
+    margin-top: 0;
 }
 
 #login-button:hover {
