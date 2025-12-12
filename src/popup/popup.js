@@ -356,6 +356,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const tokenInput = document.getElementById('token');
     const credentialsDiv = document.getElementById('credentials');
     const appHeader = document.querySelector('.app-header');
+    const headerNav = document.querySelector('.header-nav');
     const lastUpdateTimeElement = document.getElementById('last-update-time');
     const lastErrorElement = document.getElementById('last-error');
     const appIconContainer = document.getElementById('app-icon-container');
@@ -470,6 +471,7 @@ document.addEventListener('DOMContentLoaded', function () {
     async function showPopup() {
         credentialsDiv.classList.add('hidden');
         popupContainer.classList.remove('hidden');
+        headerNav.classList.remove('hidden');
 
         const lastUpdateTime = await getLastUpdateTime();
         const lastError = await getLastError();
@@ -494,6 +496,7 @@ document.addEventListener('DOMContentLoaded', function () {
     async function hidePopup() {
         credentialsDiv.classList.remove('hidden');
         popupContainer.classList.add('hidden');
+        headerNav.classList.add('hidden');
         lastUpdateTimeElement.textContent = '';
         lastErrorElement.textContent = '';
         lastErrorElement.classList.add('hidden');
