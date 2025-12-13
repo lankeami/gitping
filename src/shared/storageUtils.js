@@ -500,7 +500,7 @@ export function triggerPushNotification(count, newItems = null) {
 
         // Build the notification message
         let message = displayItems.map(item =>
-            `${item.type} • ${item.repo}: ${item.title}`
+            `${item.type} • ${item.repo_name}: ${item.title}`
         ).join('\n');
 
         if (remaining > 0) {
