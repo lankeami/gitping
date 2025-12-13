@@ -486,9 +486,9 @@ export function triggerPushNotification(count, newItems = null) {
                 items.forEach(item => {
                     allItems.push({
                         category: categoryLabels[category] || category,
-                        title: item.title,
-                        repo: item.repo_name,
-                        type: item.type === 'pulls' ? 'PR' : 'Issue'
+                        title: item.card?.title || item.title,
+                        repo: item.card?.repo_name || item.repo_name,
+                        type: (item.card?.type || item.type) === 'pulls' ? 'PR' : 'Issue'
                     });
                 });
             }
@@ -500,7 +500,7 @@ export function triggerPushNotification(count, newItems = null) {
 
         // Build the notification message
         let message = displayItems.map(item =>
-            `${item.type} • ${item.repo_name}: ${item.title}`
+            `${item.type} • ${item.repo}: ${item.title}`
         ).join('\n');
 
         if (remaining > 0) {
@@ -530,16 +530,6 @@ export function triggerPushNotification(count, newItems = null) {
             console.error('Failed to create notification:', chrome.runtime.lastError.message);
         } else {
             console.log('Notification shown with ID:', notificationId);
-        }
-    });
-
-    // Optional: Add a click event listener for the notification
-    chrome.notifications.onClicked.addListener((notificationId) => {
-        if (notificationId === 'newPullRequests') {
-            chrome.notifications.clear(notificationId); // Clear the notification
-            console.log('Notification clicked:', notificationId);
-            // Open the extension popup
-            chrome.action.openPopup();
         }
     });
 }

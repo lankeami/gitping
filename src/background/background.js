@@ -160,3 +160,55 @@ async function shouldSendPushNotification() {
     // dailyLoginNotificationInterval is in minutes, convert to ms
     return (now - lastDate) > dailyLoginNotificationInterval * 60 * 1000;
 }
+
+// Handle notification clicks - open the extension popup
+chrome.notifications.onClicked.addListener(async (notificationId) => {
+    if (notificationId === 'newPullRequests') {
+        chrome.notifications.clear(notificationId);
+        console.log('Notification clicked:', notificationId);
+
+        try {
+            // Try to open the popup directly (works in MV3 with user gesture)
+            await chrome.action.openPopup();
+            console.log('Popup opened successfully');
+        } catch (error) {
+            console.log('openPopup failed, trying alternative:', error.message);
+
+            // Alternative: Open the extension's popup in a new tab or window
+            // This is the most reliable fallback for service workers
+            try {
+                const popupUrl = chrome.runtime.getURL('src/popup/popup.html');
+                const windows = await chrome.windows.getAll({ populate: true, windowTypes: ['normal'] });
+
+                // Check if there's already a tab with the popup open
+                let existingTab = null;
+                for (const window of windows) {
+                    const tab = window.tabs.find(t => t.url === popupUrl);
+                    if (tab) {
+                        existingTab = tab;
+                        break;
+                    }
+                }
+
+                if (existingTab) {
+                    // Focus existing tab
+                    await chrome.tabs.update(existingTab.id, { active: true });
+                    await chrome.windows.update(existingTab.windowId, { focused: true });
+                    console.log('Focused existing popup tab');
+                } else {
+                    // Create a small popup-style window
+                    await chrome.windows.create({
+                        url: popupUrl,
+                        type: 'popup',
+                        width: 800,
+                        height: 600,
+                        focused: true
+                    });
+                    console.log('Created popup window');
+                }
+            } catch (fallbackError) {
+                console.error('All popup methods failed:', fallbackError);
+            }
+        }
+    }
+});
