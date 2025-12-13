@@ -87,8 +87,6 @@ function renderCustomMultiselect(container, options, selected, onChange) {
         const optionDiv = document.createElement('div');
         optionDiv.className = 'multiselect-option';
             const label = document.createElement('label');
-            label.style.display = 'flex';
-            label.style.alignItems = 'center';
             const checkbox = document.createElement('input');
             checkbox.type = 'checkbox';
             checkbox.value = opt;
@@ -194,7 +192,11 @@ async function setupTabFilters(tabKey, pullRequests, lastViewedTime) {
         const count = selectedOrgs.length + selectedAuthors.length + selectedLabels.length + selectedRepos.length + (selectedDate ? 1 : 0);
         if (badge) {
             badge.textContent = count > 0 ? count : '';
-            badge.style.display = count > 0 ? 'inline-block' : 'none';
+            if (count > 0) {
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
         }
     }
 
@@ -335,11 +337,15 @@ document.addEventListener('DOMContentLoaded', function () {
             toggle.addEventListener('click', () => {
                 const expanded = toggle.getAttribute('aria-expanded') === 'true';
                 toggle.setAttribute('aria-expanded', !expanded);
-                container.style.display = expanded ? 'none' : 'block';
+                if (expanded) {
+                    container.classList.add('hidden');
+                } else {
+                    container.classList.remove('hidden');
+                }
             });
             // Default: hidden
             toggle.setAttribute('aria-expanded', false);
-            container.style.display = 'none';
+            container.classList.add('hidden');
         }
     });
     const loginButton = document.getElementById('login-button');
@@ -349,10 +355,10 @@ document.addEventListener('DOMContentLoaded', function () {
     const apiBaseUrlInput = document.getElementById('api-base-url');
     const tokenInput = document.getElementById('token');
     const credentialsDiv = document.getElementById('credentials');
-    const headerSection = document.getElementById('header-section');
+    const appHeader = document.querySelector('.app-header');
+    const headerNav = document.querySelector('.header-nav');
     const lastUpdateTimeElement = document.getElementById('last-update-time');
     const lastErrorElement = document.getElementById('last-error');
-    const iconContainer = document.getElementById('icon-container');
     const appIconContainer = document.getElementById('app-icon-container');
     const popupContainer = document.getElementById('popup-container');
     const settingsButton = document.getElementById('settings-button');
@@ -381,7 +387,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const container = acc.querySelector('.filter-form-container');
             if (toggle && container) {
                 toggle.setAttribute('aria-expanded', false);
-                container.style.display = 'none';
+                container.classList.add('hidden');
             }
         });
 
@@ -464,9 +470,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     async function showPopup() {
         credentialsDiv.classList.add('hidden');
-        headerSection.classList.add('hidden');
-        iconContainer.classList.remove('hidden');
         popupContainer.classList.remove('hidden');
+        headerNav.classList.remove('hidden');
 
         const lastUpdateTime = await getLastUpdateTime();
         const lastError = await getLastError();
@@ -490,9 +495,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     async function hidePopup() {
         credentialsDiv.classList.remove('hidden');
-        headerSection.classList.remove('hidden');
-        iconContainer.classList.add('hidden');
         popupContainer.classList.add('hidden');
+        headerNav.classList.add('hidden');
         lastUpdateTimeElement.textContent = '';
         lastErrorElement.textContent = '';
         lastErrorElement.classList.add('hidden');
@@ -557,8 +561,6 @@ document.addEventListener('DOMContentLoaded', function () {
             if (token && username && apiBaseUrl) {
                 chrome.storage.local.set({ githubToken: token, githubUsername: username, githubApiBaseUrl: apiBaseUrl }, function () {
                     credentialsDiv.classList.add('hidden');
-                    headerSection.classList.add('hidden');
-                    iconContainer.classList.remove('hidden');
                 });
                 
                 lastUpdateTimeElement.textContent = "Fetching latest pull requests.";

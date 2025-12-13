@@ -270,8 +270,9 @@ export async function getStoredPullRequests() {
 /**
  * Update the extension badge with the given count.
  * @param {number|string} count - The number to display on the badge.
+ * @param {Object} newItems - Optional object containing arrays of new PRs/issues by category.
  */
-export function updateExtensionBadge(count) {
+export function updateExtensionBadge(count, newItems = null) {
     if(count === undefined || count === null) {
         return;
     }
@@ -282,12 +283,13 @@ export function updateExtensionBadge(count) {
     chrome.action.setBadgeBackgroundColor({ color: '#FF8469' });
 
     if(count > 0) {
-        triggerPushNotification(`You have ${count} new pull requests to review!`);
+        triggerPushNotification(count, newItems);
     }
 }
 
 /**
  * Reset all GitHub-related data in chrome.storage.local.
+ * Also clears the extension badge.
  * @returns {Promise<void>}
  */
 export async function resetLocalStorage() {
@@ -295,8 +297,12 @@ export async function resetLocalStorage() {
         chrome.storage.local.clear(() => {
             if (chrome.runtime.lastError) {
                 console.error('Error clearing local storage:', chrome.runtime.lastError);
+                resolve();
             } else {
                 console.log('Local storage cleared successfully.');
+                // Clear the extension badge
+                chrome.action.setBadgeText({ text: '' });
+                resolve();
             }
         });
     });
@@ -459,30 +465,71 @@ export async function removeWatchedPullRequest(id) {
 // PUSH NOTIFICATIONS
 //
 
-export function triggerPushNotification(msg) {
-    const notificationOptions = {
-        type: 'basic',
-        iconUrl: '/icons/icon48.png', // Replace with the path to your extension's icon
-        title: 'GitPing | Notice',
-        message: msg,
-        priority: 2
-    };
+export function triggerPushNotification(count, newItems = null) {
+    let notificationOptions;
+
+    // If we have detailed PR/issue data, create a rich notification
+    if (newItems && Object.keys(newItems).length > 0) {
+        // Collect all new items into a single array with category labels
+        const allItems = [];
+        const categoryLabels = {
+            personal: 'Review Requested',
+            team: 'Team',
+            mentions: 'Mentions',
+            mine: 'Your PRs',
+            issues: 'Issues',
+            watched: 'Watched'
+        };
+
+        Object.entries(newItems).forEach(([category, items]) => {
+            if (items && items.length > 0) {
+                items.forEach(item => {
+                    allItems.push({
+                        category: categoryLabels[category] || category,
+                        title: item.card?.title || item.title,
+                        repo: item.card?.repo_name || item.repo_name,
+                        type: (item.card?.type || item.type) === 'pulls' ? 'PR' : 'Issue'
+                    });
+                });
+            }
+        });
+
+        // Limit to first 5 items to avoid overwhelming the notification
+        const displayItems = allItems.slice(0, 5);
+        const remaining = count - displayItems.length;
+
+        // Build the notification message
+        let message = displayItems.map(item =>
+            `${item.type} • ${item.repo}: ${item.title}`
+        ).join('\n');
+
+        if (remaining > 0) {
+            message += `\n\n...and ${remaining} more`;
+        }
+
+        notificationOptions = {
+            type: 'basic',
+            iconUrl: '/icons/icon48.png',
+            title: `GitPing | ${count} new update${count > 1 ? 's' : ''}`,
+            message: message,
+            priority: 2
+        };
+    } else {
+        // Fallback to simple notification if no detailed data available
+        notificationOptions = {
+            type: 'basic',
+            iconUrl: '/icons/icon48.png',
+            title: 'GitPing | Notice',
+            message: `You have ${count} new pull request${count > 1 ? 's' : ''} to review!`,
+            priority: 2
+        };
+    }
 
     chrome.notifications.create('newPullRequests', notificationOptions, (notificationId) => {
         if (chrome.runtime.lastError) {
             console.error('Failed to create notification:', chrome.runtime.lastError.message);
         } else {
             console.log('Notification shown with ID:', notificationId);
-        }
-    });
-
-    // Optional: Add a click event listener for the notification
-    chrome.notifications.onClicked.addListener((notificationId) => {
-        if (notificationId === 'newPullRequests') {
-            chrome.notifications.clear(notificationId); // Clear the notification
-            console.log('Notification clicked:', notificationId);
-            // Open the extension popup
-            chrome.action.openPopup();
         }
     });
 }
