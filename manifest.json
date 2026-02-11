@@ -1,12 +1,15 @@
 {
   "manifest_version": 3,
   "name": "GitPing: GitHub Notifications for Issues & PRs",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "description": "Never miss a GitHub update! Get real-time notifications for Issues, Pull Requests, and review requests. 🚀",
   "permissions": [
     "storage",
     "notifications",
     "alarms"
+  ],
+  "host_permissions": [
+    "https://models.github.ai/*"
   ],
   "background": {
     "service_worker": "src/background/background.js",

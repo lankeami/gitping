@@ -312,6 +312,26 @@ body {
     transition: filter var(--transition-fast);
 }
 
+.tab-spacer {
+    flex: 1;
+    min-height: var(--space-4);
+}
+
+.tab-action {
+    border-top: 1px solid var(--color-border-light);
+    margin-top: var(--space-1);
+    padding-top: var(--space-3);
+}
+
+.tab-action svg {
+    color: var(--color-text-secondary);
+    transition: color var(--transition-fast);
+}
+
+.tab-action:hover svg {
+    color: var(--color-primary);
+}
+
 .tab-badge,
 .tab-badge-new {
     position: absolute;

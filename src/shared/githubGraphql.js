@@ -188,10 +188,15 @@ function getIssueSchema() {
  */
 function getPaginatedQuery(query, schema, after=null) {
     const pageNumber = after ? `"${after}"` : null;
-    return `query {
+    const fullQuery = `query {
         search(query: "${query}", type: ISSUE, first: 100, after: ${pageNumber}) {
         ${schema}
     }`;
+    // Log first query for debugging
+    if (!after) {
+        console.log('[GraphQL] Query for:', query.substring(0, 50) + '...');
+    }
+    return fullQuery;
 }
 
 /**
@@ -408,7 +413,13 @@ async function fetchGraphQL(query, schema, token, after = null) {
     const data = await response.json();
 
     if (!response.ok) {
+        console.error('[GraphQL] Response not OK:', response.status, response.statusText);
         throw new Error(`GitHub API request failed: ${response.statusText}`);
+    }
+
+    // Check for GraphQL errors
+    if (data.errors) {
+        console.error('[GraphQL] Query errors:', data.errors);
     }
 
     nodes.push(...data?.data?.search?.nodes || []);
@@ -543,4 +554,159 @@ export async function GQLFetchIssue(owner, repo, issueNumber, token) {
         throw new Error(`Failed to fetch issue details for ${owner}/${repo}#${issueNumber}`);
     }
     return result.data.repository.issue;
+}
+
+/**
+ * GraphQL query for fetching commits on default branch
+ */
+function getDefaultBranchCommitsQuery() {
+    return `
+query GetDefaultBranchCommits($owner: String!, $repo: String!, $since: GitTimestamp!, $until: GitTimestamp!) {
+    repository(owner: $owner, name: $repo) {
+        name
+        owner {
+            login
+        }
+        defaultBranchRef {
+            name
+            target {
+                ... on Commit {
+                    history(first: 100, since: $since, until: $until) {
+                        nodes {
+                            oid
+                            messageHeadline
+                            message
+                            committedDate
+                            author {
+                                name
+                                email
+                                user {
+                                    login
+                                    avatarUrl
+                                }
+                            }
+                            associatedPullRequests(first: 1) {
+                                nodes {
+                                    number
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+`;
+}
+
+/**
+ * Fetches commits on the default branch that are NOT associated with PRs
+ * @param {string} owner - The owner of the repository.
+ * @param {string} repo - The name of the repository.
+ * @param {string} since - ISO timestamp for start of date range
+ * @param {string} until - ISO timestamp for end of date range
+ * @param {string} token - GitHub personal access token for authentication.
+ * @returns {Promise<Array>} - Array of direct commits (not from PRs)
+ */
+export async function GQLFetchDirectCommits(owner, repo, since, until, token) {
+    const query = getDefaultBranchCommitsQuery();
+
+    try {
+        const result = await fetchCustomGraphQL(query, { owner, repo, since, until }, token);
+
+        if (!result?.data?.repository?.defaultBranchRef?.target?.history?.nodes) {
+            return [];
+        }
+
+        const commits = result.data.repository.defaultBranchRef.target.history.nodes;
+        const branchName = result.data.repository.defaultBranchRef.name;
+
+        // Filter out commits that are associated with PRs
+        const directCommits = commits.filter(commit => {
+            const associatedPRs = commit.associatedPullRequests?.nodes || [];
+            return associatedPRs.length === 0;
+        });
+
+        // Add repository info to each commit
+        return directCommits.map(commit => ({
+            ...commit,
+            repository: {
+                name: repo,
+                owner: { login: owner }
+            },
+            branchName
+        }));
+    } catch (error) {
+        console.error(`[GraphQL] Failed to fetch direct commits for ${owner}/${repo}:`, error);
+        return [];
+    }
+}
+
+/**
+ * Fetches all repositories for an organization
+ */
+function getOrgReposQuery() {
+    return `
+query GetOrgRepos($org: String!, $after: String) {
+    organization(login: $org) {
+        repositories(first: 100, after: $after, orderBy: {field: PUSHED_AT, direction: DESC}) {
+            pageInfo {
+                hasNextPage
+                endCursor
+            }
+            nodes {
+                name
+                owner {
+                    login
+                }
+                isArchived
+                defaultBranchRef {
+                    name
+                }
+            }
+        }
+    }
+}
+`;
+}
+
+/**
+ * Fetches direct commits across all repos in an organization
+ * @param {string} org - The organization login
+ * @param {string} since - ISO timestamp for start of date range
+ * @param {string} until - ISO timestamp for end of date range
+ * @param {string} token - GitHub personal access token
+ * @returns {Promise<Array>} - Array of direct commits across all org repos
+ */
+export async function GQLFetchOrgDirectCommits(org, since, until, token) {
+    const reposQuery = getOrgReposQuery();
+
+    try {
+        // First, get all repos in the org
+        const reposResult = await fetchCustomGraphQL(reposQuery, { org }, token);
+        const repos = reposResult?.data?.organization?.repositories?.nodes || [];
+
+        // Filter out archived repos and repos without a default branch
+        const activeRepos = repos.filter(repo => !repo.isArchived && repo.defaultBranchRef);
+
+        console.log(`[GraphQL] Fetching direct commits for ${activeRepos.length} repos in ${org}`);
+
+        // Fetch direct commits for each repo in parallel (limit to 10 at a time)
+        const allCommits = [];
+        const batchSize = 10;
+
+        for (let i = 0; i < activeRepos.length; i += batchSize) {
+            const batch = activeRepos.slice(i, i + batchSize);
+            const batchResults = await Promise.all(
+                batch.map(repo => GQLFetchDirectCommits(repo.owner.login, repo.name, since, until, token))
+            );
+            allCommits.push(...batchResults.flat());
+        }
+
+        return allCommits;
+    } catch (error) {
+        console.error(`[GraphQL] Failed to fetch org repos for ${org}:`, error);
+        return [];
+    }
 }

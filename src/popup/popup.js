@@ -362,6 +362,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const appIconContainer = document.getElementById('app-icon-container');
     const popupContainer = document.getElementById('popup-container');
     const settingsButton = document.getElementById('settings-button');
+    const recapTab = document.getElementById('recap-tab');
     const addWatchButton = document.getElementById('add-watched-btn');
 
 
@@ -595,6 +596,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
     settingsButton.addEventListener('click', () => {
         chrome.runtime.openOptionsPage();
+    });
+
+    recapTab.addEventListener('click', () => {
+        chrome.tabs.create({ url: chrome.runtime.getURL('src/recap/recap.html') });
     });
 
     // Add event listeners to tabs
