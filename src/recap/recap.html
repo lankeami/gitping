@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitPing: Technical Recap</title>
+    <link rel="stylesheet" href="recap.css">
+</head>
+<body>
+    <div class="recap-container">
+        <header class="recap-header">
+            <div class="header-title">
+                <img src="../popup/images/app-icon.png" alt="GitPing" class="header-logo">
+                <h1>GitPing: Technical Recap</h1>
+            </div>
+            <p id="recap-date" class="recap-date"></p>
+        </header>
+
+        <main class="recap-main">
+            <section id="auth-error" class="section hidden">
+                <div class="error-card">
+                    <h2>Authentication Required</h2>
+                    <p>Please configure your GitHub token in the extension settings.</p>
+                    <button id="open-settings-btn" class="btn btn-primary">Open Settings</button>
+                </div>
+            </section>
+
+            <section id="controls" class="section">
+                <div class="date-range-selector">
+                    <div class="date-input-group">
+                        <label for="start-date">From:</label>
+                        <input type="date" id="start-date" class="date-input">
+                    </div>
+                    <span class="date-separator">to</span>
+                    <div class="date-input-group">
+                        <label for="end-date">To:</label>
+                        <input type="date" id="end-date" class="date-input">
+                    </div>
+                </div>
+                <button id="generate-btn" class="btn btn-primary btn-large">
+                    Generate Recap
+                </button>
+                <p class="controls-hint">Fetches ALL PRs, issues, and conversations across your organizations and generates an AI summary.</p>
+            </section>
+
+            <section id="progress" class="section hidden">
+                <div class="progress-card">
+                    <div class="spinner"></div>
+                    <p id="progress-message" class="progress-message">Initializing...</p>
+                </div>
+            </section>
+
+            <section id="error" class="section hidden">
+                <div class="error-card">
+                    <h2>Error</h2>
+                    <p id="error-message"></p>
+                    <button id="retry-btn" class="btn btn-secondary">Retry</button>
+                </div>
+            </section>
+
+            <section id="result" class="section hidden">
+                <details class="prompt-config-section">
+                    <summary>Customize Summary Prompt</summary>
+                    <div class="prompt-config-content">
+                        <textarea id="custom-prompt" class="prompt-textarea" rows="12" placeholder="Enter custom prompt..."></textarea>
+                        <div class="prompt-actions">
+                            <button id="reset-prompt-btn" class="btn btn-secondary btn-small">Reset to Default</button>
+                            <span class="prompt-status" id="prompt-status"></span>
+                        </div>
+                    </div>
+                </details>
+                <div class="result-date-selector">
+                    <div class="date-input-group">
+                        <label for="result-start-date">From:</label>
+                        <input type="date" id="result-start-date" class="date-input">
+                    </div>
+                    <span class="date-separator">to</span>
+                    <div class="date-input-group">
+                        <label for="result-end-date">To:</label>
+                        <input type="date" id="result-end-date" class="date-input">
+                    </div>
+                    <button id="apply-date-btn" class="btn btn-primary btn-small">Apply</button>
+                </div>
+                <div class="result-card">
+                    <div class="result-header">
+                        <h2>Summary</h2>
+                        <div class="result-actions">
+                            <button id="copy-btn" class="btn btn-secondary btn-small">Copy</button>
+                            <button id="regenerate-btn" class="btn btn-secondary btn-small">Regenerate</button>
+                        </div>
+                    </div>
+                    <div id="summary-content" class="summary-content"></div>
+                </div>
+
+                <details id="raw-markdown-section" class="raw-section">
+                    <summary>View Raw Activity Data</summary>
+                    <div class="raw-content-wrapper">
+                        <button id="copy-raw-btn" class="btn btn-secondary btn-small">Copy Raw</button>
+                        <pre id="raw-markdown" class="raw-markdown"></pre>
+                    </div>
+                </details>
+            </section>
+
+            <section id="empty-activity" class="section hidden">
+                <div class="empty-card">
+                    <h2>No Activity Found</h2>
+                    <p>You had no GitHub activity yesterday. Take a break, you've earned it!</p>
+                </div>
+            </section>
+        </main>
+
+        <footer class="recap-footer">
+            <p>Powered by GitHub Models</p>
+        </footer>
+    </div>
+
+    <script type="module" src="recap.js"></script>
+</body>
+</html>
