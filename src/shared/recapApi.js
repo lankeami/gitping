@@ -1,4 +1,4 @@
-import { GQLSearchPullRequests, GQLSearchIssues, GQLFetchOrgDirectCommits } from './githubGraphql.js';
+import { GQLSearchPullRequests, GQLSearchIssues, GQLFetchDirectCommits } from './githubGraphql.js';
 import { getWatchListUrls } from './storageUtils.js';
 import { GQLFetchPullRequest, GQLFetchIssue } from './githubGraphql.js';
 import { fetchOrganizations } from './githubApi.js';
@@ -206,12 +206,8 @@ export async function fetchYesterdayActivity(username, token, startDateStr, endD
     console.log('[RecapAPI] PR queries:', prQueries.map(q => q.query));
     console.log('[RecapAPI] Issue queries:', issueQueries.map(q => q.query));
 
-    // Convert dates to ISO timestamps for commit queries
-    const sinceISO = startDate.toISOString();
-    const untilISO = endDate.toISOString();
-
     // Execute all queries in parallel for efficiency
-    const [prResults, issueResults, watchedResults, directCommitsResults] = await Promise.all([
+    const [prResults, issueResults, watchedResults] = await Promise.all([
         // Fetch all PR queries
         Promise.all(prQueries.map(async q => {
             try {
@@ -239,20 +235,44 @@ export async function fetchYesterdayActivity(username, token, startDateStr, endD
             }
         })),
         // Fetch watched items
-        fetchWatchedItemsActivity(token, startDate, endDate),
-        // Fetch direct commits to default branches (not via PRs)
-        Promise.all(orgs.map(async org => {
+        fetchWatchedItemsActivity(token, startDate, endDate)
+    ]);
+
+    // Extract unique repos from PR/issue results to check for direct commits
+    // This avoids needing the organization.repositories query (which needs extra scopes)
+    const activeRepos = new Set();
+    for (const results of prResults) {
+        for (const pr of results) {
+            const owner = pr.repository?.owner?.login;
+            const name = pr.repository?.name;
+            if (owner && name) activeRepos.add(`${owner}/${name}`);
+        }
+    }
+    for (const results of issueResults) {
+        for (const issue of results) {
+            const owner = issue.repository?.owner?.login;
+            const name = issue.repository?.name;
+            if (owner && name) activeRepos.add(`${owner}/${name}`);
+        }
+    }
+
+    // Fetch direct commits only for repos we already know about
+    const sinceISO = startDate.toISOString();
+    const untilISO = endDate.toISOString();
+    const repoList = [...activeRepos].map(r => { const [owner, name] = r.split('/'); return { owner, name }; });
+
+    console.log(`[RecapAPI] Fetching direct commits for ${repoList.length} active repos`);
+
+    const directCommitsResults = await Promise.all(
+        repoList.map(async ({ owner, name }) => {
             try {
-                console.log(`[RecapAPI] Fetching direct commits for org: ${org.login}`);
-                const commits = await GQLFetchOrgDirectCommits(org.login, sinceISO, untilISO, token);
-                console.log(`[RecapAPI] Found ${commits.length} direct commits in ${org.login}`);
-                return commits;
+                return await GQLFetchDirectCommits(owner, name, sinceISO, untilISO, token);
             } catch (err) {
-                console.error(`[RecapAPI] Failed to fetch direct commits for ${org.login}:`, err.message || err);
+                console.error(`[RecapAPI] Failed to fetch direct commits for ${owner}/${name}:`, err.message || err);
                 return [];
             }
-        }))
-    ]);
+        })
+    );
 
     // Flatten and deduplicate PRs
     const allPrs = prResults.flat();

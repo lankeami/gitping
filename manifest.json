@@ -8,9 +8,6 @@
     "notifications",
     "alarms"
   ],
-  "host_permissions": [
-    "https://models.github.ai/*"
-  ],
   "background": {
     "service_worker": "src/background/background.js",
     "type": "module"
