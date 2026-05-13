@@ -490,6 +490,7 @@ function enrichIssue(issue, gitpingType="") {
             avatar_url: owner.avatarUrl || owner.avatar_url || ''
         },
         labels: labels,
+        head_sha: issue.headRefOid || null,
         meta: meta
     }
 
