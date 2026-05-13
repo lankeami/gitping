@@ -491,6 +491,13 @@ function enrichIssue(issue, gitpingType="") {
         },
         labels: labels,
         head_sha: issue.headRefOid || null,
+        ciStatus: aggregateCiStatus(
+            (issue.commits?.nodes?.[0]?.commit?.checkSuites?.nodes ?? [])
+                .map(s => ({
+                    status: s.status.toLowerCase(),
+                    conclusion: s.conclusion?.toLowerCase() ?? null,
+                }))
+        ),
         meta: meta
     }
 
@@ -505,18 +512,27 @@ function enrichIssue(issue, gitpingType="") {
  * @param {string} token - GitHub personal access token.
  * @returns {Promise<'success'|'failure'|'running'|null>}
  */
+/**
+ * Aggregate an array of check-run objects into a single CI status string.
+ * Pure function — no side effects, no network calls.
+ * @param {Array} runs - Array of GitHub check-run objects.
+ * @returns {'success'|'failure'|'running'|null}
+ */
+export function aggregateCiStatus(runs) {
+    if (!Array.isArray(runs) || runs.length === 0) return null;
+    if (runs.some(r => r.conclusion === 'failure' || r.conclusion === 'timed_out')) return 'failure';
+    if (runs.some(r => r.status === 'in_progress' || r.status === 'queued')) return 'running';
+    if (runs.every(r => r.conclusion === 'success')) return 'success';
+    return null;
+}
+
 async function fetchCheckRuns(owner, repo, sha, token) {
     try {
         const data = await fetchFromGitHub(
             `/repos/${owner}/${repo}/commits/${sha}/check-runs?per_page=100`,
             token
         );
-        const runs = data.check_runs || [];
-        if (runs.length === 0) return null;
-        if (runs.some(r => r.conclusion === 'failure' || r.conclusion === 'timed_out')) return 'failure';
-        if (runs.some(r => r.status === 'in_progress' || r.status === 'queued')) return 'running';
-        if (runs.every(r => r.conclusion === 'success')) return 'success';
-        return null;
+        return aggregateCiStatus(data.check_runs || []);
     } catch {
         return null;
     }
