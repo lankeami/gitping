@@ -61,6 +61,7 @@ function getPrSchema() {
                 }
             }
 
+            headRefOid
             commits(last: 1) {
                 nodes {
                     commit {
