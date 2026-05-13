@@ -505,14 +505,6 @@ function enrichIssue(issue, gitpingType="") {
 }
 
 /**
- * Fetch CI check-runs for a PR's head commit and return an aggregated status.
- * @param {string} owner - Repository owner (org or user login).
- * @param {string} repo - Repository name.
- * @param {string} sha - The PR head commit SHA.
- * @param {string} token - GitHub personal access token.
- * @returns {Promise<'success'|'failure'|'running'|null>}
- */
-/**
  * Aggregate an array of check-run objects into a single CI status string.
  * Pure function — no side effects, no network calls.
  * @param {Array} runs - Array of GitHub check-run objects.
@@ -524,18 +516,6 @@ export function aggregateCiStatus(runs) {
     if (runs.some(r => r.status === 'in_progress' || r.status === 'queued')) return 'running';
     if (runs.every(r => r.conclusion === 'success')) return 'success';
     return null;
-}
-
-async function fetchCheckRuns(owner, repo, sha, token) {
-    try {
-        const data = await fetchFromGitHub(
-            `/repos/${owner}/${repo}/commits/${sha}/check-runs?per_page=100`,
-            token
-        );
-        return aggregateCiStatus(data.check_runs || []);
-    } catch {
-        return null;
-    }
 }
 
 //
@@ -624,19 +604,6 @@ export async function fetchAndFilterPullRequests(username, token) {
         });
         results[key] = results[key].map(issue => enrichIssue(issue, key));
     });
-
-    // fetch CI check-runs for PR tabs only
-    const CI_TABS = ['personal', 'mine', 'team', 'mentions'];
-    await Promise.allSettled(
-        CI_TABS.flatMap(key =>
-            (results[key] || [])
-                .filter(pr => pr.card?.head_sha)
-                .map(async pr => {
-                    const [owner, repo] = pr.card.repo_name.split('/');
-                    pr.card.ciStatus = await fetchCheckRuns(owner, repo, pr.card.head_sha, token);
-                })
-        )
-    );
 
     // ensure we set the first update time -- used for display purposes
     setFirstUpdateTime();
