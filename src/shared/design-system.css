@@ -188,3 +188,19 @@ a:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
+
+/* ========================================
+   CI/CD Status Badge
+   ======================================== */
+
+.ci-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: var(--font-size-xs);
+  margin-left: var(--space-1);
+  line-height: 1;
+}
+
+.ci-badge--success {}
+.ci-badge--failure {}
+.ci-badge--running {}
