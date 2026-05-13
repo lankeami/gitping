@@ -497,6 +497,31 @@ function enrichIssue(issue, gitpingType="") {
     return result;
 }
 
+/**
+ * Fetch CI check-runs for a PR's head commit and return an aggregated status.
+ * @param {string} owner - Repository owner (org or user login).
+ * @param {string} repo - Repository name.
+ * @param {string} sha - The PR head commit SHA.
+ * @param {string} token - GitHub personal access token.
+ * @returns {Promise<'success'|'failure'|'running'|null>}
+ */
+async function fetchCheckRuns(owner, repo, sha, token) {
+    try {
+        const data = await fetchFromGitHub(
+            `/repos/${owner}/${repo}/commits/${sha}/check-runs?per_page=100`,
+            token
+        );
+        const runs = data.check_runs || [];
+        if (runs.length === 0) return null;
+        if (runs.some(r => r.conclusion === 'failure' || r.conclusion === 'timed_out')) return 'failure';
+        if (runs.some(r => r.status === 'in_progress' || r.status === 'queued')) return 'running';
+        if (runs.every(r => r.conclusion === 'success')) return 'success';
+        return null;
+    } catch {
+        return null;
+    }
+}
+
 //
 //
 //  WATCHED FUNCTIONS
