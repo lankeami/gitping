@@ -490,10 +490,32 @@ function enrichIssue(issue, gitpingType="") {
             avatar_url: owner.avatarUrl || owner.avatar_url || ''
         },
         labels: labels,
+        head_sha: issue.headRefOid || null,
+        ciStatus: aggregateCiStatus(
+            (issue.commits?.nodes?.[0]?.commit?.checkSuites?.nodes ?? [])
+                .map(s => ({
+                    status: s.status.toLowerCase(),
+                    conclusion: s.conclusion?.toLowerCase() ?? null,
+                }))
+        ),
         meta: meta
     }
 
     return result;
+}
+
+/**
+ * Aggregate an array of check-run objects into a single CI status string.
+ * Pure function — no side effects, no network calls.
+ * @param {Array} runs - Array of GitHub check-run objects.
+ * @returns {'success'|'failure'|'running'|null}
+ */
+export function aggregateCiStatus(runs) {
+    if (!Array.isArray(runs) || runs.length === 0) return null;
+    if (runs.some(r => r.conclusion === 'failure' || r.conclusion === 'timed_out')) return 'failure';
+    if (runs.some(r => r.status === 'in_progress' || r.status === 'queued')) return 'running';
+    if (runs.every(r => r.conclusion === 'success')) return 'success';
+    return null;
 }
 
 //

@@ -61,6 +61,7 @@ function getPrSchema() {
                 }
             }
 
+            headRefOid
             commits(last: 1) {
                 nodes {
                     commit {
@@ -73,6 +74,12 @@ function getPrSchema() {
                             user {
                                 login
                                 avatarUrl
+                            }
+                        }
+                        checkSuites(first: 10) {
+                            nodes {
+                                status
+                                conclusion
                             }
                         }
                     }
@@ -273,6 +280,12 @@ query GetPullRequestDetails($owner: String!, $repo: String!, $pullNumber: Int!) 
               user {
                 login
                 avatarUrl
+              }
+            }
+            checkSuites(first: 10) {
+              nodes {
+                status
+                conclusion
               }
             }
           }
