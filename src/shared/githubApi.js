@@ -609,6 +609,19 @@ export async function fetchAndFilterPullRequests(username, token) {
         results[key] = results[key].map(issue => enrichIssue(issue, key));
     });
 
+    // fetch CI check-runs for PR tabs only
+    const CI_TABS = ['personal', 'mine', 'team', 'mentions'];
+    await Promise.allSettled(
+        CI_TABS.flatMap(key =>
+            (results[key] || [])
+                .filter(pr => pr.card?.head_sha)
+                .map(async pr => {
+                    const [owner, repo] = pr.card.repo_name.split('/');
+                    pr.card.ciStatus = await fetchCheckRuns(owner, repo, pr.card.head_sha, token);
+                })
+        )
+    );
+
     // ensure we set the first update time -- used for display purposes
     setFirstUpdateTime();
 
