@@ -248,11 +248,20 @@ function cardTitle(pr) {
     title.appendChild(statusBadge);
 
     if (pr.ciStatus) {
-        const ciEmoji = { success: '✅', failure: '❌', running: '🔄' };
+        const ciSvg = {
+            success: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><path fill="#1a7f37" fill-rule="evenodd" d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0Zm3.78 4.47a.75.75 0 0 0-1.06 0L6.75 8.44 5.28 6.97a.75.75 0 0 0-1.06 1.06l2 2a.75.75 0 0 0 1.06 0l4.5-4.5a.75.75 0 0 0 0-1.06Z"/></svg>',
+            failure: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><path fill="#cf222e" fill-rule="evenodd" d="M2.343 13.657A8 8 0 1 1 13.657 2.343 8 8 0 0 1 2.343 13.657ZM6.03 4.97a.751.751 0 0 0-1.042.018.751.751 0 0 0-.018 1.042L6.94 8 4.97 9.99a.749.749 0 0 0 .326 1.275.749.749 0 0 0 .734-.215L8 9.06l1.97 1.99a.749.749 0 0 0 1.275-.326.749.749 0 0 0-.215-.734L9.06 8l1.99-1.97a.749.749 0 0 0-.326-1.275.749.749 0 0 0-.734.215L8 6.94 6.03 4.97Z"/></svg>',
+            running: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><path fill="#9a6700" fill-rule="evenodd" d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM5 8a1 1 0 1 0-2 0 1 1 0 0 0 2 0Zm4 0a1 1 0 1 0-2 0 1 1 0 0 0 2 0Zm3 0a1 1 0 1 0-2 0 1 1 0 0 0 2 0Z"/></svg>',
+        };
         const ciBadge = document.createElement('span');
         ciBadge.className = `ci-badge ci-badge--${pr.ciStatus}`;
-        ciBadge.textContent = ciEmoji[pr.ciStatus];
         ciBadge.title = `CI: ${pr.ciStatus}`;
+        const ciImg = document.createElement('img');
+        ciImg.src = 'data:image/svg+xml,' + encodeURIComponent(ciSvg[pr.ciStatus]);
+        ciImg.width = 16;
+        ciImg.height = 16;
+        ciImg.alt = 'CI: ' + pr.ciStatus;
+        ciBadge.appendChild(ciImg);
         title.appendChild(ciBadge);
     }
 
