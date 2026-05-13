@@ -246,6 +246,16 @@ function cardTitle(pr) {
     }
 
     title.appendChild(statusBadge);
+
+    if (pr.ciStatus) {
+        const ciEmoji = { success: '✅', failure: '❌', running: '🔄' };
+        const ciBadge = document.createElement('span');
+        ciBadge.className = `ci-badge ci-badge--${pr.ciStatus}`;
+        ciBadge.textContent = ciEmoji[pr.ciStatus];
+        ciBadge.title = `CI: ${pr.ciStatus}`;
+        title.appendChild(ciBadge);
+    }
+
     return title;
 }
 
