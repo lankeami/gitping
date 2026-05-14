@@ -657,9 +657,15 @@ export async function shouldSuppressReviewToast() {
                 resolve(true);
                 return;
             }
-            // Migrate legacy one-shot flag: treat as a snooze, not permanent block
+            // Migrate legacy one-shot flag: treat as a snooze, not permanent block.
+            // The old setter used toLocaleString(), which is not reliably parseable — treat
+            // an unparseable timestamp conservatively as "was shown recently, suppress now".
             if (result.userReviewedExtension && !result.reviewSnoozedAt) {
                 const legacyTime = new Date(result.userReviewedExtension).getTime();
+                if (isNaN(legacyTime)) {
+                    resolve(true); // Can't determine when; suppress to avoid nagging
+                    return;
+                }
                 const fourteenDays = 14 * 24 * 60 * 60 * 1000;
                 resolve(Date.now() - legacyTime < fourteenDays);
                 return;

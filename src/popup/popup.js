@@ -328,7 +328,7 @@ async function addWatchListUrl() {
 
 }
 
-document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener('DOMContentLoaded', async function () {
     // Accordion logic for filter forms
     document.querySelectorAll('.filter-accordion').forEach(acc => {
         const toggle = acc.querySelector('.accordion-toggle');
@@ -643,11 +643,16 @@ document.addEventListener('DOMContentLoaded', function () {
         snoozeReviewToast();
     });
 
-    // Clicking the review link = permanent suppress
-    document.querySelector('#review-toast a')?.addEventListener('click', () => {
-        setReviewClicked();
+    // Clicking the review link = permanent suppress.
+    // Prevent default so the storage write commits before the popup can close.
+    document.querySelector('#review-toast a')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        const href = e.currentTarget.href;
+        setReviewClicked().then(() => {
+            window.open(href, '_blank');
+        });
     });
 
-    incrementPopupOpenCount();
+    await incrementPopupOpenCount();
     updateDisplaysFromStorage();
 });
