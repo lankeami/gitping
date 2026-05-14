@@ -328,21 +328,20 @@
     </div>
 
     <div id="toast" class="toast hidden"> </div>
+    <div id="review-toast" class="review-toast hidden">
+        <span>You've been using GitPing for a while — a quick review helps others find it</span>
+        <a
+            href="https://chromewebstore.google.com/detail/gitping/eekhcmlieoegmlmfeidllpdklbkbfefj/reviews"
+            target="_blank"
+            rel="noopener noreferrer"
+        >Rate on Chrome Web Store</a>
+        <button id="close-review-toast" class="close-toast-btn" aria-label="Close">&times;</button>
+    </div>
     <div id="footnote-section" class="footnote-section">
         <div id="manifest-version" class="footnote footnote-left">v1.0.0</div>
         <div id="last-update-time" class="footnote footnote-right"></div>
     </div>
     <div id="last-error" class="error hidden"></div>
-
-<div id="review-toast" class="review-toast hidden">
-    <span>Enjoying GitPing?</span>
-    <a 
-        href="https://chrome.google.com/webstore/detail/eekhcmlieoegmlmfeidllpdklbkbfefj/reviews" 
-        target="_blank" 
-        rel="noopener noreferrer"
-    >Leave a review!</a>
-    <button id="close-review-toast" class="close-toast-btn" aria-label="Close">&times;</button>
-</div>
 
     <script type="module" src="popup.js"></script>
 </body>

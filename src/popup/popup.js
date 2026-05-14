@@ -41,7 +41,7 @@ function setPopupContainerHeight() {
 }
 window.addEventListener('resize', setPopupContainerHeight);
 window.addEventListener('DOMContentLoaded', setPopupContainerHeight);
-import { getAuthToken, getUsername, resetLocalStorage, getLastUpdateTime, getLastError, setLastError, updateExtensionBadge, setLastUpdateTime, getFirstUpdateTime, setLastViewedTime, getLastViewedTime, addToWatchList, getUserReviewedExtension, setUserReviewedExtension } from '../shared/storageUtils.js';
+import { getAuthToken, getUsername, resetLocalStorage, getLastUpdateTime, getLastError, setLastError, updateExtensionBadge, setLastUpdateTime, getFirstUpdateTime, setLastViewedTime, getLastViewedTime, addToWatchList, shouldSuppressReviewToast, setReviewClicked, snoozeReviewToast, getPopupOpenCount, incrementPopupOpenCount } from '../shared/storageUtils.js';
 import { displayPullRequestsCards, resetUI, displayBadgeCount } from '../shared/uiUtils.js';
 
 // Helper: get card element by PR id
@@ -622,23 +622,32 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     async function showReviewToast() {
-        if (await getUserReviewedExtension()) {
-            return; // User has already reviewed the extension
-        }
+        if (await shouldSuppressReviewToast()) return;
 
+        // Gate 1: at least 7 days since first use
         const firstUpdateTime = await getFirstUpdateTime();
-        if (!firstUpdateTime || (Date.now() - new Date(firstUpdateTime).getTime()) < 5 * 24 * 60 * 60 * 1000) {
-            return; // Don't show the toast if it's been less than 5 days since the first update
-        }
+        if (!firstUpdateTime || (Date.now() - new Date(firstUpdateTime).getTime()) < 7 * 24 * 60 * 60 * 1000) return;
+
+        // Gate 2: at least 15 popup opens (proves real engagement)
+        const openCount = await getPopupOpenCount();
+        if (openCount < 15) return;
 
         const toast = document.getElementById('review-toast');
         if (toast) toast.classList.remove('hidden');
-        setUserReviewedExtension();
+        // Do NOT set any flag here — only on user action
     }
 
+    // Dismiss = snooze (comes back in 14 days)
     document.getElementById('close-review-toast')?.addEventListener('click', () => {
         document.getElementById('review-toast').classList.add('hidden');
+        snoozeReviewToast();
     });
 
+    // Clicking the review link = permanent suppress
+    document.querySelector('#review-toast a')?.addEventListener('click', () => {
+        setReviewClicked();
+    });
+
+    incrementPopupOpenCount();
     updateDisplaysFromStorage();
 });

@@ -646,28 +646,71 @@ export async function getAppVersion() {
 //
 
 /**
- * Check if the extension has prompted for a review.
- * @returns {Promise<string>} - The last prompted time.
- * @description This function checks if the user has been prompted for a review for the extension.
+ * Check if the review toast should be suppressed.
+ * @returns {Promise<boolean>} - true if toast should NOT be shown.
  */
-export async function getUserReviewedExtension() {
+export async function shouldSuppressReviewToast() {
     return new Promise((resolve) => {
-        chrome.storage.local.get(['userReviewedExtension'], (result) => {
-            resolve(result.userReviewedExtension);
+        chrome.storage.local.get(['reviewClickedAt', 'reviewSnoozedAt', 'userReviewedExtension'], (result) => {
+            // Permanently suppress if user clicked the review link
+            if (result.reviewClickedAt) {
+                resolve(true);
+                return;
+            }
+            // Migrate legacy one-shot flag: treat as a snooze, not permanent block
+            if (result.userReviewedExtension && !result.reviewSnoozedAt) {
+                const legacyTime = new Date(result.userReviewedExtension).getTime();
+                const fourteenDays = 14 * 24 * 60 * 60 * 1000;
+                resolve(Date.now() - legacyTime < fourteenDays);
+                return;
+            }
+            // Suppress for 14 days after a dismiss/snooze
+            if (result.reviewSnoozedAt) {
+                const snoozedAt = new Date(result.reviewSnoozedAt).getTime();
+                const fourteenDays = 14 * 24 * 60 * 60 * 1000;
+                resolve(Date.now() - snoozedAt < fourteenDays);
+                return;
+            }
+            resolve(false);
         });
     });
 }
-/**
- * Set the timestamp of when a user was last prompted to review the extension.
- * @returns {Promise<void>} - A promise that resolves when the operation is complete.
- * @description This function sets the review status for the extension in local storage.
- */
-export async function setUserReviewedExtension() {
-    return new Promise((resolve) => {
-        const lastPromptedTime = new Date().toLocaleString();
 
-        chrome.storage.local.set({ userReviewedExtension: lastPromptedTime }, () => {
-            resolve();
+/**
+ * Mark that the user clicked the review link (permanent suppress).
+ */
+export async function setReviewClicked() {
+    return new Promise((resolve) => {
+        chrome.storage.local.set({ reviewClickedAt: new Date().toISOString() }, resolve);
+    });
+}
+
+/**
+ * Snooze the review toast for 14 days (dismiss without reviewing).
+ */
+export async function snoozeReviewToast() {
+    return new Promise((resolve) => {
+        chrome.storage.local.set({ reviewSnoozedAt: new Date().toISOString() }, resolve);
+    });
+}
+
+/**
+ * Get the number of times the popup has been opened (for engagement gating).
+ */
+export async function getPopupOpenCount() {
+    return new Promise((resolve) => {
+        chrome.storage.local.get(['popupOpenCount'], (result) => {
+            resolve(result.popupOpenCount || 0);
         });
+    });
+}
+
+/**
+ * Increment the popup open counter.
+ */
+export async function incrementPopupOpenCount() {
+    const count = await getPopupOpenCount();
+    return new Promise((resolve) => {
+        chrome.storage.local.set({ popupOpenCount: count + 1 }, resolve);
     });
 }
