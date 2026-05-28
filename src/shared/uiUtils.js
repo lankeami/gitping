@@ -56,6 +56,35 @@ async function avatarForUser(user) {
 
 
 /**
+ * Calculate staleness metadata for a PR based on its last update.
+ * Returns { daysSinceUpdate, badgeText, className } or null if not stale.
+ */
+function calculateStaleness(updatedAtIso, thresholds = {}) {
+  const staleThreshold = thresholds.staleThreshold || 3;
+  const criticalThreshold = thresholds.criticalThreshold || 6;
+
+  const updatedAt = new Date(updatedAtIso);
+  const now = new Date();
+  const daysSinceUpdate = Math.floor((now - updatedAt) / (1000 * 60 * 60 * 24));
+
+  if (daysSinceUpdate < staleThreshold) {
+    return null; // Not stale enough to show badge
+  }
+
+  let badgeText, className;
+
+  if (daysSinceUpdate >= criticalThreshold) {
+    badgeText = `${daysSinceUpdate}d`;
+    className = 'staleness-badge--critical';
+  } else {
+    badgeText = `${daysSinceUpdate}d`;
+    className = 'staleness-badge--warning';
+  }
+
+  return { daysSinceUpdate, badgeText, className };
+}
+
+/**
  * Creates a card element for a pull request
  * @param {Object} pr - The pull request object.
  * @returns {HTMLElement} - The card element.
