@@ -60,8 +60,19 @@ async function avatarForUser(user) {
  * Returns { daysSinceUpdate, badgeText, className } or null if not stale.
  */
 function calculateStaleness(updatedAtIso, thresholds = {}) {
+  // Validate ISO date
+  if (!updatedAtIso || isNaN(new Date(updatedAtIso).getTime())) {
+    return null; // Invalid date; treat as not stale
+  }
+
   const staleThreshold = thresholds.staleThreshold || 3;
   const criticalThreshold = thresholds.criticalThreshold || 6;
+
+  // Validate thresholds
+  if (staleThreshold < 0 || criticalThreshold < 0 || criticalThreshold < staleThreshold) {
+    console.warn('Invalid staleness thresholds', thresholds);
+    return null;
+  }
 
   const updatedAt = new Date(updatedAtIso);
   const now = new Date();
@@ -71,13 +82,12 @@ function calculateStaleness(updatedAtIso, thresholds = {}) {
     return null; // Not stale enough to show badge
   }
 
-  let badgeText, className;
+  const badgeText = `${daysSinceUpdate}d`;
+  let className;
 
   if (daysSinceUpdate >= criticalThreshold) {
-    badgeText = `${daysSinceUpdate}d`;
     className = 'staleness-badge--critical';
   } else {
-    badgeText = `${daysSinceUpdate}d`;
     className = 'staleness-badge--warning';
   }
 
