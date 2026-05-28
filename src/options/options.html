@@ -29,6 +29,12 @@
         <label for="polling-interval">Polling Interval (minutes):</label>
         <input type="number" id="polling-interval" name="polling-interval" min="1" required>
 
+        <label for="staleness-threshold">Stale After (days):</label>
+        <input type="number" id="staleness-threshold" name="staleness-threshold" min="1" value="3" required>
+
+        <label for="critical-threshold">Critical After (days):</label>
+        <input type="number" id="critical-threshold" name="critical-threshold" min="1" value="6" required>
+
         <button type="submit">Save Options</button>
     </form>
 
