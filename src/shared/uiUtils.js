@@ -1,5 +1,18 @@
 import { getAvatarUrl, setAvatarUrl, removeFromWatchList, removeWatchedPullRequest, setLastUpdateTime } from './storageUtils.js';
 
+/**
+ * Generic getter for chrome.storage.local keys
+ * @param {Array<string>} keys - Array of storage keys to retrieve
+ * @returns {Promise<Object>} - Object with key-value pairs
+ */
+async function getFromStorage(keys) {
+    return new Promise((resolve) => {
+        chrome.storage.local.get(keys, (result) => {
+            resolve(result);
+        });
+    });
+}
+
 //
 //
 // INTERNAL HELPER FUNCTIONS
@@ -106,6 +119,13 @@ export async function createPullRequestCard(pr, section_name = null, lastViewedT
         window.open(pr.html_url, '_blank');
     };
 
+    // Fetch staleness thresholds from storage
+    const { stalenessThresholds } = await getFromStorage(['stalenessThresholds']);
+    const thresholds = stalenessThresholds || { staleThreshold: 3, criticalThreshold: 6 };
+
+    // Calculate staleness
+    const staleness = calculateStaleness(pr.updated_at, thresholds);
+
     try {
         const highbrow = await cardHighbrow(pr);
         card.appendChild(highbrow);
@@ -130,6 +150,14 @@ export async function createPullRequestCard(pr, section_name = null, lastViewedT
 
         const footnote = cardFootnote(pr, section_name, lastViewedTime);
         card.appendChild(footnote);
+
+        // Add staleness badge if applicable
+        if (staleness) {
+            const badgeEl = document.createElement('div');
+            badgeEl.className = `staleness-badge ${staleness.className}`;
+            badgeEl.textContent = staleness.badgeText;
+            card.appendChild(badgeEl);
+        }
 
     } catch (error) {
         console.error('Error creating pull request card:', error, pr);
