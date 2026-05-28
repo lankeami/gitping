@@ -110,21 +110,23 @@ function calculateStaleness(updatedAtIso, thresholds = {}) {
 /**
  * Creates a card element for a pull request
  * @param {Object} pr - The pull request object.
+ * @param {string} section_name - The section name (optional).
+ * @param {Date} lastViewedTime - The last time this tab was viewed (optional).
+ * @param {Object} thresholds - Staleness thresholds (optional, fetched from storage if not provided).
  * @returns {HTMLElement} - The card element.
  */
-export async function createPullRequestCard(pr, section_name = null, lastViewedTime = null) {
+export async function createPullRequestCard(pr, section_name = null, lastViewedTime = null, thresholds = null) {
     const card = document.createElement('div');
     card.className = 'pr-card';
     card.onclick = () => {
         window.open(pr.html_url, '_blank');
     };
 
-    // Fetch staleness thresholds from storage
-    const { stalenessThresholds } = await getFromStorage(['stalenessThresholds']);
-    const thresholds = stalenessThresholds || { staleThreshold: 3, criticalThreshold: 6 };
+    // Use passed thresholds or fetch if not provided (fallback for direct calls)
+    const resolvedThresholds = thresholds || (await getFromStorage(['stalenessThresholds'])).stalenessThresholds || { staleThreshold: 3, criticalThreshold: 6 };
 
     // Calculate staleness
-    const staleness = calculateStaleness(pr.updated_at, thresholds);
+    const staleness = calculateStaleness(pr.updated_at, resolvedThresholds);
 
     try {
         const highbrow = await cardHighbrow(pr);
@@ -474,13 +476,17 @@ export async function displayPullRequestsCards(pullRequests, pullRequestsList, l
     pullRequestsList.innerHTML = '';
     pullRequests.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
 
+    // Fetch staleness thresholds ONCE, before creating cards
+    const { stalenessThresholds } = await getFromStorage(['stalenessThresholds']);
+    const thresholds = stalenessThresholds || { staleThreshold: 3, criticalThreshold: 6 };
+
     const cardPromises = pullRequests.map(async pr => {
         try {
-            const card = await createPullRequestCard(pr.card, elementId, lastViewedTime);
+            const card = await createPullRequestCard(pr.card, elementId, lastViewedTime, thresholds);
             return [pr.id.toString(), card];
         } catch (error) {
             console.error('Error creating card for PR:', pr, error);
-            return [pr.id.toString(), document.createElement('div')]; // Return an empty div if there's an error 
+            return [pr.id.toString(), document.createElement('div')]; // Return an empty div if there's an error
         }
     });
     const cardEntries = await Promise.all(cardPromises);
