@@ -1,5 +1,18 @@
 import { getAvatarUrl, setAvatarUrl, removeFromWatchList, removeWatchedPullRequest, setLastUpdateTime } from './storageUtils.js';
 
+/**
+ * Generic getter for chrome.storage.local keys
+ * @param {Array<string>} keys - Array of storage keys to retrieve
+ * @returns {Promise<Object>} - Object with key-value pairs
+ */
+async function getFromStorage(keys) {
+    return new Promise((resolve) => {
+        chrome.storage.local.get(keys, (result) => {
+            resolve(result);
+        });
+    });
+}
+
 //
 //
 // INTERNAL HELPER FUNCTIONS
@@ -56,16 +69,64 @@ async function avatarForUser(user) {
 
 
 /**
+ * Calculate staleness metadata for a PR based on its last update.
+ * Returns { daysSinceUpdate, badgeText, className } or null if not stale.
+ */
+function calculateStaleness(updatedAtIso, thresholds = {}) {
+  // Validate ISO date
+  if (!updatedAtIso || isNaN(new Date(updatedAtIso).getTime())) {
+    return null; // Invalid date; treat as not stale
+  }
+
+  const staleThreshold = thresholds.staleThreshold || 3;
+  const criticalThreshold = thresholds.criticalThreshold || 6;
+
+  // Validate thresholds
+  if (staleThreshold < 0 || criticalThreshold < 0 || criticalThreshold < staleThreshold) {
+    console.warn('Invalid staleness thresholds', thresholds);
+    return null;
+  }
+
+  const updatedAt = new Date(updatedAtIso);
+  const now = new Date();
+  const daysSinceUpdate = Math.floor((now - updatedAt) / (1000 * 60 * 60 * 24));
+
+  if (daysSinceUpdate < staleThreshold) {
+    return null; // Not stale enough to show badge
+  }
+
+  const badgeText = `${daysSinceUpdate}d`;
+  let className;
+
+  if (daysSinceUpdate >= criticalThreshold) {
+    className = 'staleness-badge--critical';
+  } else {
+    className = 'staleness-badge--warning';
+  }
+
+  return { daysSinceUpdate, badgeText, className };
+}
+
+/**
  * Creates a card element for a pull request
  * @param {Object} pr - The pull request object.
+ * @param {string} section_name - The section name (optional).
+ * @param {Date} lastViewedTime - The last time this tab was viewed (optional).
+ * @param {Object} thresholds - Staleness thresholds (optional, fetched from storage if not provided).
  * @returns {HTMLElement} - The card element.
  */
-export async function createPullRequestCard(pr, section_name = null, lastViewedTime = null) {
+export async function createPullRequestCard(pr, section_name = null, lastViewedTime = null, thresholds = null) {
     const card = document.createElement('div');
     card.className = 'pr-card';
     card.onclick = () => {
         window.open(pr.html_url, '_blank');
     };
+
+    // Use passed thresholds or fetch if not provided (fallback for direct calls)
+    const resolvedThresholds = thresholds || (await getFromStorage(['stalenessThresholds'])).stalenessThresholds || { staleThreshold: 3, criticalThreshold: 6 };
+
+    // Calculate staleness
+    const staleness = calculateStaleness(pr.updated_at, resolvedThresholds);
 
     try {
         const highbrow = await cardHighbrow(pr);
@@ -91,6 +152,14 @@ export async function createPullRequestCard(pr, section_name = null, lastViewedT
 
         const footnote = cardFootnote(pr, section_name, lastViewedTime);
         card.appendChild(footnote);
+
+        // Add staleness badge if applicable
+        if (staleness) {
+            const badgeEl = document.createElement('div');
+            badgeEl.className = `staleness-badge ${staleness.className}`;
+            badgeEl.textContent = staleness.badgeText;
+            card.appendChild(badgeEl);
+        }
 
     } catch (error) {
         console.error('Error creating pull request card:', error, pr);
@@ -407,13 +476,17 @@ export async function displayPullRequestsCards(pullRequests, pullRequestsList, l
     pullRequestsList.innerHTML = '';
     pullRequests.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
 
+    // Fetch staleness thresholds ONCE, before creating cards
+    const { stalenessThresholds } = await getFromStorage(['stalenessThresholds']);
+    const thresholds = stalenessThresholds || { staleThreshold: 3, criticalThreshold: 6 };
+
     const cardPromises = pullRequests.map(async pr => {
         try {
-            const card = await createPullRequestCard(pr.card, elementId, lastViewedTime);
+            const card = await createPullRequestCard(pr.card, elementId, lastViewedTime, thresholds);
             return [pr.id.toString(), card];
         } catch (error) {
             console.error('Error creating card for PR:', pr, error);
-            return [pr.id.toString(), document.createElement('div')]; // Return an empty div if there's an error 
+            return [pr.id.toString(), document.createElement('div')]; // Return an empty div if there's an error
         }
     });
     const cardEntries = await Promise.all(cardPromises);

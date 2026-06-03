@@ -146,6 +146,15 @@
   --card-width: 360px;
   --header-height: 48px;
   --tab-width: 48px;
+
+  /* ========================================
+     Staleness Badge
+     ======================================== */
+
+  --staleness-badge-size: 36px;
+  --staleness-badge-font-size: var(--font-size-xs);
+  --staleness-badge-font-weight: var(--font-weight-semibold);
+  --staleness-badge-transition: all var(--transition-fast);
 }
 
 /* ========================================
