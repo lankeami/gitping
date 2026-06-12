@@ -150,6 +150,11 @@ export async function createPullRequestCard(pr, section_name = null, lastViewedT
             card.appendChild(quote);
         }
 
+        const diffStat = cardDiffStat(pr);
+        if (diffStat) {
+            card.appendChild(diffStat);
+        }
+
         const footnote = cardFootnote(pr, section_name, lastViewedTime);
         card.appendChild(footnote);
 
@@ -335,6 +340,46 @@ function cardTitle(pr) {
     }
 
     return title;
+}
+
+function cardDiffStat(pr) {
+    if (pr.additions == null && pr.deletions == null) return null;
+
+    const additions = pr.additions || 0;
+    const deletions = pr.deletions || 0;
+    const files = pr.changedFiles || 0;
+    const total = additions + deletions;
+
+    const container = document.createElement('div');
+    container.className = 'pr-diff-stat';
+
+    let sizeClass = 'pr-diff-stat--sm';
+    if (total >= 500) sizeClass = 'pr-diff-stat--lg';
+    else if (total >= 100) sizeClass = 'pr-diff-stat--md';
+    container.classList.add(sizeClass);
+
+    const addSpan = document.createElement('span');
+    addSpan.className = 'pr-diff-additions';
+    addSpan.textContent = `+${additions}`;
+
+    const delSpan = document.createElement('span');
+    delSpan.className = 'pr-diff-deletions';
+    delSpan.textContent = `-${deletions}`;
+
+    const filesSpan = document.createElement('span');
+    filesSpan.className = 'pr-diff-files';
+    filesSpan.textContent = `${files} file${files !== 1 ? 's' : ''}`;
+
+    const sep1 = document.createTextNode(' ');
+    const sep2 = document.createTextNode(' · ');
+
+    container.appendChild(addSpan);
+    container.appendChild(sep1);
+    container.appendChild(delSpan);
+    container.appendChild(sep2);
+    container.appendChild(filesSpan);
+
+    return container;
 }
 
 function cardFootnote(pr, section_name = null, lastViewedTime = null) {

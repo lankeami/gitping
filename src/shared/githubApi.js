@@ -490,6 +490,9 @@ function enrichIssue(issue, gitpingType="") {
             avatar_url: owner.avatarUrl || owner.avatar_url || ''
         },
         labels: labels,
+        additions: issue.additions ?? null,
+        deletions: issue.deletions ?? null,
+        changedFiles: issue.changedFiles ?? null,
         head_sha: issue.headRefOid || null,
         ciStatus: aggregateCiStatus(
             (issue.commits?.nodes?.[0]?.commit?.checkSuites?.nodes ?? [])
