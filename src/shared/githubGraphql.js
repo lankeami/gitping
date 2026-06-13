@@ -61,6 +61,10 @@ function getPrSchema() {
                 }
             }
 
+            additions
+            deletions
+            changedFiles
+
             headRefOid
             commits(last: 1) {
                 nodes {
@@ -266,6 +270,11 @@ query GetPullRequestDetails($owner: String!, $repo: String!, $pullNumber: Int!) 
           description
         }
       }
+
+      # --- Diff Stats ---
+      additions
+      deletions
+      changedFiles
 
       # --- Last Commit Details ---
       commits(last: 1) {

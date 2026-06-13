@@ -213,3 +213,37 @@ a:focus-visible {
 .ci-badge--success {}
 .ci-badge--failure {}
 .ci-badge--running {}
+
+/* ========================================
+   Diff Stat Badge
+   ======================================== */
+
+.pr-diff-stat {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--font-size-xs);
+  font-family: var(--font-family-mono);
+  color: var(--color-text-tertiary);
+  padding: var(--space-1) 0;
+}
+
+.pr-diff-additions {
+  color: #1a7f37;
+}
+
+.pr-diff-deletions {
+  color: #cf222e;
+}
+
+.pr-diff-files {
+  color: var(--color-text-muted);
+}
+
+.pr-diff-stat--lg {
+  font-weight: var(--font-weight-semibold);
+}
+
+.pr-diff-stat--lg .pr-diff-files {
+  color: var(--color-warning);
+}
