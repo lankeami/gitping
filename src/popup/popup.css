@@ -1111,6 +1111,26 @@ h2 {
     font-weight: var(--font-weight-bold);
 }
 
+.workload-chevron {
+    flex-shrink: 0;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+    margin-left: var(--space-1);
+    transition: color var(--transition-fast);
+}
+
+.workload-row:hover .workload-chevron {
+    color: var(--color-primary);
+}
+
+.workload-panel {
+    padding: 0 0 0 var(--space-6);
+}
+
+.workload-panel .pr-card {
+    width: auto;
+}
+
 /* ========================================
    Staleness Badge
    ======================================== */

@@ -42,7 +42,7 @@ function setPopupContainerHeight() {
 window.addEventListener('resize', setPopupContainerHeight);
 window.addEventListener('DOMContentLoaded', setPopupContainerHeight);
 import { getAuthToken, getUsername, resetLocalStorage, getLastUpdateTime, getLastError, setLastError, updateExtensionBadge, setLastUpdateTime, getFirstUpdateTime, setLastViewedTime, getLastViewedTime, addToWatchList, shouldSuppressReviewToast, setReviewClicked, snoozeReviewToast, getPopupOpenCount, incrementPopupOpenCount, getAvatarUrl, setAvatarUrl } from '../shared/storageUtils.js';
-import { displayPullRequestsCards, resetUI, displayBadgeCount } from '../shared/uiUtils.js';
+import { displayPullRequestsCards, createPullRequestCard, resetUI, displayBadgeCount } from '../shared/uiUtils.js';
 
 // Helper: get card element by PR id
 function getCardElementById(listElem, prId) {
@@ -279,9 +279,11 @@ function aggregateWorkload(config) {
                     user: pr.card?.user || pr.user || { login },
                     authored: 0,
                     reviewRequested: 0,
+                    prs: [],
                 };
             }
             authors[login].authored++;
+            authors[login].prs.push(pr);
         });
     });
 
@@ -292,7 +294,7 @@ function aggregateWorkload(config) {
             reviewers.forEach(r => {
                 if (!r?.login) return;
                 if (!authors[r.login]) {
-                    authors[r.login] = { login: r.login, user: r, authored: 0, reviewRequested: 0 };
+                    authors[r.login] = { login: r.login, user: r, authored: 0, reviewRequested: 0, prs: [] };
                 }
                 authors[r.login].reviewRequested++;
             });
@@ -436,12 +438,18 @@ async function renderWorkload(workloadData) {
         return;
     }
 
+    const { stalenessThresholds } = await new Promise(resolve => {
+        chrome.storage.local.get(['stalenessThresholds'], resolve);
+    });
+    const thresholds = stalenessThresholds || { staleThreshold: 3, criticalThreshold: 6 };
+
     for (const author of workloadData) {
-        const row = document.createElement('div');
-        row.className = 'workload-row';
-        row.onclick = () => {
-            window.open(`https://github.com/pulls?q=is%3Aopen+is%3Apr+author%3A${author.login}`, '_blank');
-        };
+        const section = document.createElement('div');
+        section.className = 'workload-accordion';
+
+        const header = document.createElement('button');
+        header.type = 'button';
+        header.className = 'workload-row';
 
         const avatarImg = document.createElement('img');
         let avatarUrl = await getAvatarUrl(author.login);
@@ -449,21 +457,17 @@ async function renderWorkload(workloadData) {
             avatarUrl = author.user?.avatar_url || author.user?.avatarUrl;
             if (avatarUrl) setAvatarUrl(author.login, avatarUrl);
         }
-        if (avatarUrl) {
-            avatarImg.src = avatarUrl;
-        }
+        if (avatarUrl) avatarImg.src = avatarUrl;
         avatarImg.alt = author.login;
         avatarImg.className = 'avatar avatar-md';
-        row.appendChild(avatarImg);
+        header.appendChild(avatarImg);
 
         const info = document.createElement('div');
         info.className = 'workload-info';
-
         const name = document.createElement('span');
         name.className = 'workload-name';
         name.textContent = author.login;
         info.appendChild(name);
-
         const breakdown = document.createElement('span');
         breakdown.className = 'workload-breakdown';
         const parts = [];
@@ -471,15 +475,37 @@ async function renderWorkload(workloadData) {
         if (author.reviewRequested > 0) parts.push(`${author.reviewRequested} reviewing`);
         breakdown.textContent = parts.join(' · ');
         info.appendChild(breakdown);
-
-        row.appendChild(info);
+        header.appendChild(info);
 
         const count = document.createElement('span');
         count.className = 'workload-count';
         count.textContent = author.authored;
-        row.appendChild(count);
+        header.appendChild(count);
 
-        list.appendChild(row);
+        const chevron = document.createElement('span');
+        chevron.className = 'workload-chevron';
+        chevron.textContent = '▸';
+        header.appendChild(chevron);
+
+        const panel = document.createElement('div');
+        panel.className = 'workload-panel hidden';
+
+        header.addEventListener('click', async () => {
+            const isOpen = !panel.classList.contains('hidden');
+            panel.classList.toggle('hidden');
+            chevron.textContent = isOpen ? '▸' : '▾';
+            if (!isOpen && panel.childElementCount === 0) {
+                for (const pr of author.prs) {
+                    if (!pr.card) continue;
+                    const card = await createPullRequestCard(pr.card, 'workload', null, thresholds);
+                    panel.appendChild(card);
+                }
+            }
+        });
+
+        section.appendChild(header);
+        section.appendChild(panel);
+        list.appendChild(section);
     }
 }
 
