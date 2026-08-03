@@ -323,6 +323,43 @@
             <div id="workload-content" class="tab-content">
                 <h2 class="tab-header">Team Workload</h2>
                 <span class="tab-lowbrow">Open PR count per active contributor</span>
+                <div class="filter-accordion">
+                    <button type="button" class="accordion-toggle" aria-expanded="false">
+                        <img src="./images/filter.png" alt="Filter" width="16" height="16" class="filter-icon">
+                        Filters
+                        <span class="filter-count-badge hidden" id="workload-filter-count"></span>
+                    </button>
+                    <div class="filter-form-container hidden">
+                        <span class="tab-lowbrow">Exclude selected filters</span>
+                        <form class="filter-form" id="workload-filter-form">
+                            <div class="filter-group">
+                                <label class="filter-label">Labels</label>
+                                <div class="custom-multiselect" id="workload-label-filter"></div>
+                                <button type="button" class="clear-filter-btn" data-filter="workload-label-filter">Clear</button>
+                            </div>
+                            <div class="filter-group">
+                                <label class="filter-label">Organization</label>
+                                <div class="custom-multiselect" id="workload-org-filter"></div>
+                                <button type="button" class="clear-filter-btn" data-filter="workload-org-filter">Clear</button>
+                            </div>
+                            <div class="filter-group">
+                                <label class="filter-label">Authors</label>
+                                <div class="custom-multiselect" id="workload-author-filter"></div>
+                                <button type="button" class="clear-filter-btn" data-filter="workload-author-filter">Clear</button>
+                            </div>
+                            <div class="filter-group">
+                                <label class="filter-label">Repository</label>
+                                <div class="custom-multiselect" id="workload-repo-filter"></div>
+                                <button type="button" class="clear-filter-btn" data-filter="workload-repo-filter">Clear</button>
+                            </div>
+                            <div class="filter-group">
+                                <label class="filter-label">Updated After</label>
+                                <div id="workload-date-filter"></div>
+                                <button type="button" class="clear-filter-btn" data-filter="workload-date-filter">Clear</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
                 <div id="workload-list" class="workload-list"></div>
             </div>
             <!-- Watched Tab Content -->
