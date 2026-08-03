@@ -2,6 +2,7 @@
 
 ## 2026-08-03
 
+- [7752a7b](https://github.com/lankeami/gitping/commit/7752a7ba7e71c82e81d5f7187d356480496cef98) [support] | bump version to v1.10.0
 - [3d742d1](https://github.com/lankeami/gitping/commit/3d742d1d2300df645f6e5a8fdfe89fa0bd39c6e3) cleanup | use users.png icon for workload tab (#92)
 - [6d7d185](https://github.com/lankeami/gitping/commit/6d7d185a6c561b4934c69ab565ca1c97b551e909) cleanup | make workload rows full-width matching filter accordion style (#92)
 - [2b39b82](https://github.com/lankeami/gitping/commit/2b39b82a949546150d745975f6bcfeaf7754f818) feature | make workload author rows accordion with inline PR cards (#92)
