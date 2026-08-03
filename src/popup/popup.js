@@ -41,7 +41,7 @@ function setPopupContainerHeight() {
 }
 window.addEventListener('resize', setPopupContainerHeight);
 window.addEventListener('DOMContentLoaded', setPopupContainerHeight);
-import { getAuthToken, getUsername, resetLocalStorage, getLastUpdateTime, getLastError, setLastError, updateExtensionBadge, setLastUpdateTime, getFirstUpdateTime, setLastViewedTime, getLastViewedTime, addToWatchList, shouldSuppressReviewToast, setReviewClicked, snoozeReviewToast, getPopupOpenCount, incrementPopupOpenCount } from '../shared/storageUtils.js';
+import { getAuthToken, getUsername, resetLocalStorage, getLastUpdateTime, getLastError, setLastError, updateExtensionBadge, setLastUpdateTime, getFirstUpdateTime, setLastViewedTime, getLastViewedTime, addToWatchList, shouldSuppressReviewToast, setReviewClicked, snoozeReviewToast, getPopupOpenCount, incrementPopupOpenCount, getAvatarUrl, setAvatarUrl } from '../shared/storageUtils.js';
 import { displayPullRequestsCards, resetUI, displayBadgeCount } from '../shared/uiUtils.js';
 
 // Helper: get card element by PR id
@@ -262,6 +262,108 @@ async function setupTabFilters(tabKey, pullRequests, lastViewedTime) {
     updateCardVisibilityAndPersist();
 }
 
+function aggregateWorkload(config) {
+    const seen = new Set();
+    const authors = {};
+
+    ['personal', 'mine', 'team', 'mention'].forEach(key => {
+        const prs = config[key] || [];
+        prs.forEach(pr => {
+            if (seen.has(pr.id)) return;
+            seen.add(pr.id);
+            const login = pr.author?.login || pr.user?.login || pr.card?.user?.login;
+            if (!login) return;
+            if (!authors[login]) {
+                authors[login] = {
+                    login,
+                    user: pr.card?.user || pr.user || { login },
+                    authored: 0,
+                    reviewRequested: 0,
+                };
+            }
+            authors[login].authored++;
+        });
+    });
+
+    ['personal', 'team'].forEach(key => {
+        const prs = config[key] || [];
+        prs.forEach(pr => {
+            const reviewers = pr.card?.requested_reviewers || pr.requested_reviewers || [];
+            reviewers.forEach(r => {
+                if (!r?.login) return;
+                if (!authors[r.login]) {
+                    authors[r.login] = { login: r.login, user: r, authored: 0, reviewRequested: 0 };
+                }
+                authors[r.login].reviewRequested++;
+            });
+        });
+    });
+
+    return Object.values(authors)
+        .sort((a, b) => (b.authored + b.reviewRequested) - (a.authored + a.reviewRequested))
+        .slice(0, 20);
+}
+
+async function renderWorkload(workloadData) {
+    const list = document.getElementById('workload-list');
+    if (!list) return;
+    list.textContent = '';
+
+    if (workloadData.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'no-pull-requests';
+        empty.textContent = 'No open PRs found.';
+        list.appendChild(empty);
+        return;
+    }
+
+    for (const author of workloadData) {
+        const row = document.createElement('div');
+        row.className = 'workload-row';
+        row.onclick = () => {
+            window.open(`https://github.com/pulls?q=is%3Aopen+is%3Apr+author%3A${author.login}`, '_blank');
+        };
+
+        const avatarImg = document.createElement('img');
+        let avatarUrl = await getAvatarUrl(author.login);
+        if (!avatarUrl) {
+            avatarUrl = author.user?.avatar_url || author.user?.avatarUrl;
+            if (avatarUrl) setAvatarUrl(author.login, avatarUrl);
+        }
+        if (avatarUrl) {
+            avatarImg.src = avatarUrl;
+        }
+        avatarImg.alt = author.login;
+        avatarImg.className = 'avatar avatar-md';
+        row.appendChild(avatarImg);
+
+        const info = document.createElement('div');
+        info.className = 'workload-info';
+
+        const name = document.createElement('span');
+        name.className = 'workload-name';
+        name.textContent = author.login;
+        info.appendChild(name);
+
+        const breakdown = document.createElement('span');
+        breakdown.className = 'workload-breakdown';
+        const parts = [];
+        if (author.authored > 0) parts.push(`${author.authored} authored`);
+        if (author.reviewRequested > 0) parts.push(`${author.reviewRequested} reviewing`);
+        breakdown.textContent = parts.join(' · ');
+        info.appendChild(breakdown);
+
+        row.appendChild(info);
+
+        const count = document.createElement('span');
+        count.className = 'workload-count';
+        count.textContent = author.authored;
+        row.appendChild(count);
+
+        list.appendChild(row);
+    }
+}
+
 document.getElementById('manifest-version').textContent = `v${chrome.runtime.getManifest().version}`;
 
 async function addWatchListUrl() {
@@ -456,6 +558,19 @@ document.addEventListener('DOMContentLoaded', async function () {
                         displayBadgeCount(element, pullRequests, lastViewedTime);
                     });
                 });
+
+                const workloadData = aggregateWorkload(config);
+                await renderWorkload(workloadData);
+
+                const workloadBadge = document.getElementById('workload-badge');
+                if (workloadBadge) {
+                    if (workloadData.length > 0) {
+                        workloadBadge.textContent = workloadData.length;
+                        workloadBadge.classList.remove('hidden');
+                    } else {
+                        workloadBadge.classList.add('hidden');
+                    }
+                }
 
                 if (lastViewedTime) {
                     await showReviewToast();
