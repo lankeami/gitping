@@ -41,8 +41,8 @@ function setPopupContainerHeight() {
 }
 window.addEventListener('resize', setPopupContainerHeight);
 window.addEventListener('DOMContentLoaded', setPopupContainerHeight);
-import { getAuthToken, getUsername, resetLocalStorage, getLastUpdateTime, getLastError, setLastError, updateExtensionBadge, setLastUpdateTime, getFirstUpdateTime, setLastViewedTime, getLastViewedTime, addToWatchList, shouldSuppressReviewToast, setReviewClicked, snoozeReviewToast, getPopupOpenCount, incrementPopupOpenCount } from '../shared/storageUtils.js';
-import { displayPullRequestsCards, resetUI, displayBadgeCount } from '../shared/uiUtils.js';
+import { getAuthToken, getUsername, resetLocalStorage, getLastUpdateTime, getLastError, setLastError, updateExtensionBadge, setLastUpdateTime, getFirstUpdateTime, setLastViewedTime, getLastViewedTime, addToWatchList, shouldSuppressReviewToast, setReviewClicked, snoozeReviewToast, getPopupOpenCount, incrementPopupOpenCount, getAvatarUrl, setAvatarUrl } from '../shared/storageUtils.js';
+import { displayPullRequestsCards, createPullRequestCard, resetUI, displayBadgeCount } from '../shared/uiUtils.js';
 
 // Helper: get card element by PR id
 function getCardElementById(listElem, prId) {
@@ -262,6 +262,253 @@ async function setupTabFilters(tabKey, pullRequests, lastViewedTime) {
     updateCardVisibilityAndPersist();
 }
 
+function aggregateWorkload(config) {
+    const seen = new Set();
+    const authors = {};
+
+    ['personal', 'mine', 'team', 'mention'].forEach(key => {
+        const prs = config[key] || [];
+        prs.forEach(pr => {
+            if (seen.has(pr.id)) return;
+            seen.add(pr.id);
+            const login = pr.author?.login || pr.user?.login || pr.card?.user?.login;
+            if (!login) return;
+            if (!authors[login]) {
+                authors[login] = {
+                    login,
+                    user: pr.card?.user || pr.user || { login },
+                    authored: 0,
+                    reviewRequested: 0,
+                    prs: [],
+                };
+            }
+            authors[login].authored++;
+            authors[login].prs.push(pr);
+        });
+    });
+
+    ['personal', 'team'].forEach(key => {
+        const prs = config[key] || [];
+        prs.forEach(pr => {
+            const reviewers = pr.card?.requested_reviewers || pr.requested_reviewers || [];
+            reviewers.forEach(r => {
+                if (!r?.login) return;
+                if (!authors[r.login]) {
+                    authors[r.login] = { login: r.login, user: r, authored: 0, reviewRequested: 0, prs: [] };
+                }
+                authors[r.login].reviewRequested++;
+            });
+        });
+    });
+
+    return Object.values(authors)
+        .sort((a, b) => (b.authored + b.reviewRequested) - (a.authored + a.reviewRequested))
+        .slice(0, 20);
+}
+
+async function setupWorkloadFilters(config) {
+    const orgDiv = document.getElementById('workload-org-filter');
+    const authorDiv = document.getElementById('workload-author-filter');
+    const labelDiv = document.getElementById('workload-label-filter');
+    const repoDiv = document.getElementById('workload-repo-filter');
+    const dateDiv = document.getElementById('workload-date-filter');
+    if (!orgDiv || !authorDiv || !labelDiv || !repoDiv || !dateDiv) return;
+
+    const seen = new Set();
+    const allPRs = [];
+    ['personal', 'mine', 'team', 'mention'].forEach(key => {
+        (config[key] || []).forEach(pr => {
+            if (!seen.has(pr.id)) { seen.add(pr.id); allPRs.push(pr); }
+        });
+    });
+
+    const orgs = extractUniqueOrgs(allPRs);
+    const authors = extractUniqueAuthors(allPRs);
+    const labels = extractUniqueLabels(allPRs);
+    const repos = extractUniqueRepos(allPRs);
+
+    const filterKey = 'filterSelections_workload';
+    let restoredOrgs = [], restoredAuthors = [], restoredLabels = [], restoredRepos = [];
+    let restoredDate = null;
+    await new Promise(resolve => {
+        chrome.storage.local.get([filterKey], result => {
+            if (result[filterKey]) {
+                restoredOrgs = result[filterKey].orgs || [];
+                restoredAuthors = result[filterKey].authors || [];
+                restoredLabels = result[filterKey].labels || [];
+                restoredRepos = result[filterKey].repos || [];
+                restoredDate = result[filterKey].date || null;
+            }
+            resolve();
+        });
+    });
+
+    let selectedOrgs = [...restoredOrgs];
+    let selectedAuthors = [...restoredAuthors];
+    let selectedLabels = [...restoredLabels];
+    let selectedRepos = [...restoredRepos];
+    let selectedDate = restoredDate;
+
+    function updateFilterCountBadge() {
+        const badge = document.getElementById('workload-filter-count');
+        const count = selectedOrgs.length + selectedAuthors.length + selectedLabels.length + selectedRepos.length + (selectedDate ? 1 : 0);
+        if (badge) {
+            badge.textContent = count > 0 ? count : '';
+            badge.classList.toggle('hidden', count === 0);
+        }
+    }
+
+    function filterPR(pr) {
+        const org = pr.repository?.owner?.login || pr.org;
+        const author = pr.author?.login || pr.user?.login;
+        let prLabels = [];
+        if (Array.isArray(pr.labels)) prLabels = pr.labels.map(l => l.name);
+        else if (pr.labels?.nodes) prLabels = pr.labels.nodes.map(l => l.name);
+        const repo = pr.repository?.name;
+        const updatedAt = pr.card?.updated_at || pr.last_updated;
+
+        if (selectedOrgs.length > 0 && selectedOrgs.includes(org)) return false;
+        if (selectedAuthors.length > 0 && selectedAuthors.includes(author)) return false;
+        if (selectedLabels.length > 0 && prLabels.some(l => selectedLabels.includes(l))) return false;
+        if (selectedRepos.length > 0 && selectedRepos.includes(repo)) return false;
+        if (selectedDate && updatedAt && new Date(updatedAt) < new Date(selectedDate)) return false;
+        return true;
+    }
+
+    async function applyFiltersAndRender() {
+        chrome.storage.local.set({ [filterKey]: { orgs: selectedOrgs, authors: selectedAuthors, labels: selectedLabels, repos: selectedRepos, date: selectedDate } });
+
+        const filteredConfig = {};
+        ['personal', 'mine', 'team', 'mention'].forEach(key => {
+            filteredConfig[key] = (config[key] || []).filter(filterPR);
+        });
+
+        const workloadData = aggregateWorkload(filteredConfig);
+        await renderWorkload(workloadData);
+
+        const workloadBadge = document.getElementById('workload-badge');
+        if (workloadBadge) {
+            if (workloadData.length > 0) {
+                workloadBadge.textContent = workloadData.length;
+                workloadBadge.classList.remove('hidden');
+            } else {
+                workloadBadge.classList.add('hidden');
+            }
+        }
+        updateFilterCountBadge();
+    }
+
+    function renderAll() {
+        renderCustomMultiselect(orgDiv, orgs, selectedOrgs, vals => { selectedOrgs = vals; renderAll(); applyFiltersAndRender(); });
+        renderCustomMultiselect(authorDiv, authors, selectedAuthors, vals => { selectedAuthors = vals; renderAll(); applyFiltersAndRender(); });
+        renderCustomMultiselect(labelDiv, labels, selectedLabels, vals => { selectedLabels = vals; renderAll(); applyFiltersAndRender(); });
+        renderCustomMultiselect(repoDiv, repos, selectedRepos, vals => { selectedRepos = vals; renderAll(); applyFiltersAndRender(); });
+
+        dateDiv.textContent = '';
+        const dateInput = document.createElement('input');
+        dateInput.type = 'date';
+        dateInput.value = selectedDate || '';
+        dateInput.className = 'filter-input';
+        dateInput.addEventListener('change', e => { selectedDate = e.target.value; applyFiltersAndRender(); });
+        dateDiv.appendChild(dateInput);
+
+        updateFilterCountBadge();
+    }
+    renderAll();
+
+    orgDiv.parentElement.querySelector('.clear-filter-btn').onclick = () => { selectedOrgs = []; renderAll(); applyFiltersAndRender(); };
+    authorDiv.parentElement.querySelector('.clear-filter-btn').onclick = () => { selectedAuthors = []; renderAll(); applyFiltersAndRender(); };
+    labelDiv.parentElement.querySelector('.clear-filter-btn').onclick = () => { selectedLabels = []; renderAll(); applyFiltersAndRender(); };
+    repoDiv.parentElement.querySelector('.clear-filter-btn').onclick = () => { selectedRepos = []; renderAll(); applyFiltersAndRender(); };
+    dateDiv.parentElement.querySelector('.clear-filter-btn').onclick = () => { selectedDate = null; renderAll(); applyFiltersAndRender(); };
+
+    await applyFiltersAndRender();
+}
+
+async function renderWorkload(workloadData) {
+    const list = document.getElementById('workload-list');
+    if (!list) return;
+    list.textContent = '';
+
+    if (workloadData.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'no-pull-requests';
+        empty.textContent = 'No open PRs found.';
+        list.appendChild(empty);
+        return;
+    }
+
+    const { stalenessThresholds } = await new Promise(resolve => {
+        chrome.storage.local.get(['stalenessThresholds'], resolve);
+    });
+    const thresholds = stalenessThresholds || { staleThreshold: 3, criticalThreshold: 6 };
+
+    for (const author of workloadData) {
+        const section = document.createElement('div');
+        section.className = 'workload-accordion';
+
+        const header = document.createElement('button');
+        header.type = 'button';
+        header.className = 'workload-row';
+
+        const avatarImg = document.createElement('img');
+        let avatarUrl = await getAvatarUrl(author.login);
+        if (!avatarUrl) {
+            avatarUrl = author.user?.avatar_url || author.user?.avatarUrl;
+            if (avatarUrl) setAvatarUrl(author.login, avatarUrl);
+        }
+        if (avatarUrl) avatarImg.src = avatarUrl;
+        avatarImg.alt = author.login;
+        avatarImg.className = 'avatar avatar-md';
+        header.appendChild(avatarImg);
+
+        const info = document.createElement('div');
+        info.className = 'workload-info';
+        const name = document.createElement('span');
+        name.className = 'workload-name';
+        name.textContent = author.login;
+        info.appendChild(name);
+        const breakdown = document.createElement('span');
+        breakdown.className = 'workload-breakdown';
+        const parts = [];
+        if (author.authored > 0) parts.push(`${author.authored} authored`);
+        if (author.reviewRequested > 0) parts.push(`${author.reviewRequested} reviewing`);
+        breakdown.textContent = parts.join(' · ');
+        info.appendChild(breakdown);
+        header.appendChild(info);
+
+        const count = document.createElement('span');
+        count.className = 'workload-count';
+        count.textContent = author.authored;
+        header.appendChild(count);
+
+        const chevron = document.createElement('span');
+        chevron.className = 'workload-chevron';
+        chevron.textContent = '▸';
+        header.appendChild(chevron);
+
+        const panel = document.createElement('div');
+        panel.className = 'workload-panel hidden';
+
+        header.addEventListener('click', async () => {
+            const isOpen = !panel.classList.contains('hidden');
+            panel.classList.toggle('hidden');
+            chevron.textContent = isOpen ? '▸' : '▾';
+            if (!isOpen && panel.childElementCount === 0) {
+                for (const pr of author.prs) {
+                    if (!pr.card) continue;
+                    const card = await createPullRequestCard(pr.card, 'workload', null, thresholds);
+                    panel.appendChild(card);
+                }
+            }
+        });
+
+        section.appendChild(header);
+        section.appendChild(panel);
+        list.appendChild(section);
+    }
+}
+
 document.getElementById('manifest-version').textContent = `v${chrome.runtime.getManifest().version}`;
 
 async function addWatchListUrl() {
@@ -456,6 +703,8 @@ document.addEventListener('DOMContentLoaded', async function () {
                         displayBadgeCount(element, pullRequests, lastViewedTime);
                     });
                 });
+
+                await setupWorkloadFilters(config);
 
                 if (lastViewedTime) {
                     await showReviewToast();
