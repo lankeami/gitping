@@ -1058,21 +1058,23 @@ h2 {
     display: flex;
     align-items: center;
     gap: var(--space-3);
-    padding: var(--space-3) var(--space-4);
+    width: 100%;
+    padding: var(--space-2) var(--space-4);
     border: 1px solid var(--color-border-light);
-    border-radius: var(--radius-lg);
-    background: var(--color-bg-primary);
+    border-radius: var(--radius-md);
+    background: var(--color-bg-tertiary);
+    color: var(--color-text-primary);
+    font-family: var(--font-family-base);
+    font-size: var(--font-size-sm);
     cursor: pointer;
-    transition: box-shadow var(--transition-base),
-                border-color var(--transition-base),
-                transform var(--transition-fast);
+    text-align: left;
+    box-sizing: border-box;
+    transition: background-color var(--transition-fast),
+                border-color var(--transition-fast);
 }
 
 .workload-row:hover {
-    box-shadow: var(--shadow-hover);
-    border-color: var(--color-primary);
-    transform: translateY(-1px);
-    background-color: var(--color-bg-hover);
+    background: var(--color-bg-hover);
 }
 
 .workload-info {
