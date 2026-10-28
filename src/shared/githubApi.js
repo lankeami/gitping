@@ -625,6 +625,8 @@ export async function fetchAndFilterPullRequests(username, token) {
 
     // filter through all results, look for pull requests that have reviews that are authored by copilot
     Object.keys(results).forEach((key) => {
+        // skip the copilot bucket itself, otherwise its own entries are re-collected and duplicated
+        if (key === 'copilot') return;
         results[key].forEach((issue) => {
             if (issue.reviews && issue.reviews.nodes) {
                 issue.reviews.nodes.forEach((review) => {
