@@ -741,7 +741,7 @@ document.addEventListener('DOMContentLoaded', async function () {
             lastErrorElement.classList.add('hidden');
         }
 
-        switchTab('copilot'); // Set the default tab to "copilot"
+        switchTab('personal'); // Set the default tab to "personal"
     }
 
     async function hidePopup() {
