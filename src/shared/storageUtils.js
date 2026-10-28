@@ -245,6 +245,17 @@ export async function getTeamPullRequests() {
         });
     });
 }
+/**
+ * Retrieve review requests for Copilot from chrome.storage.local.
+ * @returns {Promise<string>} - The GitHub username.
+ */
+export async function getCopilotReviewRequests() {
+    return new Promise((resolve) => {
+        chrome.storage.local.get(['copilotPullRequests'], (result) => {
+            resolve(result.copilotPullRequests);
+        });
+    });
+}
 
 /**
  * getStoredPullRequests
@@ -254,14 +265,15 @@ export async function getTeamPullRequests() {
 export async function getStoredPullRequests() {
     return new Promise((resolve) => {
         // TODO: hard coded Tab names / stored pull requests -- make them configurable
-        chrome.storage.local.get(['personalPullRequests', 'teamPullRequests', 'mentionsPullRequests', 'minePullRequests', 'issuesPullRequests', 'watchedPullRequests'], (result) => {
+        chrome.storage.local.get(['personalPullRequests', 'teamPullRequests', 'mentionsPullRequests', 'minePullRequests', 'issuesPullRequests', 'watchedPullRequests', 'copilotPullRequests'], (result) => {
             resolve({
                 personal: result.personalPullRequests,
                 team:     result.teamPullRequests,
                 mentions: result.mentionsPullRequests,
                 mine:     result.minePullRequests,
                 issues:   result.issuesPullRequests,
-                watched:  result.watchedPullRequests
+                watched:  result.watchedPullRequests,
+                copilot:  result.copilotPullRequests
             });
         });
     });
