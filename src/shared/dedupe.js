@@ -54,3 +54,22 @@ export function dedupeAcrossBuckets(buckets, priority = []) {
     }
     return result;
 }
+
+/**
+ * Dedupe buckets across each other (see dedupeAcrossBuckets) and count what is left.
+ * Used for the extension badge and notifications, so one PR is counted once.
+ * @param {Object<string, Array<object>>} diffs
+ * @param {string[]} [priority]
+ * @returns {{uniqueDiffs: Object<string, Array<object>>, total: number}}
+ */
+export function countUniqueAcrossBuckets(diffs, priority = []) {
+    const uniqueDiffs = dedupeAcrossBuckets(diffs || {}, priority);
+    const total = Object.values(uniqueDiffs).reduce((acc, arr) => acc + arr.length, 0);
+    return { uniqueDiffs, total };
+}
+
+/**
+ * Bucket order used for the badge and notifications. 'copilot' is last because it is derived
+ * from the other buckets, so a PR in any other bucket is counted there instead.
+ */
+export const BADGE_BUCKET_PRIORITY = ['personal', 'team', 'mine', 'mentions', 'issues', 'watched', 'copilot'];
