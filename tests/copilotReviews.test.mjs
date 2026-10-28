@@ -42,15 +42,22 @@ function prNode(number, reviewAuthors) {
         commits: { nodes: [] },
         comments: { nodes: [] },
         reviews: {
-            nodes: reviewAuthors.map((login, i) => ({
+            nodes: reviewAuthors.map((entry, i) => {
+                // an entry is a login (bot if it looks like a copilot/github app) or { login, __typename }
+                const login = typeof entry === 'string' ? entry : entry.login;
+                const __typename = typeof entry === 'string'
+                    ? (login === 'human' || login === 'other' ? 'User' : 'Bot')
+                    : entry.__typename;
+                return {
                 state: 'COMMENTED',
-                author: { login, avatarUrl: '' },
+                author: { login, __typename, avatarUrl: '' },
                 body: `review ${i} by ${login}`,
                 bodyHTML: `<p>review ${i}</p>`,
                 bodyText: `review ${i} by ${login}`,
                 createdAt: `2026-10-26T0${i + 1}:00:00Z`,
                 comments: { nodes: [] },
-            })),
+                };
+            }),
         },
     };
 }
@@ -72,7 +79,8 @@ function stubFetch(authoredPrs) {
     };
 }
 
-const { fetchAndFilterPullRequests } = await import('../src/shared/githubApi.js');
+const apiModule = await import('../src/shared/githubApi.js');
+const { fetchAndFilterPullRequests } = apiModule;
 
 describe('fetchAndFilterPullRequests — copilot bucket', () => {
 
@@ -155,5 +163,69 @@ describe('fetchAndFilterPullRequests — copilot bucket', () => {
         const results = await fetchAndFilterPullRequests('testuser', 'fake-token');
         assert.equal(results.copilot.length, 1);
         assert.equal(results.copilot[0].reviews.nodes[0].createdAt, '2026-10-26T02:00:00Z');
+    });
+
+    test('a human user whose login contains "copilot" is NOT classified as Copilot', async () => {
+        stubFetch([
+            prNode(11, [{ login: 'copilot-fan', __typename: 'User' }]),
+            prNode(12, [{ login: 'GitHub-Copilot', __typename: 'User' }, { login: 'human', __typename: 'User' }]),
+        ]);
+        const results = await fetchAndFilterPullRequests('testuser', 'fake-token');
+        assert.deepEqual(results.copilot, []);
+    });
+
+    test('the real Bot account is matched, even next to a human copilot-named user on the same PR', async () => {
+        stubFetch([
+            prNode(13, [
+                { login: 'copilot-fan', __typename: 'User' },
+                { login: 'copilot-pull-request-reviewer', __typename: 'Bot' },
+            ]),
+        ]);
+        const results = await fetchAndFilterPullRequests('testuser', 'fake-token');
+        assert.equal(results.copilot.length, 1);
+        assert.equal(results.copilot[0].reviews.nodes[0].author.login, 'copilot-pull-request-reviewer');
+        assert.equal(results.copilot[0].reviews.nodes[0].author.__typename, 'Bot');
+    });
+
+    test('a review author with no __typename is not treated as Copilot', async () => {
+        const pr = prNode(14, ['copilot-pull-request-reviewer']);
+        delete pr.reviews.nodes[0].author.__typename;
+        stubFetch([pr]);
+        const results = await fetchAndFilterPullRequests('testuser', 'fake-token');
+        assert.deepEqual(results.copilot, []);
+    });
+});
+
+describe('isCopilotBot', () => {
+    const { isCopilotBot } = apiModule;
+
+    test('GraphQL Bot shape matches', () => {
+        assert.equal(isCopilotBot({ login: 'copilot-pull-request-reviewer', __typename: 'Bot' }), true);
+    });
+    test('REST bot shape matches', () => {
+        assert.equal(isCopilotBot({ login: 'copilot-pull-request-reviewer[bot]', type: 'Bot' }), true);
+    });
+    test('human users with copilot in the login do not match (GraphQL and REST)', () => {
+        assert.equal(isCopilotBot({ login: 'copilot-fan', __typename: 'User' }), false);
+        assert.equal(isCopilotBot({ login: 'copilot-fan', type: 'User' }), false);
+    });
+    test('other bots and missing authors do not match', () => {
+        assert.equal(isCopilotBot({ login: 'dependabot[bot]', type: 'Bot' }), false);
+        assert.equal(isCopilotBot(null), false);
+        assert.equal(isCopilotBot({}), false);
+    });
+});
+
+describe('GraphQL queries request __typename on review authors', () => {
+    test('the search query asks for __typename on the review author', async () => {
+        let body = '';
+        globalThis.fetch = async (_url, opts) => {
+            body = JSON.parse(opts.body).query;
+            return { ok: true, status: 200, text: async () => '',
+                json: async () => ({ data: { search: { pageInfo: { hasNextPage: false }, nodes: [] } } }) };
+        };
+        const { GQLSearchPullRequests } = await import('../src/shared/githubGraphql.js');
+        await GQLSearchPullRequests('is:pr is:open author:testuser', 'fake-token');
+        assert.match(body, /reviews\(last: 15\)\s*\{\s*nodes\s*\{\s*state\s*author\s*\{\s*__typename/);
     });
 });

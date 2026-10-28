@@ -516,6 +516,19 @@ function enrichIssue(issue, gitpingType="") {
     return result;
 }
 
+/**
+ * True only for a Copilot *bot* account. A human user whose login happens to contain "copilot" does not count.
+ * GraphQL shape: { login: 'copilot-pull-request-reviewer', __typename: 'Bot' }
+ * REST shape:    { login: 'copilot-pull-request-reviewer[bot]', type: 'Bot' }
+ * @param {object} author - Review author from GraphQL or REST.
+ * @returns {boolean}
+ */
+export function isCopilotBot(author) {
+    if (!author || typeof author.login !== 'string') return false;
+    const isBot = author.__typename === 'Bot' || author.type === 'Bot';
+    return isBot && author.login.toLowerCase().includes('copilot');
+}
+
 function enrichCopilotReview(issue, review) {
     issue.comments = []
     issue.commits = []
@@ -633,7 +646,7 @@ export async function fetchAndFilterPullRequests(username, token) {
         results[key].forEach((issue) => {
             if (issue.reviews && issue.reviews.nodes) {
                 issue.reviews.nodes.forEach((review) => {
-                    if (review.author && review.author.login && review.author.login.toLowerCase().includes('copilot')) {
+                    if (isCopilotBot(review.author)) {
                         results['copilot'].push(enrichCopilotReview({ ...issue }, review));
                     }
                 });

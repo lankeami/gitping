@@ -108,6 +108,7 @@ function getPrSchema() {
                 nodes {
                     state
                     author {
+                        __typename
                         login
                         avatarUrl
                     }
@@ -320,6 +321,7 @@ query GetPullRequestDetails($owner: String!, $repo: String!, $pullNumber: Int!) 
         nodes {
             state
             author {
+                __typename
                 login
                 avatarUrl
             }
