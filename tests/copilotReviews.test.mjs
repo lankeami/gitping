@@ -132,4 +132,28 @@ describe('fetchAndFilterPullRequests — copilot bucket', () => {
         const sorted = [...times].sort((x, y) => y - x);
         assert.deepEqual(times, sorted);
     });
+    test('one copilot entry per PR even when the PR is found via several buckets', async () => {
+        // The same PR is returned by every search (mine, personal, team, mentions...), so it lands in
+        // several source buckets. Before dedupe this produced one identical copilot entry per bucket.
+        globalThis.fetch = async (_url, opts) => ({
+            ok: true, status: 200, text: async () => '',
+            json: async () => ({ data: { search: { pageInfo: { hasNextPage: false, endCursor: null },
+                nodes: [prNode(9, ['copilot-pull-request-reviewer'])] } } }),
+        });
+        const results = await fetchAndFilterPullRequests('testuser', 'fake-token');
+        const bucketsWithPr = ['personal', 'team', 'mine', 'mentions', 'issues', 'watched']
+            .filter(k => results[k].some(p => p.id === 'PR_9'));
+        assert.ok(bucketsWithPr.length > 1, 'precondition: PR_9 is in more than one source bucket');
+        assert.equal(results.copilot.length, 1);
+        assert.equal(results.copilot[0].id, 'PR_9');
+    });
+
+    test('keeps the newest copilot review when a PR has several', async () => {
+        const pr = prNode(10, ['copilot-pull-request-reviewer', 'copilot-pull-request-reviewer']);
+        // prNode gives the second review a later createdAt (02:00 vs 01:00)
+        stubFetch([pr]);
+        const results = await fetchAndFilterPullRequests('testuser', 'fake-token');
+        assert.equal(results.copilot.length, 1);
+        assert.equal(results.copilot[0].reviews.nodes[0].createdAt, '2026-10-26T02:00:00Z');
+    });
 });

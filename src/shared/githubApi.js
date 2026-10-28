@@ -1,5 +1,6 @@
 import { getGitHubApiBaseUrl, setFirstUpdateTime, getWatchListUrls } from './storageUtils.js';
 import { GQLSearchPullRequests, GQLSearchIssues, GQLFetchPullRequest, GQLFetchIssue } from './githubGraphql.js';
+import { dedupeById } from './dedupe.js';
 
 
 //
@@ -637,6 +638,11 @@ export async function fetchAndFilterPullRequests(username, token) {
             }
         });
     });
+
+    // the same PR can be found through several buckets (e.g. mine + mentions); keep one copilot entry
+    // per PR id, preferring the entry whose copilot review is newest
+    const reviewTime = (entry) => new Date(entry.reviews?.nodes?.[0]?.createdAt || 0).getTime();
+    results['copilot'] = dedupeById(results['copilot'], (a, b) => (reviewTime(b) > reviewTime(a) ? b : a));
 
     // sort results['copilot'] by createdAt date descending so it's newest first
     results['copilot'].sort((a, b) => {
