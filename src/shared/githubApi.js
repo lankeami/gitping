@@ -503,6 +503,8 @@ function enrichIssue(issue, gitpingType="") {
         head_sha: issue.headRefOid || null,
         ciStatus: aggregateCiStatus(
             (issue.commits?.nodes?.[0]?.commit?.checkSuites?.nodes ?? [])
+                // GitHub returns null nodes (plus a FORBIDDEN error) when the token cannot read a check suite
+                .filter(Boolean)
                 .map(s => ({
                     status: s.status.toLowerCase(),
                     conclusion: s.conclusion?.toLowerCase() ?? null,
