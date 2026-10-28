@@ -1,6 +1,7 @@
 import { getAppVersion, setAppVersion, getAuthToken, getUsername, updateExtensionBadge, getPersonalReviewRequests, getLastUpdateTime, getMentions, getMinePullRequests, getStoredPullRequests, setLastUpdateTime, setLastError, getPollingInterval, getLastViewedTime, pruneLocalStorage } from '../shared/storageUtils.js';
 import { setLastPushNotificationDate, getLastPushNotificationDate, triggerPushNotification, setLastViewedTime } from '../shared/storageUtils.js';
 import { fetchAndFilterPullRequests } from '../shared/githubApi.js';
+import { dedupeAcrossBuckets } from '../shared/dedupe.js';
 
 /**
  * Flattens a list of pull requests to a list of commit hashes.
@@ -92,9 +93,12 @@ async function checkForUpdates() {
             // set the last update time
             setLastUpdateTime();
 
-            // update the extension badge with the sum of the lengths of the arrays in diffs
-            const totalNewPullRequests = Object.values(diffs).reduce((acc, arr) => acc + arr.length, 0);
-            updateExtensionBadge(totalNewPullRequests, diffs);
+            // update the extension badge with the sum of the lengths of the arrays in diffs.
+            // The same PR can appear in several buckets (e.g. mine + mentions + copilot), so count it once;
+            // 'copilot' is last because it is derived from the other buckets.
+            const uniqueDiffs = dedupeAcrossBuckets(diffs, ['personal', 'team', 'mine', 'mentions', 'issues', 'watched', 'copilot']);
+            const totalNewPullRequests = Object.values(uniqueDiffs).reduce((acc, arr) => acc + arr.length, 0);
+            updateExtensionBadge(totalNewPullRequests, uniqueDiffs);
 
             // reset the last error
             setLastError();
