@@ -1,0 +1,40 @@
+{
+  "_comment": "Shape captured Oct 27 2026 from the real GitHub GraphQL API (read-only, extension's own PR schema). Values sanitized: ids/repo/titles/logins replaced, timestamps kept. Real Copilot reviews use author { login: 'copilot-pull-request-reviewer', __typename: 'Bot' } (REST shows 'copilot-pull-request-reviewer[bot]', type 'Bot'). When the token cannot read a check suite GitHub returns a null node plus a FORBIDDEN error.",
+  "pullRequest": {
+    "__typename": "PullRequest",
+    "id": "PR_kwDOEXAMPLE0001",
+    "title": "Example change reviewed by Copilot",
+    "url": "https://github.com/acme/widgets/pull/63",
+    "number": 63,
+    "isDraft": false,
+    "state": "OPEN",
+    "createdAt": "2025-09-30T19:50:00Z",
+    "updatedAt": "2025-09-30T21:10:00Z",
+    "repository": { "name": "widgets", "owner": { "login": "acme", "avatarUrl": "https://avatars.githubusercontent.com/u/1?v=4" } },
+    "author": { "login": "testuser", "avatarUrl": "https://avatars.githubusercontent.com/u/2?v=4" },
+    "reviewRequests": { "nodes": [] },
+    "labels": { "nodes": [] },
+    "additions": 10,
+    "deletions": 2,
+    "changedFiles": 3,
+    "headRefOid": "0000000000000000000000000000000000000000",
+    "commits": { "nodes": [ { "commit": {
+      "message": "example", "messageHeadline": "example", "messageBody": "", "messageBodyHTML": "",
+      "committedDate": "2025-09-30T19:49:00Z",
+      "author": { "user": { "login": "testuser", "avatarUrl": "https://avatars.githubusercontent.com/u/2?v=4" } },
+      "checkSuites": { "nodes": [ null, { "status": "COMPLETED", "conclusion": "SUCCESS" } ] }
+    } } ] },
+    "comments": { "nodes": [] },
+    "reviews": { "nodes": [
+      { "state": "COMMENTED", "body": "", "bodyHTML": "", "bodyText": "", "createdAt": "2025-09-30T20:14:37Z",
+        "author": { "login": "copilot-pull-request-reviewer", "avatarUrl": "https://avatars.githubusercontent.com/in/946600?v=4" },
+        "comments": { "nodes": [] } },
+      { "state": "COMMENTED", "body": "", "bodyHTML": "", "bodyText": "", "createdAt": "2025-09-30T21:03:32Z",
+        "author": { "login": "copilot-pull-request-reviewer", "avatarUrl": "https://avatars.githubusercontent.com/in/946600?v=4" },
+        "comments": { "nodes": [] } },
+      { "state": "COMMENTED", "body": "", "bodyHTML": "", "bodyText": "", "createdAt": "2025-09-30T21:05:00Z",
+        "author": { "login": "testuser", "avatarUrl": "https://avatars.githubusercontent.com/u/2?v=4" },
+        "comments": { "nodes": [] } }
+    ] }
+  }
+}

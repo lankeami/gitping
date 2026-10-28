@@ -1,3 +1,5 @@
+import { getBucketLabel } from './bucketLabels.js';
+
 /**
  * Retrieve the GitHub token from chrome.storage.local.
  * @returns {Promise<string>} - The GitHub token.
@@ -484,20 +486,11 @@ export function triggerPushNotification(count, newItems = null) {
     if (newItems && Object.keys(newItems).length > 0) {
         // Collect all new items into a single array with category labels
         const allItems = [];
-        const categoryLabels = {
-            personal: 'Review Requested',
-            team: 'Team',
-            mentions: 'Mentions',
-            mine: 'Your PRs',
-            issues: 'Issues',
-            watched: 'Watched'
-        };
-
         Object.entries(newItems).forEach(([category, items]) => {
             if (items && items.length > 0) {
                 items.forEach(item => {
                     allItems.push({
-                        category: categoryLabels[category] || category,
+                        category: getBucketLabel(category),
                         title: item.card?.title || item.title,
                         repo: item.card?.repo_name || item.repo_name,
                         type: (item.card?.type || item.type) === 'pulls' ? 'PR' : 'Issue'
