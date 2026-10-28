@@ -1,5 +1,18 @@
 import { getAvatarUrl, setAvatarUrl, removeFromWatchList, removeWatchedPullRequest, setLastUpdateTime } from './storageUtils.js';
 
+/**
+ * Generic getter for chrome.storage.local keys
+ * @param {Array<string>} keys - Array of storage keys to retrieve
+ * @returns {Promise<Object>} - Object with key-value pairs
+ */
+async function getFromStorage(keys) {
+    return new Promise((resolve) => {
+        chrome.storage.local.get(keys, (result) => {
+            resolve(result);
+        });
+    });
+}
+
 //
 //
 // INTERNAL HELPER FUNCTIONS
@@ -50,26 +63,70 @@ async function avatarForUser(user) {
     const avatarImg = document.createElement('img');
     avatarImg.src = avatarUrl;
     avatarImg.alt = user.login;
-    avatarImg.style.width = '24px';
-    avatarImg.style.height = '24px';
-    avatarImg.style.borderRadius = '50%';
-    avatarImg.style.verticalAlign = 'middle';
-    avatarImg.style.marginRight = '8px';
+    avatarImg.className = 'avatar avatar-md';
     return avatarImg;
 }
 
 
 /**
+ * Calculate staleness metadata for a PR based on its last update.
+ * Returns { daysSinceUpdate, badgeText, className } or null if not stale.
+ */
+function calculateStaleness(updatedAtIso, thresholds = {}) {
+  // Validate ISO date
+  if (!updatedAtIso || isNaN(new Date(updatedAtIso).getTime())) {
+    return null; // Invalid date; treat as not stale
+  }
+
+  const staleThreshold = thresholds.staleThreshold || 3;
+  const criticalThreshold = thresholds.criticalThreshold || 6;
+
+  // Validate thresholds
+  if (staleThreshold < 0 || criticalThreshold < 0 || criticalThreshold < staleThreshold) {
+    console.warn('Invalid staleness thresholds', thresholds);
+    return null;
+  }
+
+  const updatedAt = new Date(updatedAtIso);
+  const now = new Date();
+  const daysSinceUpdate = Math.floor((now - updatedAt) / (1000 * 60 * 60 * 24));
+
+  if (daysSinceUpdate < staleThreshold) {
+    return null; // Not stale enough to show badge
+  }
+
+  const badgeText = `${daysSinceUpdate}d`;
+  let className;
+
+  if (daysSinceUpdate >= criticalThreshold) {
+    className = 'staleness-badge--critical';
+  } else {
+    className = 'staleness-badge--warning';
+  }
+
+  return { daysSinceUpdate, badgeText, className };
+}
+
+/**
  * Creates a card element for a pull request
  * @param {Object} pr - The pull request object.
+ * @param {string} section_name - The section name (optional).
+ * @param {Date} lastViewedTime - The last time this tab was viewed (optional).
+ * @param {Object} thresholds - Staleness thresholds (optional, fetched from storage if not provided).
  * @returns {HTMLElement} - The card element.
  */
-export async function createPullRequestCard(pr, section_name = null, lastViewedTime = null) {
+export async function createPullRequestCard(pr, section_name = null, lastViewedTime = null, thresholds = null) {
     const card = document.createElement('div');
     card.className = 'pr-card';
     card.onclick = () => {
         window.open(pr.html_url, '_blank');
     };
+
+    // Use passed thresholds or fetch if not provided (fallback for direct calls)
+    const resolvedThresholds = thresholds || (await getFromStorage(['stalenessThresholds'])).stalenessThresholds || { staleThreshold: 3, criticalThreshold: 6 };
+
+    // Calculate staleness
+    const staleness = calculateStaleness(pr.updated_at, resolvedThresholds);
 
     try {
         const highbrow = await cardHighbrow(pr);
@@ -93,8 +150,21 @@ export async function createPullRequestCard(pr, section_name = null, lastViewedT
             card.appendChild(quote);
         }
 
+        const diffStat = cardDiffStat(pr);
+        if (diffStat) {
+            card.appendChild(diffStat);
+        }
+
         const footnote = cardFootnote(pr, section_name, lastViewedTime);
         card.appendChild(footnote);
+
+        // Add staleness badge if applicable
+        if (staleness) {
+            const badgeEl = document.createElement('div');
+            badgeEl.className = `staleness-badge ${staleness.className}`;
+            badgeEl.textContent = staleness.badgeText;
+            card.appendChild(badgeEl);
+        }
 
     } catch (error) {
         console.error('Error creating pull request card:', error, pr);
@@ -110,47 +180,27 @@ async function quoteCard(pr) {
     const quote = document.createElement('blockquote');
     quote.className = 'pr-quote';
     // render the markdwown text of the latest message
-    // Set the text content of the quote   
+    // Set the text content of the quote
     quote.textContent = pr.meta?.latest_message?.message || '';
     // TODO: convert quote.textContent markdown to HTML
 
-    // ensure quote is vertically scrollable if too long
-    quote.style.maxHeight = '50px';
-    quote.style.overflowY = 'auto';
-    quote.style.margin = '8px 0';
-    quote.style.padding = '8px';
-    quote.style.backgroundColor = '#f9f9f9';
-    quote.style.borderLeft = '4px solid #ccc';
-    quote.style.borderRadius = '4px';
-    quote.style.fontStyle = 'italic';
-    quote.style.whiteSpace = 'pre-wrap'; // Preserve whitespace and line breaks
-    quote.style.wordWrap = 'break-word'; // Ensure long words break to fit the container
-    // Ensure the quote is left aligned
-    quote.style.textAlign = 'left';
-    quote.style.fontSize = '12px';
-    quote.style.color = '#555';
-    quote.style.borderLeft = '2px solid #ccc';
-    quote.style.paddingLeft = '16px';
-    quote.style.margin = '8px 0';
-    quote.style.fontStyle = 'italic';
-    quote.style.margin = '0 0 8px 0';
+    // Add click handler to expand/collapse
+    quote.addEventListener('click', (e) => {
+        e.stopPropagation(); // Prevent card click
+        quote.classList.toggle('expanded');
+    });
+
     // --- Add the author of the quote ---
     if (pr.meta?.latest_message?.author?.login) {
         const author = document.createElement('span');
         author.className = 'pr-quote-author';
         author.textContent = ` - ${pr.meta.latest_message.author.login} `;
-        // author.style.fontWeight = 'bold';
-        author.style.display = 'block';
-        author.style.marginTop = '4px';
 
         // Add the avatar of the author
         const authorAvatar = await avatarForUser(pr.meta.latest_message.author);
         if (authorAvatar) {
-            authorAvatar.style.width = '16px';
-            authorAvatar.style.height = '16px';
-            authorAvatar.style.borderRadius = '50%';
-            authorAvatar.style.marginRight = '4px';
-            author.append(authorAvatar);
+            authorAvatar.className = 'avatar avatar-sm';
+            author.prepend(authorAvatar);
         }
 
         quote.appendChild(author);
@@ -220,8 +270,7 @@ async function cardHighbrow(pr) {
     }
     const ownerAvatar = await avatarForUser(owner);
     if(ownerAvatar) {
-        ownerAvatar.style.float = 'right';
-        ownerAvatar.style.marginLeft = '8px';
+        ownerAvatar.classList.add('avatar-float-right');
         highbrow.appendChild(ownerAvatar);
     }
     return highbrow;
@@ -244,42 +293,93 @@ function cardTitle(pr) {
             typeIcon.src = '../popup/images/issues.png'; // Make sure this icon exists
             typeIcon.alt = 'Issue';
         }
+        typeIcon.className = 'pr-type-icon';
         typeIcon.width = 18;
         typeIcon.height = 18;
-        typeIcon.style.verticalAlign = 'middle';
-        typeIcon.style.marginRight = '6px';
         title.appendChild(typeIcon);
     }
     title.appendChild(document.createTextNode(pr.title));
 
     // --- Add PR status badge ---
     const statusBadge = document.createElement('span');
-    statusBadge.className = 'pr-status-badge';
     if (pr.draft) {
         statusBadge.textContent = 'Draft';
-        statusBadge.style.backgroundColor = '#6c757d';
+        statusBadge.className = 'pr-status-badge pr-status-badge--draft';
     } else if (pr.state.toLowerCase() === 'open') {
         statusBadge.textContent = 'Open';
-        statusBadge.style.backgroundColor = '#28a745';
+        statusBadge.className = 'pr-status-badge pr-status-badge--open';
     } else if (pr.state.toLowerCase() === 'closed' && pr.merged_at) {
         statusBadge.textContent = 'Merged';
-        statusBadge.style.backgroundColor = '#6f42c1';
+        statusBadge.className = 'pr-status-badge pr-status-badge--merged';
     } else if (pr.state.toLowerCase() === 'closed') {
         statusBadge.textContent = 'Closed';
-        statusBadge.style.backgroundColor = '#d73a49';
+        statusBadge.className = 'pr-status-badge pr-status-badge--closed';
     } else {
         statusBadge.textContent = pr.state;
-        statusBadge.style.backgroundColor = '#cccccc';
+        statusBadge.className = 'pr-status-badge pr-status-badge--default';
     }
-    statusBadge.style.color = '#fff';
-    statusBadge.style.padding = '2px 8px';
-    statusBadge.style.borderRadius = '12px';
-    statusBadge.style.fontSize = '12px';
-    statusBadge.style.marginLeft = '8px';
-    statusBadge.style.verticalAlign = 'middle';
 
     title.appendChild(statusBadge);
+
+    if (pr.ciStatus) {
+        const ciSvg = {
+            success: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><path fill="#1a7f37" fill-rule="evenodd" d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0Zm3.78 4.47a.75.75 0 0 0-1.06 0L6.75 8.44 5.28 6.97a.75.75 0 0 0-1.06 1.06l2 2a.75.75 0 0 0 1.06 0l4.5-4.5a.75.75 0 0 0 0-1.06Z"/></svg>',
+            failure: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><path fill="#cf222e" fill-rule="evenodd" d="M2.343 13.657A8 8 0 1 1 13.657 2.343 8 8 0 0 1 2.343 13.657ZM6.03 4.97a.751.751 0 0 0-1.042.018.751.751 0 0 0-.018 1.042L6.94 8 4.97 9.99a.749.749 0 0 0 .326 1.275.749.749 0 0 0 .734-.215L8 9.06l1.97 1.99a.749.749 0 0 0 1.275-.326.749.749 0 0 0-.215-.734L9.06 8l1.99-1.97a.749.749 0 0 0-.326-1.275.749.749 0 0 0-.734.215L8 6.94 6.03 4.97Z"/></svg>',
+            running: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><path fill="#9a6700" fill-rule="evenodd" d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM5 8a1 1 0 1 0-2 0 1 1 0 0 0 2 0Zm4 0a1 1 0 1 0-2 0 1 1 0 0 0 2 0Zm3 0a1 1 0 1 0-2 0 1 1 0 0 0 2 0Z"/></svg>',
+        };
+        const ciBadge = document.createElement('span');
+        ciBadge.className = `ci-badge ci-badge--${pr.ciStatus}`;
+        ciBadge.title = `CI: ${pr.ciStatus}`;
+        const ciImg = document.createElement('img');
+        ciImg.src = 'data:image/svg+xml,' + encodeURIComponent(ciSvg[pr.ciStatus]);
+        ciImg.width = 16;
+        ciImg.height = 16;
+        ciImg.alt = 'CI: ' + pr.ciStatus;
+        ciBadge.appendChild(ciImg);
+        title.appendChild(ciBadge);
+    }
+
     return title;
+}
+
+function cardDiffStat(pr) {
+    if (pr.additions == null && pr.deletions == null) return null;
+
+    const additions = pr.additions || 0;
+    const deletions = pr.deletions || 0;
+    const files = pr.changedFiles || 0;
+    const total = additions + deletions;
+
+    const container = document.createElement('div');
+    container.className = 'pr-diff-stat';
+
+    let sizeClass = 'pr-diff-stat--sm';
+    if (total >= 500) sizeClass = 'pr-diff-stat--lg';
+    else if (total >= 100) sizeClass = 'pr-diff-stat--md';
+    container.classList.add(sizeClass);
+
+    const addSpan = document.createElement('span');
+    addSpan.className = 'pr-diff-additions';
+    addSpan.textContent = `+${additions}`;
+
+    const delSpan = document.createElement('span');
+    delSpan.className = 'pr-diff-deletions';
+    delSpan.textContent = `-${deletions}`;
+
+    const filesSpan = document.createElement('span');
+    filesSpan.className = 'pr-diff-files';
+    filesSpan.textContent = `${files} file${files !== 1 ? 's' : ''}`;
+
+    const sep1 = document.createTextNode(' ');
+    const sep2 = document.createTextNode(' · ');
+
+    container.appendChild(addSpan);
+    container.appendChild(sep1);
+    container.appendChild(delSpan);
+    container.appendChild(sep2);
+    container.appendChild(filesSpan);
+
+    return container;
 }
 
 function cardFootnote(pr, section_name = null, lastViewedTime = null) {
@@ -307,9 +407,7 @@ function cardFootnote(pr, section_name = null, lastViewedTime = null) {
     if (section_name === 'watched') {
         // Create a container for timestamps and remove button
         const footnoteRow = document.createElement('div');
-        footnoteRow.style.display = 'flex';
-        footnoteRow.style.alignItems = 'center';
-        footnoteRow.style.justifyContent = 'space-between';
+        footnoteRow.className = 'watched-footnote-row';
 
         // Left: timestamps
         const timestampsDiv = document.createElement('div');
@@ -320,21 +418,12 @@ function cardFootnote(pr, section_name = null, lastViewedTime = null) {
         const removeBtn = document.createElement('button');
         removeBtn.className = 'remove-watched-btn';
         removeBtn.title = 'Remove from watch list';
-        removeBtn.style.display = 'flex';
-        removeBtn.style.alignItems = 'center';
-        removeBtn.style.justifyContent = 'center';
-        removeBtn.style.background = 'none';
-        removeBtn.style.border = 'none';
-        removeBtn.style.cursor = 'pointer';
-        removeBtn.style.padding = '2px 6px';
-        removeBtn.style.marginLeft = '12px';
 
         const trashIcon = document.createElement('img');
         trashIcon.src = './images/delete.png';
         trashIcon.alt = 'Remove';
         trashIcon.width = 18;
         trashIcon.height = 18;
-        trashIcon.style.display = 'block';
 
         removeBtn.appendChild(trashIcon);
 
@@ -432,13 +521,17 @@ export async function displayPullRequestsCards(pullRequests, pullRequestsList, l
     pullRequestsList.innerHTML = '';
     pullRequests.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
 
+    // Fetch staleness thresholds ONCE, before creating cards
+    const { stalenessThresholds } = await getFromStorage(['stalenessThresholds']);
+    const thresholds = stalenessThresholds || { staleThreshold: 3, criticalThreshold: 6 };
+
     const cardPromises = pullRequests.map(async pr => {
         try {
-            const card = await createPullRequestCard(pr.card, elementId, lastViewedTime);
+            const card = await createPullRequestCard(pr.card, elementId, lastViewedTime, thresholds);
             return [pr.id.toString(), card];
         } catch (error) {
             console.error('Error creating card for PR:', pr, error);
-            return [pr.id.toString(), document.createElement('div')]; // Return an empty div if there's an error 
+            return [pr.id.toString(), document.createElement('div')]; // Return an empty div if there's an error
         }
     });
     const cardEntries = await Promise.all(cardPromises);

@@ -457,10 +457,10 @@ function enrichIssue(issue, gitpingType="") {
     }
 
     meta.latest_message = {
-        message: latestObject?.commit?.message || latestObject?.bodyText || latestObject?.state || '',
+        message: latestObject?.commit?.message || latestObject?.bodyText || latestObject?.comments?.nodes?.[0]?.bodyText || latestObject?.state || '',
         committedDate: latestObject?.commit?.committedDate || latestObject?.createdAt || '',
         author: latestObject?.commit?.author?.user || latestObject?.author || {},
-        message_html: latestObject?.commit?.message || latestObject?.bodyHTML || ''
+        message_html: latestObject?.commit?.message || latestObject?.bodyHTML || latestObject?.comments?.nodes?.[0]?.bodyHTML || ''
     };
 
     // owner and repo name from url
@@ -496,6 +496,17 @@ function enrichIssue(issue, gitpingType="") {
             avatar_url: owner.avatarUrl || owner.avatar_url || ''
         },
         labels: labels,
+        additions: issue.additions ?? null,
+        deletions: issue.deletions ?? null,
+        changedFiles: issue.changedFiles ?? null,
+        head_sha: issue.headRefOid || null,
+        ciStatus: aggregateCiStatus(
+            (issue.commits?.nodes?.[0]?.commit?.checkSuites?.nodes ?? [])
+                .map(s => ({
+                    status: s.status.toLowerCase(),
+                    conclusion: s.conclusion?.toLowerCase() ?? null,
+                }))
+        ),
         meta: meta
     }
 
@@ -508,6 +519,20 @@ function enrichCopilotReview(issue, review) {
     issue.reviews = {nodes: [review]}
     issue.card = {}
     return enrichIssue(issue);
+}
+
+/**
+ * Aggregate an array of check-run objects into a single CI status string.
+ * Pure function — no side effects, no network calls.
+ * @param {Array} runs - Array of GitHub check-run objects.
+ * @returns {'success'|'failure'|'running'|null}
+ */
+export function aggregateCiStatus(runs) {
+    if (!Array.isArray(runs) || runs.length === 0) return null;
+    if (runs.some(r => r.conclusion === 'failure' || r.conclusion === 'timed_out')) return 'failure';
+    if (runs.some(r => r.status === 'in_progress' || r.status === 'queued')) return 'running';
+    if (runs.every(r => r.conclusion === 'success')) return 'success';
+    return null;
 }
 
 //
