@@ -108,6 +108,7 @@ function getPrSchema() {
                 nodes {
                     state
                     author {
+                        __typename
                         login
                         avatarUrl
                     }
@@ -320,6 +321,7 @@ query GetPullRequestDetails($owner: String!, $repo: String!, $pullNumber: Int!) 
         nodes {
             state
             author {
+                __typename
                 login
                 avatarUrl
             }
@@ -448,13 +450,12 @@ async function fetchGraphQL(query, schema, token, after = null) {
 
     // check for pagination in data.search.pageInfo
     let pageInfo = data?.data?.search?.pageInfo || {hasNextPage: false};
-    while (pageInfo.hasNextPage) {
-        return nodes.push(
-            ...(await fetchGraphQL(query, schema, token, pageInfo.endCursor))
-        );
+    if (pageInfo.hasNextPage) {
+        // push() returns the new length, so return the accumulated array explicitly
+        const nextNodes = await fetchGraphQL(query, schema, token, pageInfo.endCursor);
+        nodes.push(...nextNodes);
     }
 
-    // check for the 
     return nodes;
 }
 

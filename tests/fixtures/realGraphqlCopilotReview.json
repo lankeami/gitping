@@ -27,13 +27,13 @@
     "comments": { "nodes": [] },
     "reviews": { "nodes": [
       { "state": "COMMENTED", "body": "", "bodyHTML": "", "bodyText": "", "createdAt": "2025-09-30T20:14:37Z",
-        "author": { "login": "copilot-pull-request-reviewer", "avatarUrl": "https://avatars.githubusercontent.com/in/946600?v=4" },
+        "author": { "login": "copilot-pull-request-reviewer", "__typename": "Bot", "avatarUrl": "https://avatars.githubusercontent.com/in/946600?v=4" },
         "comments": { "nodes": [] } },
       { "state": "COMMENTED", "body": "", "bodyHTML": "", "bodyText": "", "createdAt": "2025-09-30T21:03:32Z",
-        "author": { "login": "copilot-pull-request-reviewer", "avatarUrl": "https://avatars.githubusercontent.com/in/946600?v=4" },
+        "author": { "login": "copilot-pull-request-reviewer", "__typename": "Bot", "avatarUrl": "https://avatars.githubusercontent.com/in/946600?v=4" },
         "comments": { "nodes": [] } },
       { "state": "COMMENTED", "body": "", "bodyHTML": "", "bodyText": "", "createdAt": "2025-09-30T21:05:00Z",
-        "author": { "login": "testuser", "avatarUrl": "https://avatars.githubusercontent.com/u/2?v=4" },
+        "author": { "login": "testuser", "__typename": "User", "avatarUrl": "https://avatars.githubusercontent.com/u/2?v=4" },
         "comments": { "nodes": [] } }
     ] }
   }
