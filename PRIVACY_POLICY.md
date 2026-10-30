@@ -40,4 +40,4 @@ You have full control over the data stored by GitPing:
 We may update this privacy policy from time to time. Any changes will be reflected in the updated version of the extension and on the extension's listing in the Chrome Web Store.
 
 ## Contact Us
-If you have any questions or concerns about this privacy policy, please open an issue at https://github.com/lankeami/gitping/issues.
+If you have any questions or concerns about this privacy policy, please email help@gitping.app or open an issue at https://github.com/lankeami/gitping/issues.
