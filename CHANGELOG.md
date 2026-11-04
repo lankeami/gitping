@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-11-04
+
+- [support] | bump version to v1.12.0
+- [5b2b90b](https://github.com/lankeami/gitping/commit/5b2b90b92d133b365ceb7ce5fe5e0ac5504ad528) [feature] | popup filters: add Select all button per section (#111)
+- [bed8611](https://github.com/lankeami/gitping/commit/bed8611a49c826d643ca3c4a179b5f1525990764) [support] | privacy policy: add help@gitping.app contact (#110)
+- [1923a7e](https://github.com/lankeami/gitping/commit/1923a7e898640afea17867f0896fe7472979e2b3) [support] | privacy policy: GitHub Models recap, contact, content scripts (#109)
+
 ## 2026-08-03
 
 - [7752a7b](https://github.com/lankeami/gitping/commit/7752a7ba7e71c82e81d5f7187d356480496cef98) [support] | bump version to v1.10.0
