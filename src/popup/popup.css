@@ -648,7 +648,8 @@ h2 {
     align-items: center;
 }
 
-.clear-filter-btn {
+.clear-filter-btn,
+.select-all-filter-btn {
     background: var(--color-bg-tertiary);
     color: var(--color-primary);
     border: 1px solid var(--color-border-medium);
@@ -663,8 +664,20 @@ h2 {
     transition: background-color var(--transition-fast);
 }
 
-.clear-filter-btn:hover {
+.clear-filter-btn:hover,
+.select-all-filter-btn:hover {
     background: var(--color-bg-hover);
+}
+
+.clear-filter-btn:focus-visible,
+.select-all-filter-btn:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 1px;
+}
+
+.filter-actions {
+    display: flex;
+    gap: var(--space-2);
 }
 
 /* ========================================
