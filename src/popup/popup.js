@@ -42,6 +42,7 @@ function setPopupContainerHeight() {
 window.addEventListener('resize', setPopupContainerHeight);
 window.addEventListener('DOMContentLoaded', setPopupContainerHeight);
 import { getAuthToken, getUsername, resetLocalStorage, getLastUpdateTime, getLastError, setLastError, updateExtensionBadge, setLastUpdateTime, getFirstUpdateTime, setLastViewedTime, getLastViewedTime, addToWatchList, shouldSuppressReviewToast, setReviewClicked, snoozeReviewToast, getPopupOpenCount, incrementPopupOpenCount, getAvatarUrl, setAvatarUrl } from '../shared/storageUtils.js';
+import { selectAllOptions } from '../shared/filterSelection.js';
 import { displayPullRequestsCards, createPullRequestCard, resetUI, displayBadgeCount } from '../shared/uiUtils.js';
 
 // Helper: get card element by PR id
@@ -256,7 +257,12 @@ async function setupTabFilters(tabKey, pullRequests, lastViewedTime) {
     authorDiv.parentElement.querySelector('.clear-filter-btn').onclick = () => { selectedAuthors = []; renderAll(); updateCardVisibilityAndPersist(); };
     labelDiv.parentElement.querySelector('.clear-filter-btn').onclick = () => { selectedLabels = []; renderAll(); updateCardVisibilityAndPersist(); };
     repoDiv.parentElement.querySelector('.clear-filter-btn').onclick = () => { selectedRepos = []; renderAll(); updateCardVisibilityAndPersist(); };
-    dateDiv.parentElement.querySelector('.clear-filter-btn').onclick = () => { selectedDate = null; renderAll(); updateCardVisibilityAndPersist(); }; // Clear date filter
+    dateDiv.parentElement.querySelector('.clear-filter-btn').onclick = () => { selectedDate = null; renderAll(); updateCardVisibilityAndPersist(); };
+    // Select all buttons (checked = excluded, so select all then uncheck the ones to view)
+    orgDiv.parentElement.querySelector('.select-all-filter-btn').onclick = () => { selectedOrgs = selectAllOptions(orgs, selectedOrgs); renderAll(); updateCardVisibilityAndPersist(); };
+    authorDiv.parentElement.querySelector('.select-all-filter-btn').onclick = () => { selectedAuthors = selectAllOptions(authors, selectedAuthors); renderAll(); updateCardVisibilityAndPersist(); };
+    labelDiv.parentElement.querySelector('.select-all-filter-btn').onclick = () => { selectedLabels = selectAllOptions(labels, selectedLabels); renderAll(); updateCardVisibilityAndPersist(); };
+    repoDiv.parentElement.querySelector('.select-all-filter-btn').onclick = () => { selectedRepos = selectAllOptions(repos, selectedRepos); renderAll(); updateCardVisibilityAndPersist(); }; // Clear date filter
 
     // Initial visibility (after restoring selections)
     updateCardVisibilityAndPersist();
@@ -421,6 +427,11 @@ async function setupWorkloadFilters(config) {
     labelDiv.parentElement.querySelector('.clear-filter-btn').onclick = () => { selectedLabels = []; renderAll(); applyFiltersAndRender(); };
     repoDiv.parentElement.querySelector('.clear-filter-btn').onclick = () => { selectedRepos = []; renderAll(); applyFiltersAndRender(); };
     dateDiv.parentElement.querySelector('.clear-filter-btn').onclick = () => { selectedDate = null; renderAll(); applyFiltersAndRender(); };
+    // Select all buttons (checked = excluded, so select all then uncheck the ones to view)
+    orgDiv.parentElement.querySelector('.select-all-filter-btn').onclick = () => { selectedOrgs = selectAllOptions(orgs, selectedOrgs); renderAll(); applyFiltersAndRender(); };
+    authorDiv.parentElement.querySelector('.select-all-filter-btn').onclick = () => { selectedAuthors = selectAllOptions(authors, selectedAuthors); renderAll(); applyFiltersAndRender(); };
+    labelDiv.parentElement.querySelector('.select-all-filter-btn').onclick = () => { selectedLabels = selectAllOptions(labels, selectedLabels); renderAll(); applyFiltersAndRender(); };
+    repoDiv.parentElement.querySelector('.select-all-filter-btn').onclick = () => { selectedRepos = selectAllOptions(repos, selectedRepos); renderAll(); applyFiltersAndRender(); };
 
     await applyFiltersAndRender();
 }
