@@ -2,6 +2,20 @@ import { getAppVersion, setAppVersion, getAuthToken, getUsername, updateExtensio
 import { setLastPushNotificationDate, getLastPushNotificationDate, triggerPushNotification, setLastViewedTime } from '../shared/storageUtils.js';
 import { fetchAndFilterPullRequests } from '../shared/githubApi.js';
 import { countUniqueAcrossBuckets, BADGE_BUCKET_PRIORITY } from '../shared/dedupe.js';
+import { ensureFirstUseTime, recordNotificationClick } from '../shared/reviewPrompt.js';
+
+// First open of the service worker, including install, starts the 7-day clock.
+// Install and update do not clear chrome.storage.local, so rate-prompt keys persist.
+ensureFirstUseTime().catch((error) => {
+    console.error('Failed to record first use time:', error);
+});
+chrome.runtime.onInstalled.addListener((details) => {
+    if (details.reason === 'install') {
+        ensureFirstUseTime().catch((error) => {
+            console.error('Failed to record first use time:', error);
+        });
+    }
+});
 
 /**
  * Flattens a list of pull requests to a list of commit hashes.
@@ -166,6 +180,7 @@ async function shouldSendPushNotification() {
 
 // Handle notification clicks - open the extension popup
 chrome.notifications.onClicked.addListener(async (notificationId) => {
+    await recordNotificationClick();
     if (notificationId === 'newPullRequests') {
         chrome.notifications.clear(notificationId);
         console.log('Notification clicked:', notificationId);
