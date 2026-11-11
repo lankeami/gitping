@@ -34,12 +34,31 @@ describe('bucket labels', () => {
 
 describe('triggerPushNotification with a copilot bucket', () => {
     test('builds a notification for copilot items without throwing', async () => {
+        const store = {};
         let created;
-        globalThis.chrome = { notifications: { create(id, opts, cb) { created = { id, opts }; cb && cb(id); } }, runtime: { lastError: null } };
+        globalThis.chrome = {
+            notifications: { create(id, opts, cb) { created = { id, opts }; cb && cb(id); } },
+            runtime: { lastError: null },
+            storage: {
+                local: {
+                    get(keys, cb) {
+                        const result = {};
+                        for (const key of keys) if (key in store) result[key] = store[key];
+                        cb(result);
+                    },
+                    set(values, cb) {
+                        Object.assign(store, values);
+                        if (cb) cb();
+                    },
+                },
+            },
+        };
         const { triggerPushNotification } = await import('../src/shared/storageUtils.js');
         triggerPushNotification(1, { copilot: [{ card: { title: 'Fix it', repo_name: 'acme/widgets', type: 'pulls' } }] });
+        await new Promise((resolve) => setTimeout(resolve, 0));
         assert.equal(created.id, 'newPullRequests');
         assert.match(created.opts.message, /PR • acme\/widgets: Fix it/);
+        assert.equal(store.gp_pr_ping_count, 1);
         delete globalThis.chrome;
     });
 });
