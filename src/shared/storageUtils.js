@@ -37,10 +37,6 @@ export async function getGitHubApiBaseUrl() {
 }
 
 /**
- * Retrieve the polling interval from chrome.storage.local.
- * @returns {Promise<number>} - The polling interval in milliseconds.
- */
-/**
  * Get the last push notification date from chrome.storage.local.
  * @returns {Promise<number>} - The timestamp of the last notification (ms since epoch).
  */
@@ -65,10 +61,38 @@ export async function setLastPushNotificationDate(timestamp) {
     });
 }
 
+/** Default check interval when the stored value is missing or not a number. */
+export const DEFAULT_POLLING_INTERVAL_MINUTES = 5;
+
+/** Chrome alarms reject a period shorter than one minute. */
+export const MIN_POLLING_INTERVAL_MINUTES = 1;
+
+/**
+ * Normalize a polling interval to whole minutes.
+ * Parsing is base 10. Missing or non-numeric values default to 5.
+ * Values below 1 are clamped to 1.
+ * @param {unknown} value - Stored or form value.
+ * @returns {number} Whole minutes.
+ */
+export function normalizePollingInterval(value) {
+    const parsed = parseInt(value, 10);
+    if (!Number.isFinite(parsed)) {
+        return DEFAULT_POLLING_INTERVAL_MINUTES;
+    }
+    if (parsed < MIN_POLLING_INTERVAL_MINUTES) {
+        return MIN_POLLING_INTERVAL_MINUTES;
+    }
+    return parsed;
+}
+
+/**
+ * Retrieve the polling interval from chrome.storage.local.
+ * @returns {Promise<number>} Whole minutes, at least 1. Defaults to 5 when missing or invalid.
+ */
 export async function getPollingInterval() {
     return new Promise((resolve) => {
         chrome.storage.local.get(['pollingInterval'], (result) => {
-            resolve(parseInt(result.pollingInterval, 2));
+            resolve(normalizePollingInterval(result.pollingInterval));
         });
     });
 }
