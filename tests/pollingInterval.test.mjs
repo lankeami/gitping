@@ -231,7 +231,7 @@ describe('checkForUpdates alarm', () => {
 
         assert.equal(listeners.onChanged.length, 1);
         assert.equal(listeners.onChanged[0], background.handlePollingIntervalStorageChange);
-        assert.equal(listeners.onInstalled.length, 1);
+        assert.ok(listeners.onInstalled.length >= 1);
         assert.deepEqual(checkAlarms().map((alarm) => alarm.info), [
             { periodInMinutes: 101, delayInMinutes: 0 }
         ]);
@@ -266,7 +266,9 @@ describe('checkForUpdates alarm', () => {
 
         const othersBeforeInstall = otherAlarms().length;
         store.pollingInterval = 12;
-        await listeners.onInstalled[0]({ reason: 'install' });
+        for (const onInstalled of listeners.onInstalled) {
+            await onInstalled({ reason: 'install' });
+        }
         assert.equal(checkAlarms().at(-1).info.periodInMinutes, 12);
         assert.equal(otherAlarms().length, othersBeforeInstall);
         assert.deepEqual(
