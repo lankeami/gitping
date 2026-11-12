@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "GitPing: GitHub Notifications for Issues & PRs",
-  "version": "1.12.0",
-  "description": "Never miss a GitHub update! Get real-time notifications for Issues, Pull Requests, and review requests. 🚀",
+  "version": "1.13.0",
+  "description": "Desktop alerts and a badge count for GitHub pull requests waiting on your review, plus mentions, your open PRs and team workload.",
   "permissions": [
     "storage",
     "notifications",
