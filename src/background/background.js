@@ -112,13 +112,39 @@ async function checkForUpdates() {
     }
 }
 
-// Create an alarm to trigger periodic updates
-const pollingInterval = 5;
+/**
+ * Create or replace the checkForUpdates alarm from the stored polling interval.
+ * Other alarms are left unchanged.
+ * @returns {Promise<void>}
+ */
+export async function scheduleCheckForUpdatesAlarm() {
+    const periodInMinutes = await getPollingInterval();
+    chrome.alarms.create('checkForUpdates', { periodInMinutes, delayInMinutes: 0 });
+}
+
+/**
+ * Recreate the checkForUpdates alarm when the local pollingInterval setting changes.
+ * @param {Object<string, {oldValue: *, newValue: *}>} changes - Storage changes.
+ * @param {string} areaName - Storage area name.
+ * @returns {Promise<void>|undefined}
+ */
+export function handlePollingIntervalStorageChange(changes, areaName) {
+    if (areaName !== 'local' || !changes || !Object.prototype.hasOwnProperty.call(changes, 'pollingInterval')) {
+        return;
+    }
+    return scheduleCheckForUpdatesAlarm();
+}
+
+// Create alarms to trigger periodic updates.
+// checkForUpdates follows the saved polling interval; the other alarms stay fixed.
 const purgeLocalStorageInterval = (60 * 24); // set to 1 day
 const dailyLoginNotificationInterval = (60 * 24); // set to 1 day
 chrome.alarms.create('dailyLoginNotification', { periodInMinutes: dailyLoginNotificationInterval, delayInMinutes: 0 });
-chrome.alarms.create('checkForUpdates', { periodInMinutes: pollingInterval, delayInMinutes: 0 });
-chrome.alarms.create('pruneLocalStorage', {periodInMinutes: purgeLocalStorageInterval, delayInMinutes: 0})
+chrome.alarms.create('pruneLocalStorage', {periodInMinutes: purgeLocalStorageInterval, delayInMinutes: 0});
+
+chrome.storage.onChanged.addListener(handlePollingIntervalStorageChange);
+chrome.runtime.onInstalled.addListener(() => scheduleCheckForUpdatesAlarm());
+scheduleCheckForUpdatesAlarm();
 
 chrome.alarms.onAlarm.addListener((alarm) => {
     console.log(new Date().toLocaleString(), ': Job scheduled:', alarm.name);
