@@ -27,7 +27,7 @@
         <input type="text" id="api-base-url" name="api-base-url" placeholder="e.g., https://api.github.com" required>
 
         <label for="polling-interval">Polling Interval (minutes):</label>
-        <input type="number" id="polling-interval" name="polling-interval" min="1" required>
+        <input type="number" id="polling-interval" name="polling-interval" min="1" value="5" required>
 
         <label for="staleness-threshold">Stale After (days):</label>
         <input type="number" id="staleness-threshold" name="staleness-threshold" min="1" value="3" required>
@@ -41,6 +41,6 @@
     <!-- Toast Notification -->
     <div id="toast" class="toast hidden">Settings saved successfully!</div>
 
-    <script src="options.js"></script>
+    <script type="module" src="options.js"></script>
 </body>
 </html>
