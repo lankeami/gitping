@@ -1,4 +1,5 @@
 import { getBucketLabel } from './bucketLabels.js';
+import { recordPingedPullRequests } from './reviewPrompt.js';
 
 /**
  * Retrieve the GitHub token from chrome.storage.local.
@@ -533,9 +534,12 @@ export function triggerPushNotification(count, newItems = null) {
     chrome.notifications.create('newPullRequests', notificationOptions, (notificationId) => {
         if (chrome.runtime.lastError) {
             console.error('Failed to create notification:', chrome.runtime.lastError.message);
-        } else {
-            console.log('Notification shown with ID:', notificationId);
+            return;
         }
+        console.log('Notification shown with ID:', notificationId);
+        recordPingedPullRequests(count, newItems).catch((error) => {
+            console.error('Failed to record pinged pull requests:', error);
+        });
     });
 }
 
@@ -646,82 +650,3 @@ export async function getAppVersion() {
     });
 }
 
-//
-// CHROME EXTENSION REVIEW UTILS
-//
-
-/**
- * Check if the review toast should be suppressed.
- * @returns {Promise<boolean>} - true if toast should NOT be shown.
- */
-export async function shouldSuppressReviewToast() {
-    return new Promise((resolve) => {
-        chrome.storage.local.get(['reviewClickedAt', 'reviewSnoozedAt', 'userReviewedExtension'], (result) => {
-            // Permanently suppress if user clicked the review link
-            if (result.reviewClickedAt) {
-                resolve(true);
-                return;
-            }
-            // Migrate legacy one-shot flag: treat as a snooze, not permanent block.
-            // The old setter used toLocaleString(), which is not reliably parseable — treat
-            // an unparseable timestamp conservatively as "was shown recently, suppress now".
-            if (result.userReviewedExtension && !result.reviewSnoozedAt) {
-                const legacyTime = new Date(result.userReviewedExtension).getTime();
-                if (isNaN(legacyTime)) {
-                    resolve(true); // Can't determine when; suppress to avoid nagging
-                    return;
-                }
-                const fourteenDays = 14 * 24 * 60 * 60 * 1000;
-                resolve(Date.now() - legacyTime < fourteenDays);
-                return;
-            }
-            // Suppress for 14 days after a dismiss/snooze
-            if (result.reviewSnoozedAt) {
-                const snoozedAt = new Date(result.reviewSnoozedAt).getTime();
-                const fourteenDays = 14 * 24 * 60 * 60 * 1000;
-                resolve(Date.now() - snoozedAt < fourteenDays);
-                return;
-            }
-            resolve(false);
-        });
-    });
-}
-
-/**
- * Mark that the user clicked the review link (permanent suppress).
- */
-export async function setReviewClicked() {
-    return new Promise((resolve) => {
-        chrome.storage.local.set({ reviewClickedAt: new Date().toISOString() }, resolve);
-    });
-}
-
-/**
- * Snooze the review toast for 14 days (dismiss without reviewing).
- */
-export async function snoozeReviewToast() {
-    return new Promise((resolve) => {
-        chrome.storage.local.set({ reviewSnoozedAt: new Date().toISOString() }, resolve);
-    });
-}
-
-/**
- * Get the number of times the popup has been opened (for engagement gating).
- */
-export async function getPopupOpenCount() {
-    return new Promise((resolve) => {
-        chrome.storage.local.get(['popupOpenCount'], (result) => {
-            resolve(result.popupOpenCount || 0);
-        });
-    });
-}
-
-/**
- * Increment the popup open counter.
- */
-export async function incrementPopupOpenCount() {
-    const count = await getPopupOpenCount();
-    return new Promise((resolve) => {
-        chrome.storage.local.set({ popupOpenCount: count + 1 }, resolve);
-    });
-}

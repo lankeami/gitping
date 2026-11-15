@@ -41,7 +41,8 @@ function setPopupContainerHeight() {
 }
 window.addEventListener('resize', setPopupContainerHeight);
 window.addEventListener('DOMContentLoaded', setPopupContainerHeight);
-import { getAuthToken, getUsername, resetLocalStorage, getLastUpdateTime, getLastError, setLastError, updateExtensionBadge, setLastUpdateTime, getFirstUpdateTime, setLastViewedTime, getLastViewedTime, addToWatchList, shouldSuppressReviewToast, setReviewClicked, snoozeReviewToast, getPopupOpenCount, incrementPopupOpenCount, getAvatarUrl, setAvatarUrl } from '../shared/storageUtils.js';
+import { getAuthToken, getUsername, resetLocalStorage, getLastUpdateTime, getLastError, setLastError, updateExtensionBadge, setLastUpdateTime, getFirstUpdateTime, setLastViewedTime, getLastViewedTime, addToWatchList, getAvatarUrl, setAvatarUrl } from '../shared/storageUtils.js';
+import { applyReviewPatch, ensureFirstUseTime, evaluateReviewPrompt, logReviewSkip, markReviewChecked, performReviewAction, readReviewPromptStorage } from '../shared/reviewPrompt.js';
 import { selectAllOptions } from '../shared/filterSelection.js';
 import { displayPullRequestsCards, createPullRequestCard, resetUI, displayBadgeCount } from '../shared/uiUtils.js';
 
@@ -718,10 +719,6 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                 await setupWorkloadFilters(config);
 
-                if (lastViewedTime) {
-                    await showReviewToast();
-                }
-
                 setLastUpdateTime();
                 setLastError();
             }
@@ -762,6 +759,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         lastUpdateTimeElement.textContent = '';
         lastErrorElement.textContent = '';
         lastErrorElement.classList.add('hidden');
+        document.getElementById('review-prompt')?.classList.add('hidden');
     }
 
     function updateDisplaysFromStorage() {
@@ -771,7 +769,9 @@ document.addEventListener('DOMContentLoaded', async function () {
             const username = result.githubUsername
             const firstUpdateTime = await getFirstUpdateTime();
 
-            if (username) {
+            const signedIn = Boolean(username);
+            const hasError = Boolean(result.lastError);
+            if (signedIn) {
                 if(firstUpdateTime) {
                     updateDisplays(result);
                 }
@@ -780,6 +780,11 @@ document.addEventListener('DOMContentLoaded', async function () {
             } else {
                 await hidePopup();
             }
+            await maybeShowReviewPrompt({
+                signedIn,
+                hasError,
+                hasRealContent: signedIn && !hasError && Boolean(result.lastUpdateTime),
+            });
         });
     }
 
@@ -790,6 +795,7 @@ document.addEventListener('DOMContentLoaded', async function () {
             if (changes.lastError.newValue) {
                 lastErrorElement.textContent = `Error: ${changes.lastError.newValue}`;
                 lastErrorElement.classList.remove('hidden');
+                document.getElementById('review-prompt')?.classList.add('hidden');
             } else {
                 lastErrorElement.textContent = '';
                 lastErrorElement.classList.add('hidden');
@@ -847,6 +853,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     resetButton.addEventListener('click', async () => {
         await resetLocalStorage();
         resetUI();
+        document.getElementById('review-prompt')?.classList.add('hidden');
         alert('Credentials and data have been reset.');
     });
 
@@ -882,38 +889,76 @@ document.addEventListener('DOMContentLoaded', async function () {
         }
     });
 
-    async function showReviewToast() {
-        if (await shouldSuppressReviewToast()) return;
+    let reviewPromptDecided = false;
+    let reviewActionPending = false;
 
-        // Gate 1: at least 7 days since first use
-        const firstUpdateTime = await getFirstUpdateTime();
-        if (!firstUpdateTime || (Date.now() - new Date(firstUpdateTime).getTime()) < 7 * 24 * 60 * 60 * 1000) return;
+    async function maybeShowReviewPrompt(view) {
+        if (reviewPromptDecided) {
+            logReviewSkip('already shown this open');
+            return;
+        }
+        reviewPromptDecided = true;
 
-        // Gate 2: at least 15 popup opens (proves real engagement)
-        const openCount = await getPopupOpenCount();
-        if (openCount < 15) return;
+        const now = Date.now();
+        const [ensured, stored] = await Promise.all([
+            ensureFirstUseTime(now),
+            readReviewPromptStorage(),
+        ]);
+        const decision = evaluateReviewPrompt({
+            now,
+            firstUseTime: ensured.firstUseTime,
+            isFirstRun: ensured.created,
+            eventCount: stored.eventCount,
+            signedIn: view.signedIn,
+            hasError: view.hasError,
+            hasRealContent: view.hasRealContent,
+            snoozedAt: stored.snoozedAt,
+            clickedAt: stored.clickedAt,
+            dismissCount: stored.dismissCount,
+            lastNotificationClick: stored.lastNotificationClick,
+            lastCheckedAt: stored.lastCheckedAt,
+            alreadyShownThisOpen: false,
+        });
+        await markReviewChecked(now);
+        if (!decision.show) {
+            logReviewSkip(decision.reason);
+            return;
+        }
 
-        const toast = document.getElementById('review-toast');
-        if (toast) toast.classList.remove('hidden');
-        // Do NOT set any flag here — only on user action
+        const lead = document.getElementById('review-prompt-lead');
+        if (lead) lead.textContent = `GitPing has pinged you about ${decision.eventCount} PRs.`;
+        document.getElementById('review-prompt')?.classList.remove('hidden');
     }
 
-    // Dismiss = snooze (comes back in 14 days)
-    document.getElementById('close-review-toast')?.addEventListener('click', () => {
-        document.getElementById('review-toast').classList.add('hidden');
-        snoozeReviewToast();
+    async function openReviewDestination(url) {
+        if (!url) return;
+        try {
+            await chrome.tabs.create({ url });
+        } catch (error) {
+            console.error('Failed to open review link:', error);
+        }
+    }
+
+    async function handleReviewAction(kind) {
+        if (reviewActionPending) return;
+        reviewActionPending = true;
+        document.getElementById('review-prompt')?.classList.add('hidden');
+        const now = Date.now();
+        const stored = await readReviewPromptStorage();
+        const action = performReviewAction(kind, stored, now, chrome.runtime.id);
+        await applyReviewPatch(action.patch);
+        await openReviewDestination(action.url);
+    }
+
+    document.getElementById('review-prompt-rate')?.addEventListener('click', () => {
+        handleReviewAction('rate');
+    });
+    document.getElementById('review-prompt-later')?.addEventListener('click', () => {
+        handleReviewAction('not-now');
+    });
+    document.getElementById('review-prompt-problem')?.addEventListener('click', () => {
+        handleReviewAction('report');
     });
 
-    // Clicking the review link = permanent suppress.
-    // Prevent default so the storage write commits before the popup can close.
-    document.querySelector('#review-toast a')?.addEventListener('click', (e) => {
-        e.preventDefault();
-        const href = e.currentTarget.href;
-        setReviewClicked().then(() => {
-            window.open(href, '_blank');
-        });
-    });
-
-    await incrementPopupOpenCount();
     updateDisplaysFromStorage();
 });

@@ -710,40 +710,72 @@ h2 {
     display: none;
 }
 
-.review-toast {
-    background: var(--color-accent-mint);
-    color: var(--color-text-primary);
-    border-radius: var(--radius-md);
-    padding: var(--space-3) var(--space-4);
+.review-prompt {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: var(--space-3);
+    width: 100%;
+    box-sizing: border-box;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    background: var(--color-bg-secondary);
+    border-bottom: 1px solid var(--color-border-light);
     font-size: var(--font-size-sm);
-    margin: var(--space-2) 0;
+    line-height: var(--line-height-normal);
+    color: var(--color-text-secondary);
+    flex-shrink: 0;
 }
 
-.review-toast a {
-    color: var(--color-primary);
-    font-weight: var(--font-weight-medium);
-    text-decoration: underline;
+.review-prompt__copy {
+    flex: 1 1 14rem;
+    margin: 0;
 }
 
-.review-toast .close-toast-btn {
-    background: none;
-    border: none;
-    font-size: var(--font-size-xl);
-    color: var(--color-text-tertiary);
-    cursor: pointer;
-    margin-left: var(--space-2);
-    transition: color var(--transition-fast);
+.review-prompt__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
 }
 
-.review-toast .close-toast-btn:hover {
+.review-prompt__lead {
     color: var(--color-text-primary);
+    font-weight: var(--font-weight-bold);
 }
 
-.review-toast.hidden {
-    display: none;
+.review-prompt__help {
+    margin-left: var(--space-1);
+}
+
+.review-prompt__btn {
+    flex: 0 0 auto;
+    padding: var(--space-1) var(--space-2);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+    font-family: var(--font-family-base);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border-medium);
+    background: var(--color-bg-primary);
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    transition: background-color var(--transition-fast),
+                border-color var(--transition-fast);
+}
+
+.review-prompt__btn:hover {
+    background: var(--color-bg-hover);
+    border-color: var(--color-border-dark);
+}
+
+.review-prompt__btn--primary {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+    color: white;
+}
+
+.review-prompt__btn--primary:hover {
+    background: var(--color-primary-hover);
+    border-color: var(--color-primary-hover);
 }
 
 /* ========================================
